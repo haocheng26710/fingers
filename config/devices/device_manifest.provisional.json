@@ -1,0 +1,1078 @@
+{
+  "$schema": "../../schemas/device_manifest.schema.json",
+  "architecture": {
+    "audio_channels": {
+      "input": 1,
+      "output": 1
+    },
+    "end_roles": {
+      "RX_far": "closed",
+      "RX_near": "microphone",
+      "TX_far": "closed",
+      "TX_near": "speaker"
+    },
+    "main_tube": {
+      "center_spacing": {
+        "unit": "mm",
+        "value": 20.0
+      },
+      "cross_sectional_area": {
+        "unit": "mm^2",
+        "value": 20.155043202071983
+      },
+      "inner_diameter": {
+        "unit": "mm",
+        "value": 5.0657870100038425
+      },
+      "lumen_shape": "round",
+      "segment_acoustic_length": {
+        "unit": "mm",
+        "value": 200.0
+      },
+      "total_acoustic_length": {
+        "unit": "mm",
+        "value": 400.0
+      }
+    },
+    "nodes": [
+      {
+        "id": "N1",
+        "position": {
+          "unit": "mm",
+          "value": 50.0
+        }
+      },
+      {
+        "id": "N2",
+        "position": {
+          "unit": "mm",
+          "value": 105.0
+        }
+      },
+      {
+        "id": "N3",
+        "position": {
+          "unit": "mm",
+          "value": 165.0
+        }
+      },
+      {
+        "id": "N4",
+        "position": {
+          "unit": "mm",
+          "value": 235.0
+        }
+      },
+      {
+        "id": "N5",
+        "position": {
+          "unit": "mm",
+          "value": 310.0
+        }
+      },
+      {
+        "id": "N6",
+        "position": {
+          "unit": "mm",
+          "value": 360.0
+        }
+      }
+    ],
+    "research_object": "single-speaker single-microphone reconfigurable internal acoustic graph network",
+    "segments": [
+      {
+        "end": {
+          "unit": "mm",
+          "value": 200.0
+        },
+        "id": "TX_front",
+        "start": {
+          "unit": "mm",
+          "value": 0.0
+        },
+        "tube": "TX"
+      },
+      {
+        "end": {
+          "unit": "mm",
+          "value": 400.0
+        },
+        "id": "TX_rear",
+        "start": {
+          "unit": "mm",
+          "value": 200.0
+        },
+        "tube": "TX"
+      },
+      {
+        "end": {
+          "unit": "mm",
+          "value": 200.0
+        },
+        "id": "RX_front",
+        "start": {
+          "unit": "mm",
+          "value": 0.0
+        },
+        "tube": "RX"
+      },
+      {
+        "end": {
+          "unit": "mm",
+          "value": 400.0
+        },
+        "id": "RX_rear",
+        "start": {
+          "unit": "mm",
+          "value": 200.0
+        },
+        "tube": "RX"
+      }
+    ]
+  },
+  "bill_of_materials": {
+    "authoritative_source": "reports/BOM_calibrated_v1_3.csv",
+    "quantities": {
+      "ALV1_RX_front_0_200_round": 1,
+      "ALV1_RX_rear_200_400_round": 1,
+      "ALV1_RX_slider_joint": 1,
+      "ALV1_RX_slider_standard": 2,
+      "ALV1_TX_front_0_200_round": 1,
+      "ALV1_TX_rear_200_400_round": 1,
+      "ALV1_end_adapter_hose_barb": 2,
+      "ALV1_end_cap_closed": 2,
+      "ALV1_end_lock_clip": 6,
+      "ALV1_joint_lock_clip": 4,
+      "ALV1_module_block": 8,
+      "ALV1_module_bridge_D2p8": 4,
+      "ALV1_module_bridge_D3p2": 8,
+      "ALV1_module_bridge_D4p0": 4,
+      "ALV1_module_development_blank": 2,
+      "ALV1_slider_lock_wedge_H": 0,
+      "ALV1_slider_lock_wedge_L": 0,
+      "ALV1_slider_lock_wedge_M": 4,
+      "ALV1_support_joint_base": 1,
+      "ALV1_support_standard_base": 2,
+      "ALV1_tube_retainer_joint": 2,
+      "ALV1_tube_retainer_standard": 4
+    }
+  },
+  "boundary_conditions": {
+    "BLK_interpretation": "closed_not_open",
+    "formal_microphone_count": 1,
+    "formal_speaker_count": 1,
+    "unpopulated_node_requirement": "BLK_required"
+  },
+  "calibration": {
+    "acoustic_hole_compensation": {
+      "unit": "mm",
+      "value": 0.15
+    },
+    "acoustic_hole_coupon_measurements": [
+      {
+        "measured_post_print_diameter": {
+          "unit": "mm",
+          "value": null
+        },
+        "target_diameter": {
+          "unit": "mm",
+          "value": 2.8
+        }
+      },
+      {
+        "measured_post_print_diameter": {
+          "unit": "mm",
+          "value": null
+        },
+        "target_diameter": {
+          "unit": "mm",
+          "value": 3.2
+        }
+      },
+      {
+        "measured_post_print_diameter": {
+          "unit": "mm",
+          "value": null
+        },
+        "target_diameter": {
+          "unit": "mm",
+          "value": 4.0
+        }
+      },
+      {
+        "measured_post_print_diameter": {
+          "unit": "mm",
+          "value": null
+        },
+        "target_diameter": {
+          "unit": "mm",
+          "value": 4.2
+        }
+      },
+      {
+        "measured_post_print_diameter": {
+          "unit": "mm",
+          "value": null
+        },
+        "target_diameter": {
+          "unit": "mm",
+          "value": 5.0
+        }
+      }
+    ],
+    "d4_bridge_min_tip_wall": {
+      "unit": "mm",
+      "value": 0.8840909090909093
+    },
+    "dry_seal_dimensions": {
+      "calibration_interference_values_mm": [
+        0.0,
+        0.04,
+        0.08,
+        0.12
+      ],
+      "compensation": {
+        "acoustic_hole_mm": 0.15,
+        "dry_seal_plug_mm": 0.0,
+        "dry_seal_socket_mm": 0.0,
+        "surface_extra_stock_mm": 0.0
+      },
+      "end": {
+        "actual_cad_entry_interference_mm": -0.08000000000000007,
+        "cone_half_angle_deg": 0.716159945470406,
+        "plug_base_diameter_mm": 8.92,
+        "plug_length_mm": 8.0,
+        "plug_tip_diameter_mm": 8.72,
+        "socket_bottom_diameter_mm": 8.8,
+        "socket_depth_mm": 8.0,
+        "socket_entry_diameter_mm": 9.0,
+        "target_diametral_interference_mm": -0.08
+      },
+      "module": {
+        "actual_cad_entry_interference_mm": 0.0,
+        "cone_half_angle_deg": 2.6025622024997968,
+        "plug_base_diameter_mm": 6.1,
+        "plug_length_mm": 2.0,
+        "plug_tip_diameter_mm": 5.918181818181819,
+        "socket_bottom_diameter_mm": 5.9,
+        "socket_depth_mm": 2.2,
+        "socket_entry_diameter_mm": 6.1,
+        "target_diametral_interference_mm": 0.0
+      },
+      "split_joint": {
+        "actual_cad_entry_interference_mm": -0.14000000000000057,
+        "cone_half_angle_deg": 0.7161599454704102,
+        "plug_base_diameter_mm": 8.86,
+        "plug_length_mm": 11.8,
+        "plug_tip_diameter_mm": 8.565,
+        "socket_bottom_diameter_mm": 8.7,
+        "socket_depth_mm": 12.0,
+        "socket_entry_diameter_mm": 9.0,
+        "target_diametral_interference_mm": -0.14
+      }
+    },
+    "end_diametral_offset": {
+      "unit": "mm",
+      "value": -0.08
+    },
+    "end_plug_base_tip": {
+      "unit": "mm",
+      "values": [
+        8.92,
+        8.72
+      ]
+    },
+    "module_diametral_offset": {
+      "unit": "mm",
+      "value": 0.0
+    },
+    "module_plug_base_tip": {
+      "unit": "mm",
+      "values": [
+        6.1,
+        5.918181818181819
+      ]
+    },
+    "selected_wedge": "M",
+    "selected_wedge_preload_offset": {
+      "unit": "mm",
+      "value": 0.0
+    },
+    "slider_guide_clearance_per_side": {
+      "unit": "mm",
+      "value": 0.2
+    },
+    "split_joint_diametral_offset": {
+      "unit": "mm",
+      "value": -0.14
+    },
+    "split_joint_key_slot": {
+      "male_key_height": {
+        "unit": "mm",
+        "value": 1.0
+      },
+      "male_key_width": {
+        "unit": "mm",
+        "value": 0.8
+      },
+      "radial_center": {
+        "unit": "mm",
+        "value": 4.7
+      },
+      "radial_height": {
+        "unit": "mm",
+        "value": 1.6
+      },
+      "width": {
+        "unit": "mm",
+        "value": 1.0
+      }
+    },
+    "split_joint_plug_base_tip": {
+      "unit": "mm",
+      "values": [
+        8.86,
+        8.565
+      ]
+    },
+    "user_record": {
+      "confirmation_date": "2026-08-14",
+      "confirmation_time": null,
+      "source_type": "user_confirmed_measurement_record"
+    }
+  },
+  "device_id": "acoustic-ladder-v1-3-calibrated-printed-candidate",
+  "device_version": "Acoustic Ladder V1.3 Calibrated Round Main Tube",
+  "manufacturing": {
+    "actual_print_setting": {
+      "automatic_orientation_enabled": null,
+      "bed_temperature_c": null,
+      "bottom_layers": null,
+      "brim_width_mm": null,
+      "elephant_foot_compensation_mm": null,
+      "first_layer_speed_mm_s": null,
+      "flow_ratio": null,
+      "infill_pattern": null,
+      "infill_percent": null,
+      "layer_height_mm": null,
+      "line_width_mm": null,
+      "nozzle_diameter_mm": null,
+      "nozzle_temperature_c": null,
+      "other_slicer_settings": null,
+      "pressure_advance_or_flow_dynamics": null,
+      "print_speed_mm_s": null,
+      "seam_position": null,
+      "support_settings": null,
+      "top_layers": null,
+      "wall_count": null
+    },
+    "build_plate": "Bambu Textured PEI Plate",
+    "calibration_test_date": null,
+    "design_recommendation": {
+      "layer_height_range": {
+        "unit": "mm",
+        "values": [
+          0.16,
+          0.2
+        ]
+      },
+      "material": "PLA/PLA+",
+      "nozzle_diameter": {
+        "unit": "mm",
+        "value": 0.4
+      },
+      "wall_count": 5
+    },
+    "environment": {
+      "humidity_percent": null,
+      "temperature_c": null
+    },
+    "fit_cycle_counts": {
+      "end_interface": null,
+      "module_interface": null,
+      "split_joint_interface": null
+    },
+    "material": {
+      "batch": null,
+      "brand": null,
+      "color": null,
+      "dried": null,
+      "drying_duration_h": null,
+      "drying_temperature_c": null,
+      "model": null,
+      "type": null
+    },
+    "measurement": {
+      "tool": null,
+      "tool_accuracy": null
+    },
+    "operator": null,
+    "physical_print_confirmed": true,
+    "post_processing": {
+      "actual_material_removed": null,
+      "deburring_tool": null,
+      "permitted_principle": "minor_deburring_only",
+      "sandpaper_specification": null
+    },
+    "print_date": null,
+    "printer": {
+      "brand": "Bambu Lab",
+      "firmware_version": null,
+      "model": null
+    },
+    "slicer": {
+      "name": "Bambu Studio",
+      "version": null
+    },
+    "verification": {
+      "low_pressure_leak_test": {
+        "method": null,
+        "performed": null,
+        "result": null
+      },
+      "spectral_repeatability_test": {
+        "method": null,
+        "performed": null,
+        "result": null
+      }
+    }
+  },
+  "missing_information": [
+    "/calibration/acoustic_hole_coupon_measurements/0/measured_post_print_diameter/value",
+    "/calibration/acoustic_hole_coupon_measurements/1/measured_post_print_diameter/value",
+    "/calibration/acoustic_hole_coupon_measurements/2/measured_post_print_diameter/value",
+    "/calibration/acoustic_hole_coupon_measurements/3/measured_post_print_diameter/value",
+    "/calibration/acoustic_hole_coupon_measurements/4/measured_post_print_diameter/value",
+    "/calibration/user_record/confirmation_time",
+    "/manufacturing/actual_print_setting/automatic_orientation_enabled",
+    "/manufacturing/actual_print_setting/bed_temperature_c",
+    "/manufacturing/actual_print_setting/bottom_layers",
+    "/manufacturing/actual_print_setting/brim_width_mm",
+    "/manufacturing/actual_print_setting/elephant_foot_compensation_mm",
+    "/manufacturing/actual_print_setting/first_layer_speed_mm_s",
+    "/manufacturing/actual_print_setting/flow_ratio",
+    "/manufacturing/actual_print_setting/infill_pattern",
+    "/manufacturing/actual_print_setting/infill_percent",
+    "/manufacturing/actual_print_setting/layer_height_mm",
+    "/manufacturing/actual_print_setting/line_width_mm",
+    "/manufacturing/actual_print_setting/nozzle_diameter_mm",
+    "/manufacturing/actual_print_setting/nozzle_temperature_c",
+    "/manufacturing/actual_print_setting/other_slicer_settings",
+    "/manufacturing/actual_print_setting/pressure_advance_or_flow_dynamics",
+    "/manufacturing/actual_print_setting/print_speed_mm_s",
+    "/manufacturing/actual_print_setting/seam_position",
+    "/manufacturing/actual_print_setting/support_settings",
+    "/manufacturing/actual_print_setting/top_layers",
+    "/manufacturing/actual_print_setting/wall_count",
+    "/manufacturing/calibration_test_date",
+    "/manufacturing/environment/humidity_percent",
+    "/manufacturing/environment/temperature_c",
+    "/manufacturing/fit_cycle_counts/end_interface",
+    "/manufacturing/fit_cycle_counts/module_interface",
+    "/manufacturing/fit_cycle_counts/split_joint_interface",
+    "/manufacturing/material/batch",
+    "/manufacturing/material/brand",
+    "/manufacturing/material/color",
+    "/manufacturing/material/dried",
+    "/manufacturing/material/drying_duration_h",
+    "/manufacturing/material/drying_temperature_c",
+    "/manufacturing/material/model",
+    "/manufacturing/material/type",
+    "/manufacturing/measurement/tool",
+    "/manufacturing/measurement/tool_accuracy",
+    "/manufacturing/operator",
+    "/manufacturing/post_processing/actual_material_removed",
+    "/manufacturing/post_processing/deburring_tool",
+    "/manufacturing/post_processing/sandpaper_specification",
+    "/manufacturing/print_date",
+    "/manufacturing/printer/firmware_version",
+    "/manufacturing/printer/model",
+    "/manufacturing/slicer/version",
+    "/manufacturing/verification/low_pressure_leak_test/method",
+    "/manufacturing/verification/low_pressure_leak_test/performed",
+    "/manufacturing/verification/low_pressure_leak_test/result",
+    "/manufacturing/verification/spectral_repeatability_test/method",
+    "/manufacturing/verification/spectral_repeatability_test/performed",
+    "/manufacturing/verification/spectral_repeatability_test/result",
+    "/modules/0/measured_post_print_aperture/value",
+    "/modules/1/measured_post_print_aperture/value",
+    "/modules/2/measured_post_print_aperture/value"
+  ],
+  "modules": [
+    {
+      "cad_compensated_aperture": {
+        "unit": "mm",
+        "value": 4.15
+      },
+      "cad_name": "ALV1_module_bridge_D4p0",
+      "id": "B40",
+      "kind": "bridge",
+      "measured_post_print_aperture": {
+        "unit": "mm",
+        "value": null
+      },
+      "target_aperture": {
+        "unit": "mm",
+        "value": 4.0
+      }
+    },
+    {
+      "cad_compensated_aperture": {
+        "unit": "mm",
+        "value": 3.35
+      },
+      "cad_name": "ALV1_module_bridge_D3p2",
+      "id": "B32",
+      "kind": "bridge",
+      "measured_post_print_aperture": {
+        "unit": "mm",
+        "value": null
+      },
+      "target_aperture": {
+        "unit": "mm",
+        "value": 3.2
+      }
+    },
+    {
+      "cad_compensated_aperture": {
+        "unit": "mm",
+        "value": 2.9499999999999997
+      },
+      "cad_name": "ALV1_module_bridge_D2p8",
+      "id": "B28",
+      "kind": "bridge",
+      "measured_post_print_aperture": {
+        "unit": "mm",
+        "value": null
+      },
+      "target_aperture": {
+        "unit": "mm",
+        "value": 2.8
+      }
+    },
+    {
+      "cad_name": "ALV1_module_block",
+      "id": "BLK",
+      "kind": "block",
+      "meaning": "closed_node_not_open_end",
+      "residual_dead_cavity_length": {
+        "unit": "mm",
+        "value": 0.45
+      }
+    }
+  ],
+  "package": {
+    "file_size_bytes": 3705686,
+    "filename": "Acoustic_Ladder_V1_3_calibrated_round_main_tube_print_package.zip",
+    "sha256": "1bf3cc17a46cac8552b8eb80d543cec5880afef7f8c716fd8f029636899d688b"
+  },
+  "provenance": {
+    "conflicts": [
+      {
+        "alternative_source": "source/bom.py",
+        "alternative_value": {
+          "ALV1_slider_lock_wedge_H": 1,
+          "ALV1_slider_lock_wedge_L": 1,
+          "ALV1_slider_lock_wedge_M": 4
+        },
+        "code": "BOM_WEDGE_QUANTITY_CONFLICT",
+        "field": "/bill_of_materials/wedge_quantities",
+        "resolution": "BOM_calibrated_v1_3.csv has higher declared priority",
+        "selected_source": "reports/BOM_calibrated_v1_3.csv",
+        "selected_value": {
+          "ALV1_slider_lock_wedge_H": 0,
+          "ALV1_slider_lock_wedge_L": 0,
+          "ALV1_slider_lock_wedge_M": 4
+        }
+      },
+      {
+        "alternative_source": "reports/derived_acoustics_v1.json#/main_teardrop",
+        "alternative_value": "historical_field_label_main_teardrop",
+        "code": "ACTIVE_LUMEN_LABEL_CONFLICT",
+        "field": "/architecture/main_tube/lumen_shape",
+        "resolution": "V1.3 source geometry and explicit special rule take priority; the derived field is historical only",
+        "selected_source": "reports/params_calibrated_v1_3.json",
+        "selected_value": "round"
+      }
+    ],
+    "fields": {
+      "/architecture/audio_channels": {
+        "confirmation_status": "frozen",
+        "locator": "#2 formal audio channels",
+        "parameter_kind": "source",
+        "source_filename": "docs/prompts/DEV-01.01.md",
+        "source_type": "user_frozen_research_condition",
+        "unit": null
+      },
+      "/architecture/end_roles": {
+        "confirmation_status": "frozen",
+        "locator": "#2 TX/RX near/far roles",
+        "parameter_kind": "source",
+        "source_filename": "docs/prompts/DEV-01.01.md",
+        "source_type": "user_frozen_research_condition",
+        "unit": null
+      },
+      "/architecture/main_tube/center_spacing": {
+        "confirmation_status": "package_verified",
+        "locator": "/MAIN_CENTER_SPACING",
+        "parameter_kind": "source",
+        "source_filename": "reports/params_calibrated_v1_3.json",
+        "source_type": "v1_3_print_package",
+        "unit": "mm"
+      },
+      "/architecture/main_tube/cross_sectional_area": {
+        "confirmation_status": "computed",
+        "locator": "pi * (/ROUND_LUMEN_DIAMETER_MM / 2)^2",
+        "parameter_kind": "derived",
+        "source_filename": "reports/params_calibrated_v1_3.json",
+        "source_type": "recomputed_from_v1_3_source_geometry",
+        "unit": "mm^2"
+      },
+      "/architecture/main_tube/inner_diameter": {
+        "confirmation_status": "package_verified",
+        "locator": "/ROUND_LUMEN_DIAMETER_MM",
+        "parameter_kind": "source",
+        "source_filename": "reports/params_calibrated_v1_3.json",
+        "source_type": "v1_3_print_package",
+        "unit": "mm"
+      },
+      "/architecture/main_tube/lumen_shape": {
+        "confirmation_status": "package_verified",
+        "locator": "/VERSION and /ROUND_LUMEN_DIAMETER_MM",
+        "parameter_kind": "source",
+        "source_filename": "reports/params_calibrated_v1_3.json",
+        "source_type": "v1_3_print_package",
+        "unit": null
+      },
+      "/architecture/main_tube/segment_acoustic_length": {
+        "confirmation_status": "package_verified",
+        "locator": "/SEGMENT_ACOUSTIC_LENGTH",
+        "parameter_kind": "source",
+        "source_filename": "reports/params_calibrated_v1_3.json",
+        "source_type": "v1_3_print_package",
+        "unit": "mm"
+      },
+      "/architecture/main_tube/total_acoustic_length": {
+        "confirmation_status": "package_verified",
+        "locator": "/MAIN_TOTAL_ACOUSTIC_LENGTH",
+        "parameter_kind": "source",
+        "source_filename": "reports/params_calibrated_v1_3.json",
+        "source_type": "v1_3_print_package",
+        "unit": "mm"
+      },
+      "/architecture/nodes/0/position": {
+        "confirmation_status": "package_verified",
+        "locator": "/NODE_X_GLOBAL/0",
+        "parameter_kind": "source",
+        "source_filename": "reports/params_calibrated_v1_3.json",
+        "source_type": "v1_3_print_package",
+        "unit": "mm"
+      },
+      "/architecture/nodes/1/position": {
+        "confirmation_status": "package_verified",
+        "locator": "/NODE_X_GLOBAL/1",
+        "parameter_kind": "source",
+        "source_filename": "reports/params_calibrated_v1_3.json",
+        "source_type": "v1_3_print_package",
+        "unit": "mm"
+      },
+      "/architecture/nodes/2/position": {
+        "confirmation_status": "package_verified",
+        "locator": "/NODE_X_GLOBAL/2",
+        "parameter_kind": "source",
+        "source_filename": "reports/params_calibrated_v1_3.json",
+        "source_type": "v1_3_print_package",
+        "unit": "mm"
+      },
+      "/architecture/nodes/3/position": {
+        "confirmation_status": "package_verified",
+        "locator": "/NODE_X_GLOBAL/3",
+        "parameter_kind": "source",
+        "source_filename": "reports/params_calibrated_v1_3.json",
+        "source_type": "v1_3_print_package",
+        "unit": "mm"
+      },
+      "/architecture/nodes/4/position": {
+        "confirmation_status": "package_verified",
+        "locator": "/NODE_X_GLOBAL/4",
+        "parameter_kind": "source",
+        "source_filename": "reports/params_calibrated_v1_3.json",
+        "source_type": "v1_3_print_package",
+        "unit": "mm"
+      },
+      "/architecture/nodes/5/position": {
+        "confirmation_status": "package_verified",
+        "locator": "/NODE_X_GLOBAL/5",
+        "parameter_kind": "source",
+        "source_filename": "reports/params_calibrated_v1_3.json",
+        "source_type": "v1_3_print_package",
+        "unit": "mm"
+      },
+      "/boundary_conditions": {
+        "confirmation_status": "frozen",
+        "locator": "#2 frozen boundary conditions",
+        "parameter_kind": "source",
+        "source_filename": "docs/prompts/DEV-01.01.md",
+        "source_type": "user_frozen_research_condition",
+        "unit": null
+      },
+      "/calibration/acoustic_hole_compensation": {
+        "confirmation_status": "package_verified",
+        "locator": "/acoustic_hole_compensation_mm",
+        "parameter_kind": "source",
+        "source_filename": "reports/calibration_applied_v1_3.json",
+        "source_type": "v1_3_print_package",
+        "unit": "mm"
+      },
+      "/calibration/acoustic_hole_coupon_measurements": {
+        "confirmation_status": "user_confirmed",
+        "locator": "/calibration/acoustic_holes",
+        "parameter_kind": "source",
+        "source_filename": "reference/calibration/V1_3_user_calibration_record.json",
+        "source_type": "user_confirmed_measurement_record",
+        "unit": "mm"
+      },
+      "/calibration/end_diametral_offset": {
+        "confirmation_status": "package_verified",
+        "locator": "/end_diametral_offset_mm",
+        "parameter_kind": "source",
+        "source_filename": "reports/calibration_applied_v1_3.json",
+        "source_type": "v1_3_print_package",
+        "unit": "mm"
+      },
+      "/calibration/module_diametral_offset": {
+        "confirmation_status": "package_verified",
+        "locator": "/module_diametral_offset_mm",
+        "parameter_kind": "source",
+        "source_filename": "reports/calibration_applied_v1_3.json",
+        "source_type": "v1_3_print_package",
+        "unit": "mm"
+      },
+      "/calibration/selected_wedge": {
+        "confirmation_status": "package_verified",
+        "locator": "/selected_wedge",
+        "parameter_kind": "source",
+        "source_filename": "reports/calibration_applied_v1_3.json",
+        "source_type": "v1_3_print_package",
+        "unit": null
+      },
+      "/calibration/selected_wedge_preload_offset": {
+        "confirmation_status": "user_confirmed",
+        "locator": "/calibration/slider_and_wedge/selected_wedge_preload_offset_mm",
+        "parameter_kind": "source",
+        "source_filename": "reference/calibration/V1_3_user_calibration_record.json",
+        "source_type": "user_confirmed_measurement_record",
+        "unit": "mm"
+      },
+      "/calibration/slider_guide_clearance_per_side": {
+        "confirmation_status": "package_verified",
+        "locator": "/slider_guide_clearance_per_side_mm",
+        "parameter_kind": "source",
+        "source_filename": "reports/calibration_applied_v1_3.json",
+        "source_type": "v1_3_print_package",
+        "unit": "mm"
+      },
+      "/calibration/split_joint_diametral_offset": {
+        "confirmation_status": "package_verified",
+        "locator": "/split_joint_diametral_offset_mm",
+        "parameter_kind": "source",
+        "source_filename": "reports/calibration_applied_v1_3.json",
+        "source_type": "v1_3_print_package",
+        "unit": "mm"
+      },
+      "/device_version": {
+        "confirmation_status": "package_verified",
+        "locator": "/VERSION",
+        "parameter_kind": "source",
+        "source_filename": "reports/params_calibrated_v1_3.json",
+        "source_type": "v1_3_print_package",
+        "unit": null
+      },
+      "/manufacturing/actual_print_setting": {
+        "confirmation_status": "user_confirmed",
+        "locator": "/actual_print_record/settings",
+        "parameter_kind": "source",
+        "source_filename": "reference/calibration/V1_3_user_calibration_record.json",
+        "source_type": "user_confirmed_measurement_record",
+        "unit": null
+      },
+      "/manufacturing/design_recommendation": {
+        "confirmation_status": "package_verified",
+        "locator": "/NOZZLE_DIAMETER, /DEFAULT_MATERIAL, /LAYER_HEIGHT_RANGE, /MAIN_WALL_COUNT",
+        "parameter_kind": "source",
+        "source_filename": "reports/params_calibrated_v1_3.json",
+        "source_type": "v1_3_print_package",
+        "unit": null
+      },
+      "/manufacturing/material": {
+        "confirmation_status": "user_confirmed",
+        "locator": "/actual_print_record/material",
+        "parameter_kind": "source",
+        "source_filename": "reference/calibration/V1_3_user_calibration_record.json",
+        "source_type": "user_confirmed_measurement_record",
+        "unit": null
+      },
+      "/manufacturing/printer": {
+        "confirmation_status": "user_confirmed",
+        "locator": "/actual_print_record/printer",
+        "parameter_kind": "source",
+        "source_filename": "reference/calibration/V1_3_user_calibration_record.json",
+        "source_type": "user_confirmed_measurement_record",
+        "unit": null
+      },
+      "/modules/0/cad_compensated_aperture": {
+        "confirmation_status": "package_verified",
+        "locator": "/bridges/D4.0/cad_diameter_mm",
+        "parameter_kind": "derived",
+        "source_filename": "reports/derived_acoustics_v1.json",
+        "source_type": "v1_3_print_package",
+        "unit": "mm"
+      },
+      "/modules/0/measured_post_print_aperture": {
+        "confirmation_status": "user_confirmed",
+        "locator": "/calibration/acoustic_holes/measured_diameters_mm/0",
+        "parameter_kind": "source",
+        "source_filename": "reference/calibration/V1_3_user_calibration_record.json",
+        "source_type": "user_confirmed_measurement_record",
+        "unit": "mm"
+      },
+      "/modules/0/target_aperture": {
+        "confirmation_status": "package_verified",
+        "locator": "/bridges/D4.0/target_diameter_mm",
+        "parameter_kind": "derived",
+        "source_filename": "reports/derived_acoustics_v1.json",
+        "source_type": "v1_3_print_package",
+        "unit": "mm"
+      },
+      "/modules/1/cad_compensated_aperture": {
+        "confirmation_status": "package_verified",
+        "locator": "/bridges/D3.2/cad_diameter_mm",
+        "parameter_kind": "derived",
+        "source_filename": "reports/derived_acoustics_v1.json",
+        "source_type": "v1_3_print_package",
+        "unit": "mm"
+      },
+      "/modules/1/measured_post_print_aperture": {
+        "confirmation_status": "user_confirmed",
+        "locator": "/calibration/acoustic_holes/measured_diameters_mm/1",
+        "parameter_kind": "source",
+        "source_filename": "reference/calibration/V1_3_user_calibration_record.json",
+        "source_type": "user_confirmed_measurement_record",
+        "unit": "mm"
+      },
+      "/modules/1/target_aperture": {
+        "confirmation_status": "package_verified",
+        "locator": "/bridges/D3.2/target_diameter_mm",
+        "parameter_kind": "derived",
+        "source_filename": "reports/derived_acoustics_v1.json",
+        "source_type": "v1_3_print_package",
+        "unit": "mm"
+      },
+      "/modules/2/cad_compensated_aperture": {
+        "confirmation_status": "package_verified",
+        "locator": "/bridges/D2.8/cad_diameter_mm",
+        "parameter_kind": "derived",
+        "source_filename": "reports/derived_acoustics_v1.json",
+        "source_type": "v1_3_print_package",
+        "unit": "mm"
+      },
+      "/modules/2/measured_post_print_aperture": {
+        "confirmation_status": "user_confirmed",
+        "locator": "/calibration/acoustic_holes/measured_diameters_mm/2",
+        "parameter_kind": "source",
+        "source_filename": "reference/calibration/V1_3_user_calibration_record.json",
+        "source_type": "user_confirmed_measurement_record",
+        "unit": "mm"
+      },
+      "/modules/2/target_aperture": {
+        "confirmation_status": "package_verified",
+        "locator": "/bridges/D2.8/target_diameter_mm",
+        "parameter_kind": "derived",
+        "source_filename": "reports/derived_acoustics_v1.json",
+        "source_type": "v1_3_print_package",
+        "unit": "mm"
+      },
+      "/modules/3/residual_dead_cavity_length": {
+        "confirmation_status": "package_verified",
+        "locator": "/BLOCK_TIP_TO_MAIN_LUMEN",
+        "parameter_kind": "source",
+        "source_filename": "reports/params_calibrated_v1_3.json",
+        "source_type": "v1_3_print_package",
+        "unit": "mm"
+      },
+      "/package/sha256": {
+        "confirmation_status": "computed_and_cross_checked",
+        "locator": "SHA256 of complete ZIP bytes",
+        "parameter_kind": "derived",
+        "source_filename": "Acoustic_Ladder_V1_3_calibrated_round_main_tube_print_package.zip",
+        "source_type": "computed_archive_digest",
+        "unit": null
+      },
+      "/source_geometry_version": {
+        "confirmation_status": "package_verified",
+        "locator": "/source_geometry",
+        "parameter_kind": "source",
+        "source_filename": "reports/calibration_applied_v1_3.json",
+        "source_type": "v1_3_print_package",
+        "unit": null
+      },
+      "/stage_four/recommended_nodes": {
+        "confirmation_status": "package_verified",
+        "locator": "/STAGE_FOUR_INITIAL_NODE_X",
+        "parameter_kind": "source",
+        "source_filename": "reports/params_calibrated_v1_3.json",
+        "source_type": "v1_3_print_package",
+        "unit": "mm"
+      },
+      "/status/calibration_status": {
+        "confirmation_status": "frozen",
+        "locator": "#2 calibration_status",
+        "parameter_kind": "source",
+        "source_filename": "docs/prompts/DEV-01.01.md",
+        "source_type": "user_frozen_research_condition",
+        "unit": null
+      },
+      "/status/model_status": {
+        "confirmation_status": "frozen",
+        "locator": "#2 model_status",
+        "parameter_kind": "source",
+        "source_filename": "docs/prompts/DEV-01.01.md",
+        "source_type": "user_frozen_research_condition",
+        "unit": null
+      },
+      "/status/physical_print_status": {
+        "confirmation_status": "frozen",
+        "locator": "#2 physical_print_status",
+        "parameter_kind": "source",
+        "source_filename": "docs/prompts/DEV-01.01.md",
+        "source_type": "user_frozen_research_condition",
+        "unit": null
+      },
+      "/status/release_role": {
+        "confirmation_status": "frozen",
+        "locator": "#2 release_role",
+        "parameter_kind": "source",
+        "source_filename": "docs/prompts/DEV-01.01.md",
+        "source_type": "user_frozen_research_condition",
+        "unit": null
+      }
+    },
+    "priority_order": [
+      "V1.3 package explicit source geometry",
+      "user-confirmed actual print and calibration record",
+      "V1.3 package explicitly derived acoustics",
+      "derived values recomputed from V1.3 source geometry",
+      "general engineering knowledge"
+    ]
+  },
+  "schema_version": "1.0.0",
+  "source_geometry_version": "V1.2 equal-area round main tube",
+  "stage_four": {
+    "recommended_nodes": [
+      "N1",
+      "N3",
+      "N4",
+      "N6"
+    ]
+  },
+  "status": {
+    "calibration_status": "applied",
+    "experiment_ready": false,
+    "geometry_locked": false,
+    "model_status": "provisional",
+    "physical_print_status": "actual_printed",
+    "release_role": "calibrated_printed_candidate"
+  },
+  "validation": {
+    "assembly_files": 4,
+    "calibration_files": 0,
+    "completeness": "PASS",
+    "formal_part_types": 22,
+    "mechanical_validation": {
+      "fail": 0,
+      "pass": 254,
+      "warning": 0
+    },
+    "print_batches": 8,
+    "printability": "PASS",
+    "step_files": 22,
+    "stl_files": 22
+  },
+  "warnings": [
+    {
+      "code": "DERIVED_FIELD_NAME_MAIN_TEARDROP",
+      "evidence": [
+        "reports/derived_acoustics_v1.json#/main_teardrop",
+        "reports/params_calibrated_v1_3.json#/VERSION"
+      ],
+      "message": "derived_acoustics_v1.json retains the historical main_teardrop field name; the active V1.3 lumen is round.",
+      "severity": "warning"
+    },
+    {
+      "code": "LEGACY_REPORT_TITLES",
+      "evidence": [
+        "reports/acoustic_design_report_v1.md",
+        "reports/dry_seal_dimensions_v1.txt"
+      ],
+      "message": "The acoustic design Markdown and dry-seal TXT retain V1.0-era titles.",
+      "severity": "warning"
+    },
+    {
+      "code": "SOURCE_BOM_WEDGE_QUANTITY_MISMATCH",
+      "evidence": [
+        "reports/BOM_calibrated_v1_3.csv",
+        "source/bom.py"
+      ],
+      "message": "source/bom.py retains L/H wedge quantities that differ from the formal calibrated BOM.",
+      "severity": "warning"
+    },
+    {
+      "code": "MISSING_ACOUSTIC_CALCS_SOURCE",
+      "evidence": [
+        "source/build_v1_3_calibrated_package.py"
+      ],
+      "message": "The packaged build script references acoustic_calcs.py, but that source file is not packaged.",
+      "severity": "warning"
+    },
+    {
+      "code": "MISSING_BUILD_V1_SOURCE",
+      "evidence": [
+        "source/build_v1_3_calibrated_package.py"
+      ],
+      "message": "The packaged build script references build_v1.py, but that source file is not packaged.",
+      "severity": "warning"
+    },
+    {
+      "code": "CAD_REBUILD_ENVIRONMENT_NOT_LOCKED",
+      "evidence": [
+        "source/"
+      ],
+      "message": "The package does not contain a complete version-locked CAD rebuild environment.",
+      "severity": "warning"
+    },
+    {
+      "code": "RAW_CALIBRATION_MEASUREMENTS_MISSING",
+      "evidence": [
+        "reports/calibration_applied_v1_3.json"
+      ],
+      "message": "The package contains applied calibration reports but no raw coupon measurement table.",
+      "severity": "warning"
+    },
+    {
+      "code": "ACTUAL_PRINT_FIELDS_INCOMPLETE",
+      "evidence": [
+        "reference/calibration/V1_3_user_calibration_record.json"
+      ],
+      "message": "User-confirmed actual printing and test information intentionally contains explicit null fields.",
+      "severity": "warning"
+    },
+    {
+      "code": "LEAK_AND_SPECTRAL_TESTS_UNRECORDED",
+      "evidence": [
+        "reference/calibration/V1_3_user_calibration_record.json#/verification"
+      ],
+      "message": "Low-pressure leak testing and spectral repeatability testing were not performed or not recorded.",
+      "severity": "warning"
+    }
+  ]
+}

@@ -1,0 +1,115 @@
+# Implementation Log
+
+## DEV-01.01
+
+- 序列号：`DEV-01.01`
+- 名称：V1.3 模型包接入、来源审计与 provisional device manifest
+- `work_type`：model package ingestion, provenance audit, provisional manifest
+- 状态：`PASSED`
+- 开始时间：`2026-08-14T16:21:55+01:00`
+- 结束时间：`2026-08-14T16:48:11+01:00`
+- 本步目标：安全接入实际打印的 V1.3 原始 ZIP，审查包内容及来源，规范化用户校准记录，生成 provisional device manifest、JSON Schema、CLI、测试与完成报告。
+- 输入文件与 SHA256：
+  - `D:\\Firefly\\Desktop\\毕业论文相关\\双管—直接管道\\Acoustic_Ladder_V1_3_calibrated_round_main_tube_print_package.zip`
+  - 实际计算 SHA256：`1bf3cc17a46cac8552b8eb80d543cec5880afef7f8c716fd8f029636899d688b`（与预期交叉核对值一致）
+- 实际环境：Windows；PowerShell；Git `2.55.0.windows.3`；Python `3.12.4`。
+- 实际依赖版本：uv `0.11.6`；`jsonschema 4.26.0`；`pytest 9.1.1`；`ruff 0.16.3`；`mypy 1.20.2`；`types-jsonschema 4.26.0.20260518`。依赖已由 `uv.lock` 锁定。
+- 采用的来源优先级：按归档提示词 `docs/prompts/DEV-01.01.md` 第 8 节执行。
+- 实际执行动作：
+  - 对空目标目录完成只读安全预检；确认尚非 Git 仓库、无用户文件或未提交修改。
+  - 只读检查目标远端；`https://github.com/haocheng26710/fingers.git` 当前无 refs。
+  - 实际计算输入 ZIP SHA256 并确认匹配。
+  - 初始化空 Git 仓库，分支为 `main`。
+  - 归档本实施提示词并建立本日志条目。
+  - 原样复制 ZIP 到 `reference/model_packages/` 并重新计算相同 SHA256。
+  - 读取全部 85 个 ZIP 条目；记录路径、压缩/未压缩长度、逐条 SHA256、类别、必需性、读取状态和安全标记；12 个 Python 源文件仅按字节读取，未导入或执行。
+  - 严格解析全部要求的 JSON、UTF-8/UTF-8-SIG CSV、Markdown、TXT 和源码资料。
+  - 建立字段来源优先级，显式记录 2 个冲突、9 个警告和全部缺失信息。
+  - 规范化用户确认校准 JSON，并由其生成忠实 Markdown；所有未知值保留 `null`。
+  - 生成 provisional manifest、Draft 2020-12 JSON Schema 和稳定 SHA256 sidecar。
+  - 实现 inspect、normalize-calibration、generate、validate、hash 五个 CLI 子命令。
+  - 建立恶意 ZIP/损坏输入单元测试及真实 V1.3 集成测试。
+  - 完成 README、包审查、完成报告、确定性验证和静态检查。
+- 创建和修改的文件：
+  - `docs/prompts/DEV-01.01.md`
+  - `docs/IMPLEMENTATION_LOG.md`
+  - `.gitignore`
+  - `.gitattributes`
+  - `.python-version`
+  - `README.md`
+  - `pyproject.toml`
+  - `uv.lock`
+  - `src/acoustic_ladder/**`
+  - `schemas/device_manifest.schema.json`
+  - `config/devices/device_manifest.provisional.json`
+  - `config/devices/device_manifest.provisional.sha256`
+  - `reference/model_packages/Acoustic_Ladder_V1_3_calibrated_round_main_tube_print_package.zip`
+  - `reference/model_reviews/V1_3_package_audit.json`
+  - `reference/model_reviews/V1_3_package_review.md`
+  - `reference/calibration/V1_3_user_calibration_record.json`
+  - `reference/calibration/V1_3_user_calibration_record.md`
+  - `docs/reports/DEV-01.01.md`
+  - `tests/**`
+- 实际运行的完整命令：
+  - `Get-Location; Get-ChildItem -Force | Select-Object Mode,Length,LastWriteTime,Name | Format-Table -AutoSize`
+  - `git rev-parse --show-toplevel`
+  - `git branch --show-current`
+  - `git status --short --branch`
+  - `git remote -v`
+  - `git log --oneline --decorate -10`
+  - `rg --files -g 'AGENTS.md' -g 'CLAUDE.md' -g '.gitignore' -g 'pyproject.toml' -g 'README.md'`
+  - `Get-Item -LiteralPath '<input-zip>' | Select-Object FullName,Length,LastWriteTime | Format-List; Get-FileHash -Algorithm SHA256 -LiteralPath '<input-zip>' | Format-List`
+  - `git ls-remote --heads --tags https://github.com/haocheng26710/fingers.git`（沙箱网络检查失败后，经批准在沙箱外重试成功，输出为空）
+  - `gh auth status`（未执行成功：系统未安装 `gh`）
+  - `git config --global user.name; git config --global user.email`
+  - `git --version; python --version; py -0p`（Git 与 Python 成功；系统不存在 `py` 命令）
+  - `git init -b main`
+  - `Get-Date -Format 'yyyy-MM-ddTHH:mm:ssK'`
+  - `New-Item -ItemType Directory -Force -Path 'docs','docs\\prompts' | Out-Null; Copy-Item -LiteralPath '<pasted-text>' -Destination 'docs\\prompts\\DEV-01.01.md'`
+  - `tar -tf '<input-zip>'`
+  - `python -c '<read ZIP names and required JSON/CSV/TXT/source bytes without execution>' '<input-zip>'`
+  - `New-Item -ItemType Directory -Force -Path 'reference\\model_packages' | Out-Null; Copy-Item -LiteralPath '<input-zip>' -Destination 'reference\\model_packages\\Acoustic_Ladder_V1_3_calibrated_round_main_tube_print_package.zip'`
+  - `Get-FileHash -Algorithm SHA256 -LiteralPath '<input-zip>'; Get-FileHash -Algorithm SHA256 -LiteralPath 'reference\\model_packages\\Acoustic_Ladder_V1_3_calibrated_round_main_tube_print_package.zip'`
+  - `git remote add origin https://github.com/haocheng26710/fingers.git`
+  - `uv lock`（失败：默认用户缓存路径无法初始化）
+  - `uv --cache-dir .uv-cache lock`（失败：沙箱网络不可用）
+  - `uv --cache-dir .uv-cache lock --python 3.12`（经网络批准后成功；后因增加类型存根再次成功运行）
+  - `uv --cache-dir .uv-cache sync --all-groups --frozen`（第一次失败：`README.md` 尚未创建；创建后成功；增加类型存根后再次成功）
+  - `uv --cache-dir .uv-cache run python -m compileall -q src`
+  - `uv --cache-dir .uv-cache run ruff format .`
+  - `uv --cache-dir .uv-cache run python -m acoustic_ladder.model_package normalize-calibration reference/calibration/V1_3_user_calibration_record.json --output-json reference/calibration/V1_3_user_calibration_record.json --output-markdown reference/calibration/V1_3_user_calibration_record.md`
+  - `uv --cache-dir .uv-cache run python -m acoustic_ladder.model_package inspect reference/model_packages/Acoustic_Ladder_V1_3_calibrated_round_main_tube_print_package.zip --calibration reference/calibration/V1_3_user_calibration_record.json --output reference/model_reviews/V1_3_package_audit.json`
+  - `uv --cache-dir .uv-cache run python -m acoustic_ladder.model_package generate reference/model_packages/Acoustic_Ladder_V1_3_calibrated_round_main_tube_print_package.zip --calibration reference/calibration/V1_3_user_calibration_record.json --output config/devices/device_manifest.provisional.json --sidecar config/devices/device_manifest.provisional.sha256`
+  - `uv --cache-dir .uv-cache run python -m acoustic_ladder.model_package validate config/devices/device_manifest.provisional.json --schema schemas/device_manifest.schema.json --sidecar config/devices/device_manifest.provisional.sha256`
+  - `uv --cache-dir .uv-cache run python -m acoustic_ladder.model_package hash config/devices/device_manifest.provisional.json --sidecar config/devices/device_manifest.provisional.sha256`
+  - `uv --cache-dir .uv-cache run pytest tests/unit`
+  - `uv --cache-dir .uv-cache run pytest tests/integration`
+  - `uv --cache-dir .uv-cache run pytest`
+  - `uv --cache-dir .uv-cache run ruff format --check .`
+  - `uv --cache-dir .uv-cache run ruff check .`
+  - `uv --cache-dir .uv-cache run mypy`
+  - `git status --short --branch; git diff --stat; git diff --check; rg --files`
+  - `git add --all; git add .gitattributes; git add --renormalize .`
+  - `git diff --cached --check`（首次发现 3 个 EOF 多余空行；修正后再次运行）
+- 每项测试的真实结果：
+  - 单元测试：`30 passed in 0.12s`；无 skip/xfail。
+  - 真实包集成测试：`13 passed in 0.30s`；无 skip/xfail。
+  - 完整测试：`43 passed in 7.97s`；无 skip/xfail。
+  - 格式：`20 files already formatted`。
+  - lint：`All checks passed!`。
+  - 类型：`Success: no issues found in 15 source files`。
+  - manifest Schema 与 sidecar：PASS；哈希 `bd69f27305681e6552e61d402571300c2eea340a6d7878dc2b93531c8b6608b0`。
+  - 确定性：集成测试中两次独立生成的 manifest 字节和 SHA256 相同。
+- 未执行检查及原因：无。所有要求的单元、真实包集成、完整测试、格式、lint、类型、Schema、哈希和确定性检查均已执行。
+- 冲突、偏差和决定：
+  - `gh` CLI 未安装；远端 refs 使用 `git ls-remote` 检查。最终推送认证将以 Git 推送及远端 ref 验证为准。
+  - 正式 BOM 的 M/L/H 楔块数量 `4/0/0` 与 `source/bom.py` 的 `4/1/1` 冲突；按优先级采用正式 BOM 并保留冲突。
+  - `derived_acoustics_v1.json` 的历史字段 `main_teardrop` 与当前 round 内腔命名冲突；活动几何采用 V1.3 round，历史字段不覆盖。
+  - 默认 uv 缓存路径无法初始化，改用已忽略的工作区 `.uv-cache`；没有改变锁定依赖。
+  - 首次暂存差异检查发现 `.gitattributes`、`.gitignore` 和包审查 Markdown 各有一个 EOF 多余空行；已修正并保留此失败记录。
+- 已知限制：包内缺少 `acoustic_calcs.py`、`build_v1.py`、完整版本锁定 CAD 重建环境和原始校准测量表；泄漏及频谱重复性测试未进行或未记录；实际打印未知项保留 `null`。因此 manifest 仍为 provisional。
+- 未实现内容：除 DEV-01.01 规定范围外的音频、信号处理、实验协议、模型、界面和几何锁定均不实现。
+- 从干净环境复现的命令：按 `README.md` 依次运行锁定安装、校准规范化、包审查、manifest 生成、manifest 验证、单元测试、集成测试、完整测试、格式、lint 与 mypy 命令。
+- Git 目标仓库：`https://github.com/haocheng26710/fingers.git`
+- Git 目标分支：`main`
+- 提交主题：`DEV-01.01: ingest V1.3 package and create provisional manifest`

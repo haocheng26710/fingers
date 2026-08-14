@@ -1,0 +1,299 @@
+{
+  "$id": "https://example.invalid/acoustic-ladder/device_manifest.schema.json",
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "additionalProperties": false,
+  "properties": {
+    "$schema": {"type": "string"},
+    "architecture": {
+      "additionalProperties": false,
+      "properties": {
+        "audio_channels": {
+          "additionalProperties": false,
+          "properties": {
+            "input": {"const": 1},
+            "output": {"const": 1}
+          },
+          "required": ["output", "input"],
+          "type": "object"
+        },
+        "end_roles": {
+          "additionalProperties": false,
+          "properties": {
+            "RX_far": {"enum": ["closed", "open"]},
+            "RX_near": {"const": "microphone"},
+            "TX_far": {"enum": ["closed", "open"]},
+            "TX_near": {"const": "speaker"}
+          },
+          "required": ["TX_near", "RX_near", "TX_far", "RX_far"],
+          "type": "object"
+        },
+        "main_tube": {
+          "additionalProperties": false,
+          "properties": {
+            "center_spacing": {"$ref": "#/$defs/measurement"},
+            "cross_sectional_area": {"$ref": "#/$defs/measurement"},
+            "inner_diameter": {"$ref": "#/$defs/measurement"},
+            "lumen_shape": {"enum": ["round", "teardrop", "other"]},
+            "segment_acoustic_length": {"$ref": "#/$defs/measurement"},
+            "total_acoustic_length": {"$ref": "#/$defs/measurement"}
+          },
+          "required": ["lumen_shape", "total_acoustic_length", "segment_acoustic_length", "center_spacing", "inner_diameter", "cross_sectional_area"],
+          "type": "object"
+        },
+        "nodes": {
+          "items": {
+            "additionalProperties": false,
+            "properties": {
+              "id": {"pattern": "^N[1-9][0-9]*$", "type": "string"},
+              "position": {"$ref": "#/$defs/measurement"}
+            },
+            "required": ["id", "position"],
+            "type": "object"
+          },
+          "minItems": 1,
+          "type": "array"
+        },
+        "research_object": {"type": "string"},
+        "segments": {
+          "items": {
+            "additionalProperties": false,
+            "properties": {
+              "end": {"$ref": "#/$defs/measurement"},
+              "id": {"type": "string"},
+              "start": {"$ref": "#/$defs/measurement"},
+              "tube": {"enum": ["TX", "RX"]}
+            },
+            "required": ["id", "tube", "start", "end"],
+            "type": "object"
+          },
+          "type": "array"
+        }
+      },
+      "required": ["research_object", "audio_channels", "main_tube", "segments", "end_roles", "nodes"],
+      "type": "object"
+    },
+    "bill_of_materials": {"$ref": "#/$defs/freeObject"},
+    "boundary_conditions": {
+      "additionalProperties": false,
+      "properties": {
+        "BLK_interpretation": {"const": "closed_not_open"},
+        "formal_microphone_count": {"const": 1},
+        "formal_speaker_count": {"const": 1},
+        "unpopulated_node_requirement": {"const": "BLK_required"}
+      },
+      "required": ["unpopulated_node_requirement", "BLK_interpretation", "formal_speaker_count", "formal_microphone_count"],
+      "type": "object"
+    },
+    "calibration": {
+      "allOf": [
+        {"required": ["module_diametral_offset", "split_joint_diametral_offset", "end_diametral_offset", "acoustic_hole_compensation", "acoustic_hole_coupon_measurements", "slider_guide_clearance_per_side", "selected_wedge", "selected_wedge_preload_offset", "module_plug_base_tip", "split_joint_plug_base_tip", "end_plug_base_tip", "split_joint_key_slot", "d4_bridge_min_tip_wall", "dry_seal_dimensions", "user_record"]}
+      ],
+      "properties": {
+        "acoustic_hole_compensation": {"$ref": "#/$defs/measurement"},
+        "d4_bridge_min_tip_wall": {"$ref": "#/$defs/measurement"},
+        "end_diametral_offset": {"$ref": "#/$defs/measurement"},
+        "module_diametral_offset": {"$ref": "#/$defs/measurement"},
+        "selected_wedge": {"enum": ["L", "M", "H"]},
+        "selected_wedge_preload_offset": {"$ref": "#/$defs/measurement"},
+        "slider_guide_clearance_per_side": {"$ref": "#/$defs/measurement"},
+        "split_joint_diametral_offset": {"$ref": "#/$defs/measurement"},
+        "user_record": {
+          "additionalProperties": false,
+          "properties": {
+            "confirmation_date": {"type": "string"},
+            "confirmation_time": {"type": ["string", "null"]},
+            "source_type": {"const": "user_confirmed_measurement_record"}
+          },
+          "required": ["source_type", "confirmation_date", "confirmation_time"],
+          "type": "object"
+        }
+      },
+      "type": "object"
+    },
+    "device_id": {"minLength": 1, "type": "string"},
+    "device_version": {"minLength": 1, "type": "string"},
+    "manufacturing": {
+      "properties": {
+        "actual_print_setting": {"$ref": "#/$defs/actualPrintSetting"},
+        "calibration_test_date": {"type": ["string", "null"]},
+        "design_recommendation": {"$ref": "#/$defs/freeObject"},
+        "material": {"$ref": "#/$defs/materialRecord"},
+        "physical_print_confirmed": {"type": "boolean"},
+        "print_date": {"type": ["string", "null"]},
+        "printer": {"$ref": "#/$defs/printerRecord"}
+      },
+      "required": ["physical_print_confirmed", "printer", "build_plate", "slicer", "material", "actual_print_setting", "operator", "print_date", "calibration_test_date", "environment", "fit_cycle_counts", "verification", "measurement", "post_processing", "design_recommendation"],
+      "type": "object"
+    },
+    "missing_information": {"items": {"type": "string"}, "type": "array"},
+    "modules": {
+      "items": {
+        "oneOf": [
+          {"$ref": "#/$defs/bridgeModule"},
+          {"$ref": "#/$defs/blockModule"}
+        ]
+      },
+      "minItems": 1,
+      "type": "array"
+    },
+    "package": {
+      "additionalProperties": false,
+      "properties": {
+        "file_size_bytes": {"minimum": 1, "type": "integer"},
+        "filename": {"type": "string"},
+        "sha256": {"pattern": "^[0-9a-f]{64}$", "type": "string"}
+      },
+      "required": ["filename", "sha256", "file_size_bytes"],
+      "type": "object"
+    },
+    "provenance": {
+      "additionalProperties": false,
+      "properties": {
+        "conflicts": {"items": {"$ref": "#/$defs/freeObject"}, "type": "array"},
+        "fields": {
+          "additionalProperties": {"$ref": "#/$defs/sourceReference"},
+          "minProperties": 1,
+          "type": "object"
+        },
+        "priority_order": {"items": {"type": "string"}, "minItems": 5, "type": "array"}
+      },
+      "required": ["priority_order", "fields", "conflicts"],
+      "type": "object"
+    },
+    "schema_version": {"type": "string"},
+    "source_geometry_version": {"type": "string"},
+    "stage_four": {"$ref": "#/$defs/freeObject"},
+    "status": {
+      "additionalProperties": false,
+      "allOf": [
+        {"if": {"properties": {"model_status": {"const": "locked"}}}, "then": {"properties": {"geometry_locked": {"const": true}}}},
+        {"if": {"properties": {"model_status": {"const": "provisional"}}}, "then": {"properties": {"geometry_locked": {"const": false}}}}
+      ],
+      "properties": {
+        "calibration_status": {"enum": ["applied", "unknown"]},
+        "experiment_ready": {"type": "boolean"},
+        "geometry_locked": {"type": "boolean"},
+        "model_status": {"enum": ["provisional", "locked"]},
+        "physical_print_status": {"enum": ["actual_printed", "not_printed", "unknown"]},
+        "release_role": {"enum": ["calibrated_printed_candidate", "locked_release", "development"]}
+      },
+      "required": ["model_status", "physical_print_status", "calibration_status", "release_role", "geometry_locked", "experiment_ready"],
+      "type": "object"
+    },
+    "validation": {"$ref": "#/$defs/freeObject"},
+    "warnings": {"items": {"$ref": "#/$defs/freeObject"}, "type": "array"}
+  },
+  "required": ["$schema", "schema_version", "device_id", "device_version", "source_geometry_version", "status", "package", "architecture", "modules", "boundary_conditions", "stage_four", "calibration", "manufacturing", "bill_of_materials", "validation", "provenance", "warnings", "missing_information"],
+  "type": "object",
+  "$defs": {
+    "actualPrintSetting": {
+      "additionalProperties": false,
+      "properties": {
+        "automatic_orientation_enabled": {"type": ["boolean", "null"]},
+        "bed_temperature_c": {"type": ["number", "null"]},
+        "bottom_layers": {"type": ["integer", "null"]},
+        "brim_width_mm": {"type": ["number", "null"]},
+        "elephant_foot_compensation_mm": {"type": ["number", "null"]},
+        "first_layer_speed_mm_s": {"type": ["number", "null"]},
+        "flow_ratio": {"type": ["number", "null"]},
+        "infill_pattern": {"type": ["string", "null"]},
+        "infill_percent": {"type": ["number", "null"]},
+        "layer_height_mm": {"type": ["number", "null"]},
+        "line_width_mm": {"type": ["number", "null"]},
+        "nozzle_diameter_mm": {"type": ["number", "null"]},
+        "nozzle_temperature_c": {"type": ["number", "null"]},
+        "other_slicer_settings": {"type": ["string", "object", "null"]},
+        "pressure_advance_or_flow_dynamics": {"type": ["number", "string", "null"]},
+        "print_speed_mm_s": {"type": ["number", "null"]},
+        "seam_position": {"type": ["string", "null"]},
+        "support_settings": {"type": ["string", "object", "null"]},
+        "top_layers": {"type": ["integer", "null"]},
+        "wall_count": {"type": ["integer", "null"]}
+      },
+      "required": ["nozzle_diameter_mm", "layer_height_mm", "line_width_mm", "wall_count", "top_layers", "bottom_layers", "infill_percent", "infill_pattern", "nozzle_temperature_c", "bed_temperature_c", "print_speed_mm_s", "first_layer_speed_mm_s", "flow_ratio", "pressure_advance_or_flow_dynamics", "elephant_foot_compensation_mm", "support_settings", "brim_width_mm", "seam_position", "automatic_orientation_enabled", "other_slicer_settings"],
+      "type": "object"
+    },
+    "blockModule": {
+      "additionalProperties": false,
+      "properties": {
+        "cad_name": {"type": "string"},
+        "id": {"const": "BLK"},
+        "kind": {"const": "block"},
+        "meaning": {"const": "closed_node_not_open_end"},
+        "residual_dead_cavity_length": {"$ref": "#/$defs/measurement"}
+      },
+      "required": ["id", "cad_name", "kind", "meaning", "residual_dead_cavity_length"],
+      "type": "object"
+    },
+    "bridgeModule": {
+      "additionalProperties": false,
+      "properties": {
+        "cad_compensated_aperture": {"$ref": "#/$defs/measurement"},
+        "cad_name": {"type": "string"},
+        "id": {"enum": ["B40", "B32", "B28"]},
+        "kind": {"const": "bridge"},
+        "measured_post_print_aperture": {"$ref": "#/$defs/nullableMeasurement"},
+        "target_aperture": {"$ref": "#/$defs/measurement"}
+      },
+      "required": ["id", "cad_name", "kind", "target_aperture", "cad_compensated_aperture", "measured_post_print_aperture"],
+      "type": "object"
+    },
+    "freeObject": {"type": "object"},
+    "materialRecord": {
+      "additionalProperties": false,
+      "properties": {
+        "batch": {"type": ["string", "null"]},
+        "brand": {"type": ["string", "null"]},
+        "color": {"type": ["string", "null"]},
+        "dried": {"type": ["boolean", "null"]},
+        "drying_duration_h": {"type": ["number", "null"]},
+        "drying_temperature_c": {"type": ["number", "null"]},
+        "model": {"type": ["string", "null"]},
+        "type": {"type": ["string", "null"]}
+      },
+      "required": ["type", "brand", "model", "color", "batch", "dried", "drying_temperature_c", "drying_duration_h"],
+      "type": "object"
+    },
+    "measurement": {
+      "additionalProperties": false,
+      "properties": {
+        "unit": {"minLength": 1, "type": "string"},
+        "value": {"type": "number"}
+      },
+      "required": ["value", "unit"],
+      "type": "object"
+    },
+    "nullableMeasurement": {
+      "additionalProperties": false,
+      "properties": {
+        "unit": {"minLength": 1, "type": "string"},
+        "value": {"type": ["number", "null"]}
+      },
+      "required": ["value", "unit"],
+      "type": "object"
+    },
+    "printerRecord": {
+      "additionalProperties": false,
+      "properties": {
+        "brand": {"type": "string"},
+        "firmware_version": {"type": ["string", "null"]},
+        "model": {"type": ["string", "null"]}
+      },
+      "required": ["brand", "model", "firmware_version"],
+      "type": "object"
+    },
+    "sourceReference": {
+      "additionalProperties": false,
+      "properties": {
+        "confirmation_status": {"type": "string"},
+        "locator": {"type": "string"},
+        "parameter_kind": {"enum": ["source", "derived"]},
+        "source_filename": {"type": "string"},
+        "source_type": {"type": "string"},
+        "unit": {"type": ["string", "null"]}
+      },
+      "required": ["source_type", "source_filename", "locator", "parameter_kind", "unit", "confirmation_status"],
+      "type": "object"
+    }
+  }
+}
