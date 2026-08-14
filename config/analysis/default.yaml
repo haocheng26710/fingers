@@ -1,0 +1,30 @@
+schema_version: "1.0.0"
+config_id: default_analysis_draft
+config_status: draft
+analysis_band:
+  lower_hz: 500.0
+  upper_hz: 8000.0
+smoothing:
+  enabled: false
+  method: null
+  parameter: null
+baseline_selection_rule: null
+features: null
+normalization: null
+grouping_candidates: [session, reassembly, day]
+cross_validation_strategy: null
+model_order:
+  - template_correlation
+  - ridge
+  - logistic_regression
+  - LDA
+  - random_forest
+random_seed: null
+decision_gates:
+  qc_threshold: null
+  effect_threshold: null
+  drift_threshold: null
+  classification_pass_threshold: null
+notes:
+  - Configuration contract only; no feature, model or cross-validation implementation exists.
+  - Unknown thresholds and analysis choices remain null.

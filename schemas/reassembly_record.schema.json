@@ -1,0 +1,49 @@
+{
+  "additionalProperties": false,
+  "properties": {
+    "assembly_description": {
+      "title": "Assembly Description",
+      "type": "string"
+    },
+    "created_at": {
+      "format": "date-time",
+      "title": "Created At",
+      "type": "string"
+    },
+    "operator_confirmation": {
+      "title": "Operator Confirmation",
+      "type": "boolean"
+    },
+    "reassembly_id": {
+      "title": "Reassembly Id",
+      "type": "string"
+    },
+    "related_run_ids": {
+      "items": {
+        "type": "string"
+      },
+      "title": "Related Run Ids",
+      "type": "array"
+    },
+    "sequence_index": {
+      "minimum": 0,
+      "title": "Sequence Index",
+      "type": "integer"
+    },
+    "session_id": {
+      "title": "Session Id",
+      "type": "string"
+    }
+  },
+  "required": [
+    "reassembly_id",
+    "session_id",
+    "sequence_index",
+    "created_at",
+    "assembly_description",
+    "operator_confirmation",
+    "related_run_ids"
+  ],
+  "title": "ReassemblyRecord",
+  "type": "object"
+}

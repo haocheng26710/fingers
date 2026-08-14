@@ -113,3 +113,81 @@
 - Git 目标仓库：`https://github.com/haocheng26710/fingers.git`
 - Git 目标分支：`main`
 - 提交主题：`DEV-01.01: ingest V1.3 package and create provisional manifest`
+
+## DEV-02.01
+
+- 序列号：`DEV-02.01`
+- 名称：工程骨架、配置契约、不可变存储与合成数据
+- `work_type`：configuration contracts, immutable file storage, synthetic test data
+- 状态：`PASSED`
+- 开始时间：`2026-08-14T17:35:33+01:00`
+- 结束时间：`2026-08-14T18:06:05+01:00`
+- 基线提交：`06d77b39acc9f609617a4e216647dc3f6c590a1d`
+- 本步目标：建立后续音频、协议与分析共用的严格配置、领域模型、不可变文件存储、synthetic/real 隔离、透明确定性合成数据和相关 CLI、Schema、测试与文档。
+- 输入 manifest 与 SHA256：
+  - `config/devices/device_manifest.provisional.json`
+  - SHA256：`bd69f27305681e6552e61d402571300c2eea340a6d7878dc2b93531c8b6608b0`
+- 受保护 ZIP 与 SHA256：
+  - `reference/model_packages/Acoustic_Ladder_V1_3_calibrated_round_main_tube_print_package.zip`
+  - SHA256：`1bf3cc17a46cac8552b8eb80d543cec5880afef7f8c716fd8f029636899d688b`
+- 实际环境：Windows；PowerShell；Git `2.55.0.windows.3`；Python `3.12.4`；uv `0.11.6`。
+- 实际依赖版本：新增并锁定 NumPy `2.5.2`、Pydantic `2.13.4`、ruamel.yaml `0.18.17`；传递依赖 pydantic-core `2.46.4`、annotated-types `0.8.0`、typing-inspection `0.4.4`、ruamel.yaml.clib `0.2.15`。原有工具保持 uv `0.11.6`、pytest `9.1.1`、ruff `0.16.3`、mypy `1.20.2`。
+- 配置字段决定：未知硬件、协议次数与分析门限保持 `null`；正式模式严格 1+1，底层仍表达 N+M；所有协议为 closed/BLK/formal/non-executable 草案；Stage 4 从已验证 manifest 推荐读取节点；规范化哈希基于稳定排序 JSON，加载时间不进入内容哈希。
+- synthetic 模型公式和参数：延迟 `2*x/c`；模块权重 `scale*(aperture/max_aperture)^2*exp(-loss*2*x)`；BLK 延迟权重为零，保留直接基线。默认 seed `20260814`、48 kHz、0.25 s、假设声速 343 m/s、基线 0.05、损耗 0.4/m、模块尺度 0.15、噪声 0.001、session/reassembly 漂移 0.01/0.02、1+1、float32。位置和孔径来自 manifest，其余参数来自配置。
+- 实际执行动作：
+  - 只读确认仓库根、`main`、本地 HEAD、跟踪分支及 GitHub `origin/main` 均为规定基线。
+  - 确认工作区干净、远端 URL 正确、无新项目级指令文件。
+  - 计算并记录全部 DEV-01.01 受保护文件基线哈希。
+  - 原样归档本提示词并仅在日志末尾追加本条目。
+  - 新增严格配置/领域模型、安全 YAML、bundle/hash、八个模型生成 Schema、Stage 1–4 草案、不可变存储、synthetic/real 隔离和透明 channel-first 生成器。
+  - 实现统一 CLI，并在系统临时目录实际创建/验证 session `example001` 与 run `run001`；NPZ 为 97,244 bytes，SHA256 `908a2c01ca652390cd7ddcf055c608b3339dedfbcbcc1724dc4e06010bef333a`，未写入仓库或 real 根。
+  - 创建 66 项 DEV-02 测试、四份架构文档、数据政策、README 命令和完成报告。
+  - 完成原 43 项回归、全量测试、Schema 一致性、格式、Ruff、strict mypy、diff whitespace、无 suppress/skip 扫描及受保护文件哈希回归。
+- 创建和修改的文件：
+  - `docs/prompts/DEV-02.01.md`
+  - `docs/IMPLEMENTATION_LOG.md`（仅追加本条目）
+  - `.gitattributes`、`README.md`、`pyproject.toml`、`uv.lock`
+  - `config/audio/**`、`config/protocols/**`、`config/analysis/**`、`config/synthetic/**`
+  - `src/acoustic_ladder/config/**`、`domain/**`、`storage/**`、`synthetic/**`、`cli.py`、`__main__.py`
+  - 八个新增 `schemas/*.schema.json`（未修改 DEV-01 device Schema）
+  - `tests/dev02/**`
+  - `docs/architecture/**`、`data/README.md`、`docs/reports/DEV-02.01.md`
+- 实际运行的完整命令：
+  - `Get-Content -Raw '<attachment>/pasted-text.txt'`
+  - `git rev-parse --show-toplevel; git branch --show-current; git rev-parse HEAD; git rev-parse origin/main; git remote -v; git status --short --branch; git log --oneline --decorate -5`
+  - `rg --files -g 'AGENTS.md' -g 'CLAUDE.md' -g '.agents/**' -g '.codex/**'`
+  - `Get-FileHash -Algorithm SHA256 -LiteralPath <DEV-01.01 protected files>`
+  - `git ls-files`
+  - `git ls-remote --heads origin main`
+  - `Get-Date -Format 'yyyy-MM-ddTHH:mm:ssK'`
+  - `Copy-Item -LiteralPath '<attachment>/pasted-text.txt' -Destination 'docs\\prompts\\DEV-02.01.md'`
+  - `uv --cache-dir .uv-cache lock --python 3.12`
+  - `uv --cache-dir .uv-cache sync --all-groups --frozen`
+  - `uv --cache-dir .uv-cache run python -m acoustic_ladder export-schemas --output-dir schemas`
+  - `uv --cache-dir .uv-cache run acoustic-ladder validate-config audio config/audio/default_1x1_ess.yaml --project-root .`
+  - `uv --cache-dir .uv-cache run acoustic-ladder validate-bundle --project-root . --protocol config/protocols/stage4_four_node_states.yaml`
+  - `uv --cache-dir .uv-cache run acoustic-ladder export-schemas --output-dir schemas --check`
+  - `uv --cache-dir .uv-cache run acoustic-ladder create-synthetic-session ... --synthetic-root <system-temp> --session-id example001 --reassembly-id reassembly001`
+  - `uv --cache-dir .uv-cache run acoustic-ladder generate-synthetic-run ... --run-id run001 --node-state N1=B40`
+  - `uv --cache-dir .uv-cache run acoustic-ladder validate-session ...; uv --cache-dir .uv-cache run acoustic-ladder validate-run ...`
+  - `uv --cache-dir .uv-cache run ruff format --check .`
+  - `uv --cache-dir .uv-cache run ruff check .`
+  - `uv --cache-dir .uv-cache run mypy`
+  - `uv --cache-dir .uv-cache run pytest tests/unit tests/integration -q`
+  - `uv --cache-dir .uv-cache run pytest tests/dev02 -q`
+  - `uv --cache-dir .uv-cache run pytest -q`
+  - `git diff --check`
+  - `rg -n "pytest\\.mark\\.(skip|xfail)|@unittest\\.skip|#\\s*(type:\\s*ignore|noqa)" src tests`
+  - `git diff --exit-code 06d77b39... -- <ten protected files>; Get-FileHash -Algorithm SHA256 -LiteralPath <ten protected files>`
+- 每项测试的真实结果：最终门禁中原 DEV-01 测试 `43 passed in 0.33s`；DEV-02 新增测试 `66 passed in 1.37s`；完整套件 `109 passed in 1.78s`；无 skip/xfail。格式 `49 files already formatted`；Ruff `All checks passed!`；strict mypy `Success: no issues found in 36 source files`；八个 Schema 一致性 PASS；`git diff --check` PASS；抑制扫描无匹配。
+- 未执行检查及原因：无。禁止范围内功能按要求未实现，不属于未完成验收检查。
+- 初次失败及修正：早期 Ruff/mypy 发现未使用导入、冗余 cast、Literal 类型、长行和 NumPy scalar 类型，均通过明确类型/重构修正，无 ignore。第一次 DEV-02 联合执行为 mypy 10 个测试/CLI 类型错误、pytest `60 passed, 2 failed`；失败来自 CLI 分支变量类型复用、测试 kwargs 类型不精确、错误信息大小写和测试硬编码错误 N1 位置。修正后延迟测试改为读取 manifest，专项先达 62 项，进一步收紧协议/存储契约后最终 66 项全部通过。首次 staged whitespace 检查另发现四个 YAML EOF 多余空行及提示词原文的 Markdown 硬换行空格；删除 YAML 多余空行，并将 DEV-02 提示词标记为 binary，既保留附件原始字节又使差异检查通过；index blob 与附件 blob ID 均为 `5ebd6d2684f8137363b2a9b6735a439bffb4265b`。
+- 冲突、偏差和决定：无基线或需求冲突。原子 create-only 发布使用同目录临时文件、fsync 和 hard-link；目录使用同根 staging 后 rename，在不覆盖约束下满足原子可见性。immutable session record 不因新增 run 改写，运行演化由不可变 run record 与编号事件表达。
+- 受保护文件回归：十个文件相对基线无 diff；ZIP/manifest 保持 `1bf3cc17a46cac8552b8eb80d543cec5880afef7f8c716fd8f029636899d688b` / `bd69f27305681e6552e61d402571300c2eea340a6d7878dc2b93531c8b6608b0`；其余哈希详见完成报告。DEV-01.01 日志是未变前缀，diff 仅新增 DEV-02.01 区块。
+- 已知限制：manifest 仍 provisional、不是 geometry-locked/experiment-ready。synthetic 不包含完整波导模态、真实端反射、粗糙度、泄漏、换能器响应或非线性，不能证明真实有效性/可分性。hardware、重复次数、分析决策仍待后续真实依据。
+- 未实现内容：真实声卡/音频、正式 ESS、校准、反卷积/IR/传递函数、正式 QC、测量矩阵/随机化执行、特征/分类/交叉验证、UI、数据库、CI、CAD、geometry lock、Stage 5+ 均未实现。
+- 下一步可用接口：`load_config`/`load_bundle`、八个模型 Schema、Session/Reassembly/Run/Artifact 记录、`ImmutableSessionStore`、artifact/session/run 验证、channel-first NPZ/metadata 契约及 provenance 守卫。
+- 从干净环境复现的命令：执行 README 的 frozen sync、配置/bundle/Schema 验证、系统临时目录 synthetic session/run 命令和完整静态/测试命令。
+- Git 目标仓库：`https://github.com/haocheng26710/fingers.git`
+- Git 目标分支：`main`
+- 提交主题：`DEV-02.01: add config, immutable storage, and synthetic data`

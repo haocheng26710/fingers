@@ -1,0 +1,386 @@
+{
+  "$defs": {
+    "BoundaryConditions": {
+      "additionalProperties": false,
+      "properties": {
+        "rx_far": {
+          "const": "closed",
+          "title": "Rx Far",
+          "type": "string"
+        },
+        "rx_near": {
+          "const": "microphone",
+          "title": "Rx Near",
+          "type": "string"
+        },
+        "tx_far": {
+          "const": "closed",
+          "title": "Tx Far",
+          "type": "string"
+        },
+        "tx_near": {
+          "const": "speaker",
+          "title": "Tx Near",
+          "type": "string"
+        },
+        "unselected_nodes": {
+          "const": "BLK",
+          "title": "Unselected Nodes",
+          "type": "string"
+        }
+      },
+      "required": [
+        "tx_near",
+        "rx_near",
+        "tx_far",
+        "rx_far",
+        "unselected_nodes"
+      ],
+      "title": "BoundaryConditions",
+      "type": "object"
+    },
+    "ConfigStatus": {
+      "enum": [
+        "draft",
+        "ready"
+      ],
+      "title": "ConfigStatus",
+      "type": "string"
+    },
+    "LoadingDirection": {
+      "enum": [
+        "loading",
+        "unloading",
+        "not_applicable",
+        "unknown"
+      ],
+      "title": "LoadingDirection",
+      "type": "string"
+    },
+    "RunMode": {
+      "enum": [
+        "formal",
+        "diagnostic",
+        "development"
+      ],
+      "title": "RunMode",
+      "type": "string"
+    },
+    "StateDefinition": {
+      "additionalProperties": false,
+      "properties": {
+        "continuous_value": {
+          "anyOf": [
+            {
+              "type": "number"
+            },
+            {
+              "type": "null"
+            }
+          ],
+          "title": "Continuous Value"
+        },
+        "discrete_label": {
+          "anyOf": [
+            {
+              "type": "string"
+            },
+            {
+              "type": "null"
+            }
+          ],
+          "title": "Discrete Label"
+        },
+        "loading_direction": {
+          "$ref": "#/$defs/LoadingDirection"
+        },
+        "module_id": {
+          "title": "Module Id",
+          "type": "string"
+        },
+        "notes": {
+          "anyOf": [
+            {
+              "type": "string"
+            },
+            {
+              "type": "null"
+            }
+          ],
+          "title": "Notes"
+        },
+        "proxy_state": {
+          "title": "Proxy State",
+          "type": "boolean"
+        },
+        "state_id": {
+          "title": "State Id",
+          "type": "string"
+        },
+        "state_type": {
+          "title": "State Type",
+          "type": "string"
+        },
+        "unit": {
+          "anyOf": [
+            {
+              "type": "string"
+            },
+            {
+              "type": "null"
+            }
+          ],
+          "title": "Unit"
+        }
+      },
+      "required": [
+        "state_id",
+        "module_id",
+        "state_type",
+        "discrete_label",
+        "continuous_value",
+        "unit",
+        "loading_direction",
+        "proxy_state",
+        "notes"
+      ],
+      "title": "StateDefinition",
+      "type": "object"
+    }
+  },
+  "additionalProperties": false,
+  "properties": {
+    "allowed_loading_directions": {
+      "items": {
+        "$ref": "#/$defs/LoadingDirection"
+      },
+      "title": "Allowed Loading Directions",
+      "type": "array"
+    },
+    "allowed_modules": {
+      "items": {
+        "type": "string"
+      },
+      "title": "Allowed Modules",
+      "type": "array"
+    },
+    "binary_node_count": {
+      "anyOf": [
+        {
+          "exclusiveMinimum": 0,
+          "type": "integer"
+        },
+        {
+          "type": "null"
+        }
+      ],
+      "title": "Binary Node Count"
+    },
+    "boundary_conditions": {
+      "$ref": "#/$defs/BoundaryConditions"
+    },
+    "config_status": {
+      "$ref": "#/$defs/ConfigStatus"
+    },
+    "continuous_labels": {
+      "anyOf": [
+        {
+          "items": {
+            "type": "string"
+          },
+          "type": "array"
+        },
+        {
+          "type": "null"
+        }
+      ],
+      "title": "Continuous Labels"
+    },
+    "device_manifest_reference": {
+      "title": "Device Manifest Reference",
+      "type": "string"
+    },
+    "device_manifest_sha256": {
+      "pattern": "^[0-9a-f]{64}$",
+      "title": "Device Manifest Sha256",
+      "type": "string"
+    },
+    "execution_ready": {
+      "title": "Execution Ready",
+      "type": "boolean"
+    },
+    "experiment_stage": {
+      "enum": [
+        1,
+        2,
+        3,
+        4
+      ],
+      "title": "Experiment Stage",
+      "type": "integer"
+    },
+    "max_active_bridges": {
+      "anyOf": [
+        {
+          "exclusiveMinimum": 0,
+          "type": "integer"
+        },
+        {
+          "type": "null"
+        }
+      ],
+      "title": "Max Active Bridges"
+    },
+    "notes": {
+      "items": {
+        "type": "string"
+      },
+      "title": "Notes",
+      "type": "array"
+    },
+    "operator_confirmation_requirements": {
+      "items": {
+        "type": "string"
+      },
+      "title": "Operator Confirmation Requirements",
+      "type": "array"
+    },
+    "protocol_id": {
+      "title": "Protocol Id",
+      "type": "string"
+    },
+    "protocol_version": {
+      "title": "Protocol Version",
+      "type": "string"
+    },
+    "proxy_experiment": {
+      "title": "Proxy Experiment",
+      "type": "boolean"
+    },
+    "random_seed": {
+      "anyOf": [
+        {
+          "type": "integer"
+        },
+        {
+          "type": "null"
+        }
+      ],
+      "title": "Random Seed"
+    },
+    "randomization_enabled": {
+      "title": "Randomization Enabled",
+      "type": "boolean"
+    },
+    "reassemblies": {
+      "anyOf": [
+        {
+          "exclusiveMinimum": 0,
+          "type": "integer"
+        },
+        {
+          "type": "null"
+        }
+      ],
+      "title": "Reassemblies"
+    },
+    "repeats": {
+      "anyOf": [
+        {
+          "exclusiveMinimum": 0,
+          "type": "integer"
+        },
+        {
+          "type": "null"
+        }
+      ],
+      "title": "Repeats"
+    },
+    "run_mode": {
+      "$ref": "#/$defs/RunMode"
+    },
+    "schema_version": {
+      "title": "Schema Version",
+      "type": "string"
+    },
+    "selected_nodes": {
+      "anyOf": [
+        {
+          "items": {
+            "type": "string"
+          },
+          "type": "array"
+        },
+        {
+          "type": "null"
+        }
+      ],
+      "title": "Selected Nodes"
+    },
+    "selection_source": {
+      "enum": [
+        "operator_selection",
+        "manifest_recommendation"
+      ],
+      "title": "Selection Source",
+      "type": "string"
+    },
+    "sessions": {
+      "anyOf": [
+        {
+          "exclusiveMinimum": 0,
+          "type": "integer"
+        },
+        {
+          "type": "null"
+        }
+      ],
+      "title": "Sessions"
+    },
+    "state_definitions": {
+      "items": {
+        "$ref": "#/$defs/StateDefinition"
+      },
+      "title": "State Definitions",
+      "type": "array"
+    },
+    "state_labels": {
+      "items": {
+        "type": "string"
+      },
+      "title": "State Labels",
+      "type": "array"
+    }
+  },
+  "required": [
+    "schema_version",
+    "protocol_id",
+    "protocol_version",
+    "experiment_stage",
+    "config_status",
+    "execution_ready",
+    "device_manifest_reference",
+    "device_manifest_sha256",
+    "run_mode",
+    "boundary_conditions",
+    "allowed_modules",
+    "selected_nodes",
+    "selection_source",
+    "state_definitions",
+    "continuous_labels",
+    "allowed_loading_directions",
+    "repeats",
+    "reassemblies",
+    "sessions",
+    "randomization_enabled",
+    "random_seed",
+    "operator_confirmation_requirements",
+    "proxy_experiment",
+    "max_active_bridges",
+    "binary_node_count",
+    "state_labels",
+    "notes"
+  ],
+  "title": "ProtocolConfig",
+  "type": "object"
+}

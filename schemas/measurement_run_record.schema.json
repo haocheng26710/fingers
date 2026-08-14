@@ -1,0 +1,362 @@
+{
+  "$defs": {
+    "ArtifactRef": {
+      "additionalProperties": false,
+      "properties": {
+        "artifact_type": {
+          "title": "Artifact Type",
+          "type": "string"
+        },
+        "byte_size": {
+          "minimum": 0,
+          "title": "Byte Size",
+          "type": "integer"
+        },
+        "created_by": {
+          "title": "Created By",
+          "type": "string"
+        },
+        "dtype": {
+          "anyOf": [
+            {
+              "type": "string"
+            },
+            {
+              "type": "null"
+            }
+          ],
+          "title": "Dtype"
+        },
+        "format": {
+          "title": "Format",
+          "type": "string"
+        },
+        "immutable": {
+          "const": true,
+          "default": true,
+          "title": "Immutable",
+          "type": "boolean"
+        },
+        "path": {
+          "minLength": 1,
+          "title": "Path",
+          "type": "string"
+        },
+        "sha256": {
+          "title": "Sha256",
+          "type": "string"
+        },
+        "shape": {
+          "anyOf": [
+            {
+              "items": {
+                "type": "integer"
+              },
+              "type": "array"
+            },
+            {
+              "type": "null"
+            }
+          ],
+          "title": "Shape"
+        }
+      },
+      "required": [
+        "artifact_type",
+        "path",
+        "sha256",
+        "byte_size",
+        "format",
+        "shape",
+        "dtype",
+        "created_by"
+      ],
+      "title": "ArtifactRef",
+      "type": "object"
+    },
+    "DataOrigin": {
+      "enum": [
+        "synthetic",
+        "real"
+      ],
+      "title": "DataOrigin",
+      "type": "string"
+    },
+    "LoadingDirection": {
+      "enum": [
+        "loading",
+        "unloading",
+        "not_applicable",
+        "unknown"
+      ],
+      "title": "LoadingDirection",
+      "type": "string"
+    },
+    "NodeState": {
+      "additionalProperties": false,
+      "properties": {
+        "continuous_value": {
+          "anyOf": [
+            {
+              "type": "number"
+            },
+            {
+              "type": "null"
+            }
+          ],
+          "title": "Continuous Value"
+        },
+        "discrete_label": {
+          "anyOf": [
+            {
+              "type": "string"
+            },
+            {
+              "type": "null"
+            }
+          ],
+          "title": "Discrete Label"
+        },
+        "loading_direction": {
+          "$ref": "#/$defs/LoadingDirection"
+        },
+        "module_id": {
+          "title": "Module Id",
+          "type": "string"
+        },
+        "node_id": {
+          "title": "Node Id",
+          "type": "string"
+        },
+        "notes": {
+          "anyOf": [
+            {
+              "type": "string"
+            },
+            {
+              "type": "null"
+            }
+          ],
+          "title": "Notes"
+        },
+        "provenance": {
+          "anyOf": [
+            {
+              "type": "string"
+            },
+            {
+              "type": "null"
+            }
+          ],
+          "title": "Provenance"
+        },
+        "proxy_state": {
+          "title": "Proxy State",
+          "type": "boolean"
+        },
+        "state_id": {
+          "title": "State Id",
+          "type": "string"
+        },
+        "state_type": {
+          "title": "State Type",
+          "type": "string"
+        },
+        "unit": {
+          "anyOf": [
+            {
+              "type": "string"
+            },
+            {
+              "type": "null"
+            }
+          ],
+          "title": "Unit"
+        }
+      },
+      "required": [
+        "node_id",
+        "state_id",
+        "module_id",
+        "state_type",
+        "discrete_label",
+        "continuous_value",
+        "unit",
+        "loading_direction",
+        "proxy_state",
+        "provenance",
+        "notes"
+      ],
+      "title": "NodeState",
+      "type": "object"
+    },
+    "RunMode": {
+      "enum": [
+        "formal",
+        "diagnostic",
+        "development"
+      ],
+      "title": "RunMode",
+      "type": "string"
+    }
+  },
+  "additionalProperties": false,
+  "properties": {
+    "artifacts": {
+      "items": {
+        "$ref": "#/$defs/ArtifactRef"
+      },
+      "title": "Artifacts",
+      "type": "array"
+    },
+    "backend": {
+      "title": "Backend",
+      "type": "string"
+    },
+    "completed_at": {
+      "anyOf": [
+        {
+          "format": "date-time",
+          "type": "string"
+        },
+        {
+          "type": "null"
+        }
+      ],
+      "title": "Completed At"
+    },
+    "config_hashes": {
+      "additionalProperties": {
+        "type": "string"
+      },
+      "title": "Config Hashes",
+      "type": "object"
+    },
+    "created_at": {
+      "format": "date-time",
+      "title": "Created At",
+      "type": "string"
+    },
+    "data_origin": {
+      "$ref": "#/$defs/DataOrigin"
+    },
+    "failure_reason": {
+      "anyOf": [
+        {
+          "type": "string"
+        },
+        {
+          "type": "null"
+        }
+      ],
+      "title": "Failure Reason"
+    },
+    "formal_eligible": {
+      "title": "Formal Eligible",
+      "type": "boolean"
+    },
+    "measurement_order": {
+      "minimum": 0,
+      "title": "Measurement Order",
+      "type": "integer"
+    },
+    "node_states": {
+      "additionalProperties": {
+        "$ref": "#/$defs/NodeState"
+      },
+      "title": "Node States",
+      "type": "object"
+    },
+    "notes": {
+      "anyOf": [
+        {
+          "type": "string"
+        },
+        {
+          "type": "null"
+        }
+      ],
+      "title": "Notes"
+    },
+    "protocol_id": {
+      "title": "Protocol Id",
+      "type": "string"
+    },
+    "reassembly_id": {
+      "title": "Reassembly Id",
+      "type": "string"
+    },
+    "result_marker": {
+      "anyOf": [
+        {
+          "type": "string"
+        },
+        {
+          "type": "null"
+        }
+      ],
+      "title": "Result Marker"
+    },
+    "run_id": {
+      "title": "Run Id",
+      "type": "string"
+    },
+    "run_mode": {
+      "$ref": "#/$defs/RunMode"
+    },
+    "session_id": {
+      "title": "Session Id",
+      "type": "string"
+    },
+    "software_version": {
+      "title": "Software Version",
+      "type": "string"
+    },
+    "started_at": {
+      "anyOf": [
+        {
+          "format": "date-time",
+          "type": "string"
+        },
+        {
+          "type": "null"
+        }
+      ],
+      "title": "Started At"
+    },
+    "status": {
+      "enum": [
+        "planned",
+        "generated",
+        "complete",
+        "failed"
+      ],
+      "title": "Status",
+      "type": "string"
+    }
+  },
+  "required": [
+    "run_id",
+    "session_id",
+    "reassembly_id",
+    "protocol_id",
+    "measurement_order",
+    "data_origin",
+    "run_mode",
+    "formal_eligible",
+    "node_states",
+    "created_at",
+    "started_at",
+    "completed_at",
+    "config_hashes",
+    "artifacts",
+    "backend",
+    "software_version",
+    "status",
+    "failure_reason",
+    "result_marker",
+    "notes"
+  ],
+  "title": "MeasurementRunRecord",
+  "type": "object"
+}

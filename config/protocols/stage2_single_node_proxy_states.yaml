@@ -1,0 +1,71 @@
+schema_version: "1.0.0"
+protocol_id: stage2_single_node_proxy_states
+protocol_version: "0.1.0-draft"
+experiment_stage: 2
+config_status: draft
+execution_ready: false
+device_manifest_reference: config/devices/device_manifest.provisional.json
+device_manifest_sha256: bd69f27305681e6552e61d402571300c2eea340a6d7878dc2b93531c8b6608b0
+run_mode: formal
+boundary_conditions:
+  tx_near: speaker
+  rx_near: microphone
+  tx_far: closed
+  rx_far: closed
+  unselected_nodes: BLK
+allowed_modules: [BLK, B28, B32, B40]
+selected_nodes: null
+selection_source: operator_selection
+state_definitions:
+  - state_id: proxy_BLK
+    module_id: BLK
+    state_type: proxy_discrete_module
+    discrete_label: BLK
+    continuous_value: null
+    unit: null
+    loading_direction: unknown
+    proxy_state: true
+    notes: Proxy baseline; not a measured deformation.
+  - state_id: proxy_B28
+    module_id: B28
+    state_type: proxy_discrete_module
+    discrete_label: B28
+    continuous_value: null
+    unit: null
+    loading_direction: unknown
+    proxy_state: true
+    notes: Fixed bridge aperture used only as a proxy state.
+  - state_id: proxy_B32
+    module_id: B32
+    state_type: proxy_discrete_module
+    discrete_label: B32
+    continuous_value: null
+    unit: null
+    loading_direction: unknown
+    proxy_state: true
+    notes: Fixed bridge aperture used only as a proxy state.
+  - state_id: proxy_B40
+    module_id: B40
+    state_type: proxy_discrete_module
+    discrete_label: B40
+    continuous_value: null
+    unit: null
+    loading_direction: unknown
+    proxy_state: true
+    notes: Fixed bridge aperture used only as a proxy state.
+continuous_labels: null
+allowed_loading_directions: [loading, unloading, unknown]
+repeats: null
+reassemblies: null
+sessions: null
+randomization_enabled: false
+random_seed: null
+operator_confirmation_requirements:
+  - Confirm the selected proxy module and BLK at all unselected nodes.
+proxy_experiment: true
+max_active_bridges: 1
+binary_node_count: null
+state_labels: [BLK, B28, B32, B40]
+notes:
+  - Optional future continuous values and units are supported by the NodeState contract.
+  - Fixed bridge holes are not described as real continuous deformation.

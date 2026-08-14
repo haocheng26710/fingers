@@ -1,0 +1,29 @@
+schema_version: "1.0.0"
+config_id: default_1x1_ess_draft
+config_status: draft
+run_mode: formal
+audio_backend: null
+output_device:
+  device_id: null
+  device_name: null
+input_device:
+  device_id: null
+  device_name: null
+output_channels:
+  - channel_index: null
+    role: TX_speaker
+input_channels:
+  - channel_index: null
+    role: RX_microphone
+sample_rate_hz: 48000
+ess_start_frequency_hz: 300.0
+ess_end_frequency_hz: 10000.0
+ess_duration_s: null
+pre_silence_s: null
+post_silence_s: null
+output_gain_db: null
+input_gain_db: null
+hardware_ready: false
+notes:
+  - Structural draft only; no audio backend or hardware identity has been confirmed.
+  - This step does not generate or play a formal ESS.

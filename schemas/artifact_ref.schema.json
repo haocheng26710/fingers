@@ -1,0 +1,74 @@
+{
+  "additionalProperties": false,
+  "properties": {
+    "artifact_type": {
+      "title": "Artifact Type",
+      "type": "string"
+    },
+    "byte_size": {
+      "minimum": 0,
+      "title": "Byte Size",
+      "type": "integer"
+    },
+    "created_by": {
+      "title": "Created By",
+      "type": "string"
+    },
+    "dtype": {
+      "anyOf": [
+        {
+          "type": "string"
+        },
+        {
+          "type": "null"
+        }
+      ],
+      "title": "Dtype"
+    },
+    "format": {
+      "title": "Format",
+      "type": "string"
+    },
+    "immutable": {
+      "const": true,
+      "default": true,
+      "title": "Immutable",
+      "type": "boolean"
+    },
+    "path": {
+      "minLength": 1,
+      "title": "Path",
+      "type": "string"
+    },
+    "sha256": {
+      "title": "Sha256",
+      "type": "string"
+    },
+    "shape": {
+      "anyOf": [
+        {
+          "items": {
+            "type": "integer"
+          },
+          "type": "array"
+        },
+        {
+          "type": "null"
+        }
+      ],
+      "title": "Shape"
+    }
+  },
+  "required": [
+    "artifact_type",
+    "path",
+    "sha256",
+    "byte_size",
+    "format",
+    "shape",
+    "dtype",
+    "created_by"
+  ],
+  "title": "ArtifactRef",
+  "type": "object"
+}

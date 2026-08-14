@@ -1,0 +1,158 @@
+{
+  "$defs": {
+    "ConfigStatus": {
+      "enum": [
+        "draft",
+        "ready"
+      ],
+      "title": "ConfigStatus",
+      "type": "string"
+    },
+    "SpeedOfSoundAssumption": {
+      "additionalProperties": false,
+      "properties": {
+        "assumption_not_measurement": {
+          "const": true,
+          "title": "Assumption Not Measurement",
+          "type": "boolean"
+        },
+        "source": {
+          "title": "Source",
+          "type": "string"
+        },
+        "value_m_s": {
+          "exclusiveMinimum": 0,
+          "title": "Value M S",
+          "type": "number"
+        }
+      },
+      "required": [
+        "value_m_s",
+        "source",
+        "assumption_not_measurement"
+      ],
+      "title": "SpeedOfSoundAssumption",
+      "type": "object"
+    }
+  },
+  "additionalProperties": false,
+  "properties": {
+    "baseline_coupling": {
+      "minimum": 0,
+      "title": "Baseline Coupling",
+      "type": "number"
+    },
+    "config_id": {
+      "title": "Config Id",
+      "type": "string"
+    },
+    "config_status": {
+      "$ref": "#/$defs/ConfigStatus"
+    },
+    "duration_s": {
+      "exclusiveMinimum": 0,
+      "title": "Duration S",
+      "type": "number"
+    },
+    "generator_version": {
+      "title": "Generator Version",
+      "type": "string"
+    },
+    "input_channel_count": {
+      "exclusiveMinimum": 0,
+      "title": "Input Channel Count",
+      "type": "integer"
+    },
+    "module_effect_scale": {
+      "minimum": 0,
+      "title": "Module Effect Scale",
+      "type": "number"
+    },
+    "noise_level": {
+      "minimum": 0,
+      "title": "Noise Level",
+      "type": "number"
+    },
+    "notes": {
+      "items": {
+        "type": "string"
+      },
+      "title": "Notes",
+      "type": "array"
+    },
+    "output_channel_count": {
+      "exclusiveMinimum": 0,
+      "title": "Output Channel Count",
+      "type": "integer"
+    },
+    "output_dtype": {
+      "enum": [
+        "float32",
+        "float64"
+      ],
+      "title": "Output Dtype",
+      "type": "string"
+    },
+    "physical_limitations": {
+      "items": {
+        "type": "string"
+      },
+      "title": "Physical Limitations",
+      "type": "array"
+    },
+    "propagation_loss_per_m": {
+      "minimum": 0,
+      "title": "Propagation Loss Per M",
+      "type": "number"
+    },
+    "random_seed": {
+      "title": "Random Seed",
+      "type": "integer"
+    },
+    "reassembly_drift": {
+      "minimum": 0,
+      "title": "Reassembly Drift",
+      "type": "number"
+    },
+    "sample_rate_hz": {
+      "exclusiveMinimum": 0,
+      "title": "Sample Rate Hz",
+      "type": "integer"
+    },
+    "schema_version": {
+      "title": "Schema Version",
+      "type": "string"
+    },
+    "session_drift": {
+      "minimum": 0,
+      "title": "Session Drift",
+      "type": "number"
+    },
+    "speed_of_sound": {
+      "$ref": "#/$defs/SpeedOfSoundAssumption"
+    }
+  },
+  "required": [
+    "schema_version",
+    "config_id",
+    "config_status",
+    "generator_version",
+    "random_seed",
+    "sample_rate_hz",
+    "duration_s",
+    "speed_of_sound",
+    "baseline_coupling",
+    "propagation_loss_per_m",
+    "module_effect_scale",
+    "noise_level",
+    "session_drift",
+    "reassembly_drift",
+    "output_channel_count",
+    "input_channel_count",
+    "output_dtype",
+    "notes",
+    "physical_limitations"
+  ],
+  "title": "SyntheticConfig",
+  "type": "object"
+}

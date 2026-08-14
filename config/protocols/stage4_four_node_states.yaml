@@ -1,0 +1,53 @@
+schema_version: "1.0.0"
+protocol_id: stage4_four_node_states
+protocol_version: "0.1.0-draft"
+experiment_stage: 4
+config_status: draft
+execution_ready: false
+device_manifest_reference: config/devices/device_manifest.provisional.json
+device_manifest_sha256: bd69f27305681e6552e61d402571300c2eea340a6d7878dc2b93531c8b6608b0
+run_mode: formal
+boundary_conditions:
+  tx_near: speaker
+  rx_near: microphone
+  tx_far: closed
+  rx_far: closed
+  unselected_nodes: BLK
+allowed_modules: [BLK, B40, B32, B28]
+selected_nodes: null
+selection_source: manifest_recommendation
+state_definitions:
+  - state_id: binary_0
+    module_id: BLK
+    state_type: binary_discrete_module
+    discrete_label: "0"
+    continuous_value: null
+    unit: null
+    loading_direction: not_applicable
+    proxy_state: false
+    notes: Closed binary state.
+  - state_id: binary_1
+    module_id: B40
+    state_type: binary_discrete_module
+    discrete_label: "1"
+    continuous_value: null
+    unit: null
+    loading_direction: not_applicable
+    proxy_state: false
+    notes: Fixed bridge binary state.
+continuous_labels: null
+allowed_loading_directions: [not_applicable]
+repeats: null
+reassemblies: null
+sessions: null
+randomization_enabled: false
+random_seed: null
+operator_confirmation_requirements:
+  - Confirm manifest-recommended nodes and BLK at every other node.
+proxy_experiment: false
+max_active_bridges: 4
+binary_node_count: 4
+state_labels: []
+notes:
+  - selected_nodes is resolved from the supplied device manifest recommendation at load time.
+  - No 16-state combination, protocol execution or classification is implemented.

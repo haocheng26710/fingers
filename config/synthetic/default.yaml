@@ -1,0 +1,31 @@
+schema_version: "1.0.0"
+config_id: default_synthetic_interface_test
+config_status: draft
+generator_version: transparent-delay-model-v1
+random_seed: 20260814
+sample_rate_hz: 48000
+duration_s: 0.25
+speed_of_sound:
+  value_m_s: 343.0
+  source: package design assumption; not an environmental measurement
+  assumption_not_measurement: true
+baseline_coupling: 0.05
+propagation_loss_per_m: 0.4
+module_effect_scale: 0.15
+noise_level: 0.001
+session_drift: 0.01
+reassembly_drift: 0.02
+output_channel_count: 1
+input_channel_count: 1
+output_dtype: float32
+notes:
+  - Synthetic arrays are for interface, configuration and immutable-storage tests only.
+  - The excitation is deterministic broadband test noise, not a formal ESS.
+physical_limitations:
+  - Does not include complete waveguide modes.
+  - Does not include real end reflections.
+  - Does not include print roughness.
+  - Does not include leakage.
+  - Does not include loudspeaker or microphone responses.
+  - Does not include real nonlinearities.
+  - Cannot validate real separability or structural effectiveness.

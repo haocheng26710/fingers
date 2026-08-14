@@ -1,0 +1,70 @@
+schema_version: "1.0.0"
+protocol_id: stage1_single_bridge
+protocol_version: "0.1.0-draft"
+experiment_stage: 1
+config_status: draft
+execution_ready: false
+device_manifest_reference: config/devices/device_manifest.provisional.json
+device_manifest_sha256: bd69f27305681e6552e61d402571300c2eea340a6d7878dc2b93531c8b6608b0
+run_mode: formal
+boundary_conditions:
+  tx_near: speaker
+  rx_near: microphone
+  tx_far: closed
+  rx_far: closed
+  unselected_nodes: BLK
+allowed_modules: [BLK, B40, B32, B28]
+selected_nodes: null
+selection_source: operator_selection
+state_definitions:
+  - state_id: blocked
+    module_id: BLK
+    state_type: discrete_module
+    discrete_label: BLK
+    continuous_value: null
+    unit: null
+    loading_direction: not_applicable
+    proxy_state: false
+    notes: Closed block baseline.
+  - state_id: bridge_B40
+    module_id: B40
+    state_type: discrete_module
+    discrete_label: B40
+    continuous_value: null
+    unit: null
+    loading_direction: not_applicable
+    proxy_state: false
+    notes: Fixed target aperture; not a continuous deformation state.
+  - state_id: bridge_B32
+    module_id: B32
+    state_type: discrete_module
+    discrete_label: B32
+    continuous_value: null
+    unit: null
+    loading_direction: not_applicable
+    proxy_state: false
+    notes: Fixed target aperture; not a continuous deformation state.
+  - state_id: bridge_B28
+    module_id: B28
+    state_type: discrete_module
+    discrete_label: B28
+    continuous_value: null
+    unit: null
+    loading_direction: not_applicable
+    proxy_state: false
+    notes: Fixed target aperture; not a continuous deformation state.
+continuous_labels: null
+allowed_loading_directions: [not_applicable]
+repeats: null
+reassemblies: null
+sessions: null
+randomization_enabled: false
+random_seed: null
+operator_confirmation_requirements:
+  - Confirm exactly one selected bridge and BLK at every other node.
+proxy_experiment: false
+max_active_bridges: 1
+binary_node_count: null
+state_labels: [BLK, B40, B32, B28]
+notes:
+  - No 19-state measurement matrix is generated in DEV-02.01.

@@ -1,0 +1,260 @@
+{
+  "$defs": {
+    "ConfigStatus": {
+      "enum": [
+        "draft",
+        "ready"
+      ],
+      "title": "ConfigStatus",
+      "type": "string"
+    },
+    "DecisionGates": {
+      "additionalProperties": false,
+      "properties": {
+        "classification_pass_threshold": {
+          "anyOf": [
+            {
+              "type": "number"
+            },
+            {
+              "type": "null"
+            }
+          ],
+          "title": "Classification Pass Threshold"
+        },
+        "drift_threshold": {
+          "anyOf": [
+            {
+              "type": "number"
+            },
+            {
+              "type": "null"
+            }
+          ],
+          "title": "Drift Threshold"
+        },
+        "effect_threshold": {
+          "anyOf": [
+            {
+              "type": "number"
+            },
+            {
+              "type": "null"
+            }
+          ],
+          "title": "Effect Threshold"
+        },
+        "qc_threshold": {
+          "anyOf": [
+            {
+              "type": "number"
+            },
+            {
+              "type": "null"
+            }
+          ],
+          "title": "Qc Threshold"
+        }
+      },
+      "required": [
+        "qc_threshold",
+        "effect_threshold",
+        "drift_threshold",
+        "classification_pass_threshold"
+      ],
+      "title": "DecisionGates",
+      "type": "object"
+    },
+    "FrequencyBand": {
+      "additionalProperties": false,
+      "properties": {
+        "lower_hz": {
+          "exclusiveMinimum": 0,
+          "title": "Lower Hz",
+          "type": "number"
+        },
+        "upper_hz": {
+          "exclusiveMinimum": 0,
+          "title": "Upper Hz",
+          "type": "number"
+        }
+      },
+      "required": [
+        "lower_hz",
+        "upper_hz"
+      ],
+      "title": "FrequencyBand",
+      "type": "object"
+    },
+    "SmoothingConfig": {
+      "additionalProperties": false,
+      "properties": {
+        "enabled": {
+          "title": "Enabled",
+          "type": "boolean"
+        },
+        "method": {
+          "anyOf": [
+            {
+              "type": "string"
+            },
+            {
+              "type": "null"
+            }
+          ],
+          "title": "Method"
+        },
+        "parameter": {
+          "anyOf": [
+            {
+              "type": "number"
+            },
+            {
+              "type": "null"
+            }
+          ],
+          "title": "Parameter"
+        }
+      },
+      "required": [
+        "enabled",
+        "method",
+        "parameter"
+      ],
+      "title": "SmoothingConfig",
+      "type": "object"
+    }
+  },
+  "additionalProperties": false,
+  "properties": {
+    "analysis_band": {
+      "$ref": "#/$defs/FrequencyBand"
+    },
+    "baseline_selection_rule": {
+      "anyOf": [
+        {
+          "type": "string"
+        },
+        {
+          "type": "null"
+        }
+      ],
+      "title": "Baseline Selection Rule"
+    },
+    "config_id": {
+      "title": "Config Id",
+      "type": "string"
+    },
+    "config_status": {
+      "$ref": "#/$defs/ConfigStatus"
+    },
+    "cross_validation_strategy": {
+      "anyOf": [
+        {
+          "type": "string"
+        },
+        {
+          "type": "null"
+        }
+      ],
+      "title": "Cross Validation Strategy"
+    },
+    "decision_gates": {
+      "$ref": "#/$defs/DecisionGates"
+    },
+    "features": {
+      "anyOf": [
+        {
+          "items": {
+            "type": "string"
+          },
+          "type": "array"
+        },
+        {
+          "type": "null"
+        }
+      ],
+      "title": "Features"
+    },
+    "grouping_candidates": {
+      "items": {
+        "enum": [
+          "session",
+          "reassembly",
+          "day"
+        ],
+        "type": "string"
+      },
+      "title": "Grouping Candidates",
+      "type": "array"
+    },
+    "model_order": {
+      "items": {
+        "enum": [
+          "template_correlation",
+          "ridge",
+          "logistic_regression",
+          "LDA",
+          "random_forest"
+        ],
+        "type": "string"
+      },
+      "title": "Model Order",
+      "type": "array"
+    },
+    "normalization": {
+      "anyOf": [
+        {
+          "type": "string"
+        },
+        {
+          "type": "null"
+        }
+      ],
+      "title": "Normalization"
+    },
+    "notes": {
+      "items": {
+        "type": "string"
+      },
+      "title": "Notes",
+      "type": "array"
+    },
+    "random_seed": {
+      "anyOf": [
+        {
+          "type": "integer"
+        },
+        {
+          "type": "null"
+        }
+      ],
+      "title": "Random Seed"
+    },
+    "schema_version": {
+      "title": "Schema Version",
+      "type": "string"
+    },
+    "smoothing": {
+      "$ref": "#/$defs/SmoothingConfig"
+    }
+  },
+  "required": [
+    "schema_version",
+    "config_id",
+    "config_status",
+    "analysis_band",
+    "smoothing",
+    "baseline_selection_rule",
+    "features",
+    "normalization",
+    "grouping_candidates",
+    "cross_validation_strategy",
+    "model_order",
+    "random_seed",
+    "decision_gates",
+    "notes"
+  ],
+  "title": "AnalysisConfig",
+  "type": "object"
+}

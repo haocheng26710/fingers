@@ -1,0 +1,241 @@
+{
+  "$defs": {
+    "AudioChannel": {
+      "additionalProperties": false,
+      "properties": {
+        "channel_index": {
+          "anyOf": [
+            {
+              "minimum": 0,
+              "type": "integer"
+            },
+            {
+              "type": "null"
+            }
+          ],
+          "title": "Channel Index"
+        },
+        "role": {
+          "enum": [
+            "TX_speaker",
+            "RX_microphone",
+            "diagnostic_reference"
+          ],
+          "title": "Role",
+          "type": "string"
+        }
+      },
+      "required": [
+        "channel_index",
+        "role"
+      ],
+      "title": "AudioChannel",
+      "type": "object"
+    },
+    "AudioDeviceRef": {
+      "additionalProperties": false,
+      "properties": {
+        "device_id": {
+          "anyOf": [
+            {
+              "type": "string"
+            },
+            {
+              "type": "null"
+            }
+          ],
+          "title": "Device Id"
+        },
+        "device_name": {
+          "anyOf": [
+            {
+              "type": "string"
+            },
+            {
+              "type": "null"
+            }
+          ],
+          "title": "Device Name"
+        }
+      },
+      "required": [
+        "device_id",
+        "device_name"
+      ],
+      "title": "AudioDeviceRef",
+      "type": "object"
+    },
+    "ConfigStatus": {
+      "enum": [
+        "draft",
+        "ready"
+      ],
+      "title": "ConfigStatus",
+      "type": "string"
+    },
+    "RunMode": {
+      "enum": [
+        "formal",
+        "diagnostic",
+        "development"
+      ],
+      "title": "RunMode",
+      "type": "string"
+    }
+  },
+  "additionalProperties": false,
+  "properties": {
+    "audio_backend": {
+      "anyOf": [
+        {
+          "type": "string"
+        },
+        {
+          "type": "null"
+        }
+      ],
+      "title": "Audio Backend"
+    },
+    "config_id": {
+      "title": "Config Id",
+      "type": "string"
+    },
+    "config_status": {
+      "$ref": "#/$defs/ConfigStatus"
+    },
+    "ess_duration_s": {
+      "anyOf": [
+        {
+          "exclusiveMinimum": 0,
+          "type": "number"
+        },
+        {
+          "type": "null"
+        }
+      ],
+      "title": "Ess Duration S"
+    },
+    "ess_end_frequency_hz": {
+      "exclusiveMinimum": 0,
+      "title": "Ess End Frequency Hz",
+      "type": "number"
+    },
+    "ess_start_frequency_hz": {
+      "exclusiveMinimum": 0,
+      "title": "Ess Start Frequency Hz",
+      "type": "number"
+    },
+    "hardware_ready": {
+      "title": "Hardware Ready",
+      "type": "boolean"
+    },
+    "input_channels": {
+      "items": {
+        "$ref": "#/$defs/AudioChannel"
+      },
+      "title": "Input Channels",
+      "type": "array"
+    },
+    "input_device": {
+      "$ref": "#/$defs/AudioDeviceRef"
+    },
+    "input_gain_db": {
+      "anyOf": [
+        {
+          "type": "number"
+        },
+        {
+          "type": "null"
+        }
+      ],
+      "title": "Input Gain Db"
+    },
+    "notes": {
+      "items": {
+        "type": "string"
+      },
+      "title": "Notes",
+      "type": "array"
+    },
+    "output_channels": {
+      "items": {
+        "$ref": "#/$defs/AudioChannel"
+      },
+      "title": "Output Channels",
+      "type": "array"
+    },
+    "output_device": {
+      "$ref": "#/$defs/AudioDeviceRef"
+    },
+    "output_gain_db": {
+      "anyOf": [
+        {
+          "type": "number"
+        },
+        {
+          "type": "null"
+        }
+      ],
+      "title": "Output Gain Db"
+    },
+    "post_silence_s": {
+      "anyOf": [
+        {
+          "minimum": 0,
+          "type": "number"
+        },
+        {
+          "type": "null"
+        }
+      ],
+      "title": "Post Silence S"
+    },
+    "pre_silence_s": {
+      "anyOf": [
+        {
+          "minimum": 0,
+          "type": "number"
+        },
+        {
+          "type": "null"
+        }
+      ],
+      "title": "Pre Silence S"
+    },
+    "run_mode": {
+      "$ref": "#/$defs/RunMode"
+    },
+    "sample_rate_hz": {
+      "exclusiveMinimum": 0,
+      "title": "Sample Rate Hz",
+      "type": "integer"
+    },
+    "schema_version": {
+      "title": "Schema Version",
+      "type": "string"
+    }
+  },
+  "required": [
+    "schema_version",
+    "config_id",
+    "config_status",
+    "run_mode",
+    "audio_backend",
+    "output_device",
+    "input_device",
+    "output_channels",
+    "input_channels",
+    "sample_rate_hz",
+    "ess_start_frequency_hz",
+    "ess_end_frequency_hz",
+    "ess_duration_s",
+    "pre_silence_s",
+    "post_silence_s",
+    "output_gain_db",
+    "input_gain_db",
+    "hardware_ready",
+    "notes"
+  ],
+  "title": "AudioConfig",
+  "type": "object"
+}

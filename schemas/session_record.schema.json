@@ -1,0 +1,110 @@
+{
+  "$defs": {
+    "DataOrigin": {
+      "enum": [
+        "synthetic",
+        "real"
+      ],
+      "title": "DataOrigin",
+      "type": "string"
+    },
+    "RunMode": {
+      "enum": [
+        "formal",
+        "diagnostic",
+        "development"
+      ],
+      "title": "RunMode",
+      "type": "string"
+    }
+  },
+  "additionalProperties": false,
+  "properties": {
+    "config_bundle_reference": {
+      "minLength": 1,
+      "title": "Config Bundle Reference",
+      "type": "string"
+    },
+    "created_at": {
+      "format": "date-time",
+      "title": "Created At",
+      "type": "string"
+    },
+    "data_origin": {
+      "$ref": "#/$defs/DataOrigin"
+    },
+    "device_manifest_reference": {
+      "minLength": 1,
+      "title": "Device Manifest Reference",
+      "type": "string"
+    },
+    "immutable_status": {
+      "const": "immutable",
+      "title": "Immutable Status",
+      "type": "string"
+    },
+    "notes": {
+      "anyOf": [
+        {
+          "type": "string"
+        },
+        {
+          "type": "null"
+        }
+      ],
+      "title": "Notes"
+    },
+    "operator": {
+      "anyOf": [
+        {
+          "type": "string"
+        },
+        {
+          "type": "null"
+        }
+      ],
+      "title": "Operator"
+    },
+    "reassembly_ids": {
+      "items": {
+        "type": "string"
+      },
+      "title": "Reassembly Ids",
+      "type": "array"
+    },
+    "run_ids": {
+      "items": {
+        "type": "string"
+      },
+      "title": "Run Ids",
+      "type": "array"
+    },
+    "run_mode": {
+      "$ref": "#/$defs/RunMode"
+    },
+    "session_id": {
+      "title": "Session Id",
+      "type": "string"
+    },
+    "session_schema_version": {
+      "title": "Session Schema Version",
+      "type": "string"
+    }
+  },
+  "required": [
+    "session_id",
+    "session_schema_version",
+    "created_at",
+    "data_origin",
+    "run_mode",
+    "operator",
+    "device_manifest_reference",
+    "config_bundle_reference",
+    "reassembly_ids",
+    "run_ids",
+    "immutable_status",
+    "notes"
+  ],
+  "title": "SessionRecord",
+  "type": "object"
+}
