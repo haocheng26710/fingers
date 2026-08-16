@@ -283,3 +283,42 @@
 - Git 结果：本文档冻结时尚未提交/推送，不能在提交内自引用最终 SHA。仅在所有最终门禁再次通过后提交并推送；实际结果以 Git 历史和最终回复为准，若失败则最终状态必须改报 FAIL。
 - 已知限制：枚举名称未明确识别 iMM-6C/CM6542；host API、输入/输出设备索引及通道均需用户确认。设备索引仅为单次快照索引。本步骤不能证明输入输出为同一索引/物理时钟、同步全双工、延迟稳定、通道映射、麦克风文件校准、绝对 SPL 或实验就绪。
 - 提交主题：`DEV-03.01: add audio inventory and read-only preflight`
+
+## DEV-03.02
+
+- 序列号：`DEV-03.02`
+- 名称：音频清单编码与无实验硬件基线上下文修正
+- 状态：`PASSED`
+- 开始时间：`2026-08-16T19:12:51+01:00`
+- 基线提交：`6332adc85be898f7c8d57e17b5d41fcce52587a1`
+- 更正事实：既有 DEV-03.01 日志中“sounddevice 返回的部分中文名称包含 replacement characters”的说法不准确。权威 `DEV-03.01_audio_inventory.json` 保存的是正确 UTF-8 中文且不含 U+FFFD；名称损坏发生于 inventory 构建之后的控制台输出、解码或报告转录路径，现有证据不能证明具体是哪一终端、代码页或工具层，故不作进一步归因。
+- 操作者补充事实：用户在 DEV-03.01 后确认，当时 iMM-6C、竹 2 和实验装置均未连接电脑。DEV-03.01 inventory 重新分类为 `development_host_baseline_without_experimental_hardware`；Senary Audio、AMD、蓝牙及其他端点均解释为 `not_experimental_hardware`，所有原索引均不得绑定为实验设备，当前无需选择设备、Host API 或通道。
+- 状态决定：input/output candidate 均为空且状态为 `not_applicable_hardware_disconnected`；operator confirmation 与 device binding 均为 `deferred_until_hardware_connection`；`hardware_ready/full_duplex_verified/shared_clock_verified/channel_mapping_verified/calibration_file_verified/absolute_spl_calibrated` 全部为 false。无实验硬件候选是预期上下文，不是枚举失败。
+- 实现：新增 strict `AudioInventoryCaptureContext` 与 `ContextualAudioPreflightReport`、两个生成 Schema、context-aware preflight、由已验证 inventory 模型直接生成的 UTF-8/LF Markdown summary、canonical create-only JSON/bytes sidecar 持久化与验证。`audio-list` 默认以 ASCII-only JSON string 输出设备名并标记 `DEVICE_NAME_ENCODING=JSON_ASCII_ESCAPED`，标准 JSON 解码可恢复原 Unicode。新增 `audio-contextual-preflight`、`audio-inventory-summary`、`audio-context-validate`；这些命令只读既有文件，不查询硬件。
+- 原采集保护：`DEV-03.01_audio_inventory.json`、sidecar、原 preflight、hardware setup 和 DEV-03.01 prompt 均未修改；inventory SHA256 仍为 `8a68d714a86fa8228e17b7f751da8060c558f79f881fb55994e5130caf199de2`。仅按提示词许可修正 DEV-03.01 report 的名称、错误归因与硬件未连接解释；其测试数量、依赖/PortAudio 版本、inventory 哈希和只读采集事实未改。
+- 新产物：capture context SHA256 `10472424e35958bc6cef156fe8b48c9b927f13b041414b2125b53dbec7d5e67c`；模型生成 summary SHA256 `84879af2f2229bbbd4511b0f6985db6adedc6b9e2764262721bebec71756a159`；contextual preflight SHA256 `e47678644a36ddc7d4e8d1fad06ba0cb0ec3a02a179de2816d2d8ba767e35e15`。三者及所需 sidecar 均 create-only 生成并验证。
+- 新增/修改文件：修改 `.gitattributes`、README、`docs/architecture/audio-inventory.md`、`docs/architecture/configuration.md`、`docs/reports/DEV-03.01.md`、`src/acoustic_ladder/audio/{models,persistence,preflight,summary}.py`、`src/acoustic_ladder/cli.py`、`src/acoustic_ladder/config/schema.py`；新增 DEV-03.02 prompt/report、24 项测试、context/contextual-preflight/summary 及 sidecars、两个 Schema。implementation log 的既有全部字节是未变前缀，本条目只追加于末尾。
+- 实际运行命令：
+  - `Get-Content -Raw '<attachment>/pasted-text.txt'`
+  - Git 根/分支/HEAD/origin/main/remote/status 检查、项目指令 `rg --files` 扫描
+  - `git ls-remote --heads https://github.com/haocheng26710/fingers.git main`（经批准）
+  - `Get-FileHash -Algorithm SHA256 -LiteralPath <protected files>`；Python 直接解析 inventory 并以 `ensure_ascii=True` 核对 Unicode
+  - `Copy-Item -LiteralPath '<attachment>/pasted-text.txt' -Destination docs/prompts/DEV-03.02.md`；源/目标 SHA256 相同
+  - 多次 `uv --cache-dir .uv-cache run ruff format ...`、`ruff check ...`、`mypy ...` 和 DEV-03.02 目标 pytest
+  - `uv --cache-dir .uv-cache run acoustic-ladder export-schemas --output-dir schemas`
+  - Python 使用 `AudioInventoryCaptureContext` 与 `persist_audio_artifact` 创建 context/sidecar；未 import 或调用生产 backend
+  - `uv --cache-dir .uv-cache run acoustic-ladder audio-contextual-preflight ...`
+  - `uv --cache-dir .uv-cache run acoustic-ladder audio-inventory-summary ...`
+  - `uv --cache-dir .uv-cache run acoustic-ladder audio-context-validate ...`
+  - DEV-01、DEV-02.01、DEV-02.02、DEV-03.01、DEV-03.02 分组 pytest 与完整 pytest
+  - `uv --cache-dir .uv-cache run ruff format --check .`; `ruff check .`; `mypy`; Schema `--check`; `git diff --check`
+  - suppression `rg`、禁止音频调用 AST、U+FFFD、旧错误说法扫描
+  - `git diff --exit-code 6332adc... -- <protected files>`；Python 验证 implementation log 当前字节以基线日志完整字节开头
+  - inventory/context/summary/contextual-preflight sidecar 验证；ASCII JSON 名称可逆专项测试
+- 初次失败及修正：初次 strict mypy 发现 CLI 跨分支复用 `report` 变量导致 3 个类型错误，改为独立类型变量后通过；DEV-03.02 首次目标测试为 `21 passed, 2 failed`，两项失败准确锁定旧 DEV-03.01 report 的 U+FFFD 表格和错误归因，按许可修正报告后通过。首次广域 U+FFFD 扫描仅发现必须原样归档且本身含该字符的 DEV-03.02 prompt；最终 corrected-surface 扫描排除该不可变输入后无匹配。首次旧说法扫描只匹配负向测试文字；最终对 README/架构/报告/源码扫描无匹配。
+- 测试数量：原有 168 项全部继续通过，其中 DEV-01 `43 passed in 0.35s`、DEV-02.01 `66 passed in 1.41s`、DEV-02.02 `23 passed in 1.88s`、DEV-03.01 `36 passed in 0.32s`；DEV-03.02 新增 `24 passed in 0.37s`；完整 `192 passed in 3.83s`。
+- 静态与保护验收：format `71 files already formatted`、Ruff PASS、strict mypy `Success: no issues found in 50 source files`、13 Schema PASS、diff whitespace PASS、suppression/禁止 API/corrected-surface U+FFFD/旧说法扫描 PASS、sidecar PASS、ASCII 可逆 PASS、保护文件 diff PASS、日志前缀 PASS。ZIP/manifest/inventory SHA256 分别保持 `1bf3cc17a46cac8552b8eb80d543cec5880afef7f8c716fd8f029636899d688b` / `bd69f27305681e6552e61d402571300c2eea340a6d7878dc2b93531c8b6608b0` / `8a68d714a86fa8228e17b7f751da8060c558f79f881fb55994e5130caf199de2`。
+- 未执行检查及原因：无要求的验收检查遗漏。按本步骤明确禁止，未运行生产 `audio-list`/`audio-inventory`，未进行任何新硬件枚举；未连接/断开硬件，未播放、录音、打开流、选择设备/Host API/通道、生成 ESS/噪声、测量延迟/时钟、读取校准文件、校准 SPL、执行 DSP/协议、修改 CAD/manifest 或进入 DEV-03.03。
+- 已知限制：实验硬件身份、索引、Host API 和通道完全未知，必须等完整硬件连接并在后续授权步骤重新采集。全双工、共享时钟、通道映射、校准文件和绝对 SPL 仍未验证。旧编码故障只能定位到 inventory 之后，无法证明精确层级。
+- Git 结果：本文档冻结时尚未提交/推送，不能在提交内自引用最终 SHA。仅在最终门禁再次通过后提交推送；实际结果以 Git 历史和最终回复为准，若失败则最终状态改报 FAIL。
+- 提交主题：`DEV-03.02: correct audio inventory context and encoding`

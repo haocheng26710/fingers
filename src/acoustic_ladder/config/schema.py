@@ -8,8 +8,10 @@ from pathlib import Path
 from pydantic import BaseModel
 
 from acoustic_ladder.audio.models import (
+    AudioInventoryCaptureContext,
     AudioInventorySnapshot,
     AudioPreflightReport,
+    ContextualAudioPreflightReport,
     HardwareSetupRecord,
 )
 from acoustic_ladder.config.models import (
@@ -41,6 +43,11 @@ AUDIO_ARTIFACT_SCHEMA_MODELS: dict[str, type[BaseModel]] = {
     "audio_preflight_report.schema.json": AudioPreflightReport,
 }
 ALL_SCHEMA_MODELS = SCHEMA_MODELS | AUDIO_ARTIFACT_SCHEMA_MODELS
+CONTEXT_SCHEMA_MODELS: dict[str, type[BaseModel]] = {
+    "audio_inventory_capture_context.schema.json": AudioInventoryCaptureContext,
+    "contextual_audio_preflight_report.schema.json": ContextualAudioPreflightReport,
+}
+GENERATED_SCHEMA_MODELS = ALL_SCHEMA_MODELS | CONTEXT_SCHEMA_MODELS
 
 
 class SchemaDriftError(ValueError):
@@ -58,7 +65,7 @@ def export_schemas(output_dir: str | Path) -> list[Path]:
     output = Path(output_dir)
     output.mkdir(parents=True, exist_ok=True)
     paths: list[Path] = []
-    for filename, model in ALL_SCHEMA_MODELS.items():
+    for filename, model in GENERATED_SCHEMA_MODELS.items():
         path = output / filename
         path.write_bytes(schema_bytes(model))
         paths.append(path)
@@ -69,7 +76,7 @@ def check_schemas(output_dir: str | Path) -> None:
     output = Path(output_dir)
     drift = [
         filename
-        for filename, model in ALL_SCHEMA_MODELS.items()
+        for filename, model in GENERATED_SCHEMA_MODELS.items()
         if not (output / filename).is_file()
         or (output / filename).read_bytes() != schema_bytes(model)
     ]

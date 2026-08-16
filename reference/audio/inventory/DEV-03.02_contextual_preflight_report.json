@@ -1,0 +1,303 @@
+{
+  "absolute_spl_calibrated": false,
+  "blockers": [
+    "connect the experimental input, output and fixture, then capture a new inventory",
+    "device, host API and channel selection are deferred until that future capture"
+  ],
+  "calibration_file_verified": false,
+  "capture_context_reference": "reference/audio/inventory/DEV-03.02_inventory_capture_context.json",
+  "capture_context_sha256": "10472424e35958bc6cef156fe8b48c9b927f13b041414b2125b53dbec7d5e67c",
+  "channel_mapping_verified": false,
+  "device_binding_status": "deferred_until_hardware_connection",
+  "full_duplex_verified": false,
+  "generated_at": "2026-08-16T18:18:16.626456Z",
+  "hardware_ready": false,
+  "hardware_setup_reference": "reference/audio/hardware_setup.provisional.json",
+  "hardware_setup_sha256": "013fd2b10df23569a8998dad1c36fa5793146df29fdb4fa19210d26bbe3c0ac1",
+  "input_candidate_device_indices": [],
+  "input_candidate_status": "not_applicable_hardware_disconnected",
+  "inventory_reference": "reference/audio/inventory/DEV-03.01_audio_inventory.json",
+  "inventory_role": "development_host_baseline_without_experimental_hardware",
+  "inventory_sha256": "8a68d714a86fa8228e17b7f751da8060c558f79f881fb55994e5130caf199de2",
+  "operator_confirmation_status": "deferred_until_hardware_connection",
+  "output_candidate_device_indices": [],
+  "output_candidate_status": "not_applicable_hardware_disconnected",
+  "safety_marker": "NO_AUDIO_PLAYBACK_OR_RECORDING_PERFORMED",
+  "schema_version": "1.0.0",
+  "separate_input_format_check": [
+    {
+      "channels": 1,
+      "check_method": "check_input_settings",
+      "device_index": 0,
+      "direction": "input",
+      "dtype": "float32",
+      "error_message": null,
+      "error_type": null,
+      "sample_rate_hz": 48000,
+      "supported": true
+    },
+    {
+      "channels": 1,
+      "check_method": "check_input_settings",
+      "device_index": 1,
+      "direction": "input",
+      "dtype": "float32",
+      "error_message": null,
+      "error_type": null,
+      "sample_rate_hz": 48000,
+      "supported": true
+    },
+    {
+      "channels": 1,
+      "check_method": "check_input_settings",
+      "device_index": 5,
+      "direction": "input",
+      "dtype": "float32",
+      "error_message": null,
+      "error_type": null,
+      "sample_rate_hz": 48000,
+      "supported": true
+    },
+    {
+      "channels": 1,
+      "check_method": "check_input_settings",
+      "device_index": 6,
+      "direction": "input",
+      "dtype": "float32",
+      "error_message": null,
+      "error_type": null,
+      "sample_rate_hz": 48000,
+      "supported": true
+    },
+    {
+      "channels": 1,
+      "check_method": "check_input_settings",
+      "device_index": 12,
+      "direction": "input",
+      "dtype": "float32",
+      "error_message": null,
+      "error_type": null,
+      "sample_rate_hz": 48000,
+      "supported": true
+    },
+    {
+      "channels": 1,
+      "check_method": "check_input_settings",
+      "device_index": 15,
+      "direction": "input",
+      "dtype": "float32",
+      "error_message": null,
+      "error_type": null,
+      "sample_rate_hz": 48000,
+      "supported": true
+    },
+    {
+      "channels": 1,
+      "check_method": "check_input_settings",
+      "device_index": 18,
+      "direction": "input",
+      "dtype": "float32",
+      "error_message": null,
+      "error_type": null,
+      "sample_rate_hz": 48000,
+      "supported": true
+    },
+    {
+      "channels": 1,
+      "check_method": "check_input_settings",
+      "device_index": 19,
+      "direction": "input",
+      "dtype": "float32",
+      "error_message": null,
+      "error_type": null,
+      "sample_rate_hz": 48000,
+      "supported": true
+    },
+    {
+      "channels": 1,
+      "check_method": "check_input_settings",
+      "device_index": 20,
+      "direction": "input",
+      "dtype": "float32",
+      "error_message": null,
+      "error_type": null,
+      "sample_rate_hz": 48000,
+      "supported": true
+    },
+    {
+      "channels": 1,
+      "check_method": "check_input_settings",
+      "device_index": 22,
+      "direction": "input",
+      "dtype": "float32",
+      "error_message": "Invalid sample rate [PaErrorCode -9997]",
+      "error_type": "PortAudioError",
+      "sample_rate_hz": 48000,
+      "supported": false
+    }
+  ],
+  "separate_output_format_check": [
+    {
+      "channels": 1,
+      "check_method": "check_output_settings",
+      "device_index": 2,
+      "direction": "output",
+      "dtype": "float32",
+      "error_message": null,
+      "error_type": null,
+      "sample_rate_hz": 48000,
+      "supported": true
+    },
+    {
+      "channels": 1,
+      "check_method": "check_output_settings",
+      "device_index": 3,
+      "direction": "output",
+      "dtype": "float32",
+      "error_message": null,
+      "error_type": null,
+      "sample_rate_hz": 48000,
+      "supported": true
+    },
+    {
+      "channels": 1,
+      "check_method": "check_output_settings",
+      "device_index": 4,
+      "direction": "output",
+      "dtype": "float32",
+      "error_message": null,
+      "error_type": null,
+      "sample_rate_hz": 48000,
+      "supported": true
+    },
+    {
+      "channels": 1,
+      "check_method": "check_output_settings",
+      "device_index": 7,
+      "direction": "output",
+      "dtype": "float32",
+      "error_message": null,
+      "error_type": null,
+      "sample_rate_hz": 48000,
+      "supported": true
+    },
+    {
+      "channels": 1,
+      "check_method": "check_output_settings",
+      "device_index": 8,
+      "direction": "output",
+      "dtype": "float32",
+      "error_message": null,
+      "error_type": null,
+      "sample_rate_hz": 48000,
+      "supported": true
+    },
+    {
+      "channels": 1,
+      "check_method": "check_output_settings",
+      "device_index": 9,
+      "direction": "output",
+      "dtype": "float32",
+      "error_message": null,
+      "error_type": null,
+      "sample_rate_hz": 48000,
+      "supported": true
+    },
+    {
+      "channels": 1,
+      "check_method": "check_output_settings",
+      "device_index": 10,
+      "direction": "output",
+      "dtype": "float32",
+      "error_message": null,
+      "error_type": null,
+      "sample_rate_hz": 48000,
+      "supported": true
+    },
+    {
+      "channels": 1,
+      "check_method": "check_output_settings",
+      "device_index": 11,
+      "direction": "output",
+      "dtype": "float32",
+      "error_message": null,
+      "error_type": null,
+      "sample_rate_hz": 48000,
+      "supported": true
+    },
+    {
+      "channels": 1,
+      "check_method": "check_output_settings",
+      "device_index": 13,
+      "direction": "output",
+      "dtype": "float32",
+      "error_message": null,
+      "error_type": null,
+      "sample_rate_hz": 48000,
+      "supported": true
+    },
+    {
+      "channels": 1,
+      "check_method": "check_output_settings",
+      "device_index": 14,
+      "direction": "output",
+      "dtype": "float32",
+      "error_message": null,
+      "error_type": null,
+      "sample_rate_hz": 48000,
+      "supported": true
+    },
+    {
+      "channels": 1,
+      "check_method": "check_output_settings",
+      "device_index": 16,
+      "direction": "output",
+      "dtype": "float32",
+      "error_message": null,
+      "error_type": null,
+      "sample_rate_hz": 48000,
+      "supported": true
+    },
+    {
+      "channels": 1,
+      "check_method": "check_output_settings",
+      "device_index": 17,
+      "direction": "output",
+      "dtype": "float32",
+      "error_message": null,
+      "error_type": null,
+      "sample_rate_hz": 48000,
+      "supported": true
+    },
+    {
+      "channels": 1,
+      "check_method": "check_output_settings",
+      "device_index": 21,
+      "direction": "output",
+      "dtype": "float32",
+      "error_message": "Invalid sample rate [PaErrorCode -9997]",
+      "error_type": "PortAudioError",
+      "sample_rate_hz": 48000,
+      "supported": false
+    },
+    {
+      "channels": 1,
+      "check_method": "check_output_settings",
+      "device_index": 23,
+      "direction": "output",
+      "dtype": "float32",
+      "error_message": "Invalid sample rate [PaErrorCode -9997]",
+      "error_type": "PortAudioError",
+      "sample_rate_hz": 48000,
+      "supported": false
+    }
+  ],
+  "shared_clock_verified": false,
+  "software_inventory_status": "complete",
+  "warnings": [
+    "device 21: user-defined Bluetooth endpoint suffix was redacted",
+    "device 22: user-defined Bluetooth endpoint suffix was redacted",
+    "existing endpoints are development-host baseline records, not experimental hardware",
+    "electrical loopback is unavailable"
+  ]
+}

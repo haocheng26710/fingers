@@ -14,12 +14,23 @@ from acoustic_ladder import __version__
 from acoustic_ladder.audio.backend import SoundDeviceInventoryBackend
 from acoustic_ladder.audio.inventory import collect_inventory
 from acoustic_ladder.audio.models import (
+    AudioInventoryCaptureContext,
     AudioInventorySnapshot,
     AudioPreflightReport,
+    ContextualAudioPreflightReport,
     HardwareSetupRecord,
 )
-from acoustic_ladder.audio.persistence import load_audio_artifact, persist_audio_artifact
-from acoustic_ladder.audio.preflight import build_preflight_report
+from acoustic_ladder.audio.persistence import (
+    load_audio_artifact,
+    persist_audio_artifact,
+    persist_bytes_with_sidecar,
+    verify_bytes_sidecar,
+)
+from acoustic_ladder.audio.preflight import (
+    build_contextual_preflight_report,
+    build_preflight_report,
+)
+from acoustic_ladder.audio.summary import render_inventory_summary
 from acoustic_ladder.config.bundle import LoadedBundle, load_bundle, load_config
 from acoustic_ladder.config.models import ProtocolConfig, SyntheticConfig, manifest_nodes
 from acoustic_ladder.config.schema import check_schemas, export_schemas
@@ -166,6 +177,53 @@ def _parser() -> argparse.ArgumentParser:
     audio_validate.add_argument("--inventory", required=True)
     audio_validate.add_argument("--inventory-sidecar", required=True)
     audio_validate.add_argument("--preflight", required=True)
+
+    contextual = commands.add_parser("audio-contextual-preflight")
+    contextual.add_argument("--inventory", required=True)
+    contextual.add_argument("--inventory-sidecar", required=True)
+    contextual.add_argument("--context", required=True)
+    contextual.add_argument("--context-sidecar", required=True)
+    contextual.add_argument("--hardware-setup", required=True)
+    contextual.add_argument("--output", required=True)
+    contextual.add_argument("--output-sidecar", required=True)
+    contextual.add_argument(
+        "--inventory-reference",
+        default="reference/audio/inventory/DEV-03.01_audio_inventory.json",
+    )
+    contextual.add_argument(
+        "--context-reference",
+        default="reference/audio/inventory/DEV-03.02_inventory_capture_context.json",
+    )
+    contextual.add_argument(
+        "--hardware-setup-reference",
+        default="reference/audio/hardware_setup.provisional.json",
+    )
+
+    summary = commands.add_parser("audio-inventory-summary")
+    summary.add_argument("--inventory", required=True)
+    summary.add_argument("--inventory-sidecar", required=True)
+    summary.add_argument("--context", required=True)
+    summary.add_argument("--context-sidecar", required=True)
+    summary.add_argument("--output", required=True)
+    summary.add_argument("--output-sidecar", required=True)
+    summary.add_argument(
+        "--inventory-reference",
+        default="reference/audio/inventory/DEV-03.01_audio_inventory.json",
+    )
+    summary.add_argument(
+        "--context-reference",
+        default="reference/audio/inventory/DEV-03.02_inventory_capture_context.json",
+    )
+
+    context_validate = commands.add_parser("audio-context-validate")
+    context_validate.add_argument("--inventory", required=True)
+    context_validate.add_argument("--inventory-sidecar", required=True)
+    context_validate.add_argument("--context", required=True)
+    context_validate.add_argument("--context-sidecar", required=True)
+    context_validate.add_argument("--summary", required=True)
+    context_validate.add_argument("--summary-sidecar", required=True)
+    context_validate.add_argument("--contextual-preflight", required=True)
+    context_validate.add_argument("--contextual-preflight-sidecar", required=True)
     return parser
 
 
@@ -208,14 +266,17 @@ def main(argv: list[str] | None = None) -> None:
     args = _parser().parse_args(argv)
     if args.command == "audio-list":
         snapshot = collect_inventory(_audio_backend(), now=_now())
+        print("DEVICE_NAME_ENCODING=JSON_ASCII_ESCAPED")
         for host_api in snapshot.host_apis:
             print(
-                f"HOST_API {host_api.host_api_index}: {host_api.name} "
+                f"HOST_API {host_api.host_api_index}: "
+                f"{json.dumps(host_api.name, ensure_ascii=True)} "
                 f"({host_api.device_count} devices)"
             )
         for device in snapshot.devices:
             print(
-                f"DEVICE {device.snapshot_device_index}: {device.name} "
+                f"DEVICE {device.snapshot_device_index}: "
+                f"{json.dumps(device.name, ensure_ascii=True)} "
                 f"[host_api={device.host_api_index}, input={device.max_input_channels}, "
                 f"output={device.max_output_channels}]"
             )
@@ -271,6 +332,72 @@ def main(argv: list[str] | None = None) -> None:
         if report.inventory_sha256 != digest:
             raise ValueError("preflight inventory SHA256 does not match inventory")
         print(f"PASS audio artifacts: {digest}")
+        _audio_safety_marker()
+        return
+    if args.command == "audio-contextual-preflight":
+        snapshot, inventory_digest = load_audio_artifact(
+            args.inventory, args.inventory_sidecar, AudioInventorySnapshot
+        )
+        context, context_digest = load_audio_artifact(
+            args.context, args.context_sidecar, AudioInventoryCaptureContext
+        )
+        hardware_bytes = Path(args.hardware_setup).read_bytes()
+        hardware = HardwareSetupRecord.model_validate_json(hardware_bytes)
+        contextual_report = build_contextual_preflight_report(
+            snapshot,
+            hardware,
+            context,
+            inventory_reference=args.inventory_reference,
+            inventory_sha256=inventory_digest,
+            capture_context_reference=args.context_reference,
+            capture_context_sha256=context_digest,
+            hardware_setup_reference=args.hardware_setup_reference,
+            hardware_setup_sha256=hashlib.sha256(hardware_bytes).hexdigest(),
+            now=_now(),
+        )
+        digest = persist_audio_artifact(args.output, args.output_sidecar, contextual_report)
+        print(f"PASS contextual audio preflight: {digest}")
+        _audio_safety_marker()
+        return
+    if args.command == "audio-inventory-summary":
+        snapshot, inventory_digest = load_audio_artifact(
+            args.inventory, args.inventory_sidecar, AudioInventorySnapshot
+        )
+        context, context_digest = load_audio_artifact(
+            args.context, args.context_sidecar, AudioInventoryCaptureContext
+        )
+        rendered = render_inventory_summary(
+            snapshot,
+            inventory_reference=args.inventory_reference,
+            inventory_sha256=inventory_digest,
+            context=context,
+            context_reference=args.context_reference,
+            context_sha256=context_digest,
+        )
+        digest = persist_bytes_with_sidecar(args.output, args.output_sidecar, rendered)
+        print(f"PASS audio inventory summary: {digest}")
+        _audio_safety_marker()
+        return
+    if args.command == "audio-context-validate":
+        _, inventory_digest = load_audio_artifact(
+            args.inventory, args.inventory_sidecar, AudioInventorySnapshot
+        )
+        context, context_digest = load_audio_artifact(
+            args.context, args.context_sidecar, AudioInventoryCaptureContext
+        )
+        summary_digest = verify_bytes_sidecar(args.summary, args.summary_sidecar)
+        contextual_report_loaded, _ = load_audio_artifact(
+            args.contextual_preflight,
+            args.contextual_preflight_sidecar,
+            ContextualAudioPreflightReport,
+        )
+        if context.inventory_sha256 != inventory_digest:
+            raise ValueError("capture context inventory SHA256 does not match inventory")
+        if contextual_report_loaded.capture_context_sha256 != context_digest:
+            raise ValueError("contextual preflight context SHA256 does not match")
+        if contextual_report_loaded.inventory_sha256 != inventory_digest:
+            raise ValueError("contextual preflight inventory SHA256 does not match")
+        print(f"PASS audio context artifacts: summary={summary_digest}")
         _audio_safety_marker()
         return
     if args.command in {"validate-config", "config-hash"}:

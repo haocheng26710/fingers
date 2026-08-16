@@ -1,0 +1,125 @@
+{
+  "additionalProperties": false,
+  "properties": {
+    "absolute_spl_calibrated": {
+      "const": false,
+      "title": "Absolute Spl Calibrated",
+      "type": "boolean"
+    },
+    "calibration_file_verified": {
+      "const": false,
+      "title": "Calibration File Verified",
+      "type": "boolean"
+    },
+    "candidate_binding_status": {
+      "const": "deferred_until_hardware_connection",
+      "title": "Candidate Binding Status",
+      "type": "string"
+    },
+    "channel_mapping_verified": {
+      "const": false,
+      "title": "Channel Mapping Verified",
+      "type": "boolean"
+    },
+    "context_id": {
+      "minLength": 1,
+      "title": "Context Id",
+      "type": "string"
+    },
+    "context_recorded_at": {
+      "format": "date-time",
+      "title": "Context Recorded At",
+      "type": "string"
+    },
+    "context_source": {
+      "const": "operator_fact_correction_after_DEV-03.01",
+      "title": "Context Source",
+      "type": "string"
+    },
+    "existing_endpoint_interpretation": {
+      "const": "not_experimental_hardware",
+      "title": "Existing Endpoint Interpretation",
+      "type": "string"
+    },
+    "experimental_fixture_connected": {
+      "const": false,
+      "title": "Experimental Fixture Connected",
+      "type": "boolean"
+    },
+    "experimental_input_hardware_connected": {
+      "const": false,
+      "title": "Experimental Input Hardware Connected",
+      "type": "boolean"
+    },
+    "experimental_output_hardware_connected": {
+      "const": false,
+      "title": "Experimental Output Hardware Connected",
+      "type": "boolean"
+    },
+    "full_duplex_verified": {
+      "const": false,
+      "title": "Full Duplex Verified",
+      "type": "boolean"
+    },
+    "hardware_ready": {
+      "const": false,
+      "title": "Hardware Ready",
+      "type": "boolean"
+    },
+    "inventory_reference": {
+      "minLength": 1,
+      "title": "Inventory Reference",
+      "type": "string"
+    },
+    "inventory_role": {
+      "const": "development_host_baseline_without_experimental_hardware",
+      "title": "Inventory Role",
+      "type": "string"
+    },
+    "inventory_sha256": {
+      "pattern": "^[0-9a-f]{64}$",
+      "title": "Inventory Sha256",
+      "type": "string"
+    },
+    "notes": {
+      "items": {
+        "type": "string"
+      },
+      "title": "Notes",
+      "type": "array"
+    },
+    "schema_version": {
+      "const": "1.0.0",
+      "title": "Schema Version",
+      "type": "string"
+    },
+    "shared_clock_verified": {
+      "const": false,
+      "title": "Shared Clock Verified",
+      "type": "boolean"
+    }
+  },
+  "required": [
+    "schema_version",
+    "context_id",
+    "inventory_reference",
+    "inventory_sha256",
+    "context_recorded_at",
+    "context_source",
+    "experimental_input_hardware_connected",
+    "experimental_output_hardware_connected",
+    "experimental_fixture_connected",
+    "inventory_role",
+    "candidate_binding_status",
+    "existing_endpoint_interpretation",
+    "hardware_ready",
+    "full_duplex_verified",
+    "shared_clock_verified",
+    "channel_mapping_verified",
+    "calibration_file_verified",
+    "absolute_spl_calibrated",
+    "notes"
+  ],
+  "title": "AudioInventoryCaptureContext",
+  "type": "object"
+}

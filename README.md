@@ -111,7 +111,14 @@ uv --cache-dir .uv-cache run acoustic-ladder audio-preflight --inventory referen
 uv --cache-dir .uv-cache run acoustic-ladder audio-validate --inventory reference/audio/inventory/DEV-03.01_audio_inventory.json --inventory-sidecar reference/audio/inventory/DEV-03.01_audio_inventory.sha256 --preflight reference/audio/inventory/DEV-03.01_preflight_report.json
 ```
 
-每个命令均输出 `NO_AUDIO_PLAYBACK_OR_RECORDING_PERFORMED`。设备索引仅在对应 inventory 快照内有效；名称匹配只产生候选，不会确认设备、host API 或通道。当前绑定状态为 `needs_operator_confirmation`，`hardware_ready=false`。
+`audio-list` 的默认设备名格式为 ASCII-only JSON string，并输出 `DEVICE_NAME_ENCODING=JSON_ASCII_ESCAPED`；标准 JSON 解码可无损恢复 Unicode 名称。所有命令均输出 `NO_AUDIO_PLAYBACK_OR_RECORDING_PERFORMED`。
+
+用户后来确认 DEV-03.01 枚举时 iMM-6C、竹 2 和实验装置均未连接。原 inventory 是 `development_host_baseline_without_experimental_hardware`，其中任何索引都不是实验设备候选，当前无需选择设备、Host API 或通道。绑定状态为 `deferred_until_hardware_connection`，`hardware_ready=false`。以下命令只读取并解释已有文件，不进行新枚举：
+
+```powershell
+uv --cache-dir .uv-cache run acoustic-ladder audio-inventory-summary --inventory reference/audio/inventory/DEV-03.01_audio_inventory.json --inventory-sidecar reference/audio/inventory/DEV-03.01_audio_inventory.sha256 --context reference/audio/inventory/DEV-03.02_inventory_capture_context.json --context-sidecar reference/audio/inventory/DEV-03.02_inventory_capture_context.sha256 --output reference/audio/inventory/DEV-03.02_audio_inventory_summary.md --output-sidecar reference/audio/inventory/DEV-03.02_audio_inventory_summary.sha256
+uv --cache-dir .uv-cache run acoustic-ladder audio-context-validate --inventory reference/audio/inventory/DEV-03.01_audio_inventory.json --inventory-sidecar reference/audio/inventory/DEV-03.01_audio_inventory.sha256 --context reference/audio/inventory/DEV-03.02_inventory_capture_context.json --context-sidecar reference/audio/inventory/DEV-03.02_inventory_capture_context.sha256 --summary reference/audio/inventory/DEV-03.02_audio_inventory_summary.md --summary-sidecar reference/audio/inventory/DEV-03.02_audio_inventory_summary.sha256 --contextual-preflight reference/audio/inventory/DEV-03.02_contextual_preflight_report.json --contextual-preflight-sidecar reference/audio/inventory/DEV-03.02_contextual_preflight_report.sha256
+```
 
 详细契约见 `docs/architecture/`；数据根目录政策见 `data/README.md`。
 

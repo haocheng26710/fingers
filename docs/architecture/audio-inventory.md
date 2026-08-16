@@ -1,6 +1,6 @@
 # Read-only audio inventory and preflight
 
-DEV-03.01 separates hardware facts, a machine-specific enumeration snapshot and a conservative preflight decision. `HardwareSetupRecord` contains only user-confirmed transducer/interface facts and official descriptive sources. `AudioInventorySnapshot` contains one sounddevice/PortAudio enumeration with timezone-aware provenance, OS/Python/backend versions, host APIs, devices, defaults and separate mono 48 kHz float32 checks. `AudioPreflightReport` links both inputs by repository-relative reference and SHA256.
+DEV-03.01 separates hardware facts, a machine-specific enumeration snapshot and a conservative preflight decision. DEV-03.02 adds `AudioInventoryCaptureContext` so later operator facts can qualify an immutable capture, plus `ContextualAudioPreflightReport` for interpretation without rewriting the original snapshot. All persisted inputs are linked by repository-relative reference and SHA256.
 
 ## Safety boundary
 
@@ -10,9 +10,15 @@ DEV-03.01 separates hardware facts, a machine-specific enumeration snapshot and 
 
 ## Identity and candidates
 
-`snapshot_device_index` is explicitly scoped as `single_inventory_snapshot`; it is not a persistent device ID. Default devices are mapped to records from the same snapshot. Names resembling iMM-6C, USB Audio Device or CM6542 may be listed as input candidates, while output-capable devices remain candidates for operator review. Name matching never confirms a device, host API, physical interface, clock or channel.
+`snapshot_device_index` is explicitly scoped as `single_inventory_snapshot`; it is not a persistent device ID. Default devices are mapped to records from the same snapshot. Candidate matching is permitted only when the capture context says the experimental hardware was connected, and a name match never confirms a device, host API, physical interface, clock or channel.
 
-The committed DEV-03.01 capture did not expose an unambiguous iMM-6C/CM6542 name. Consequently its preflight report is `needs_operator_confirmation`. The report fixes full-duplex, shared-clock, channel-map, calibration-file, absolute-SPL and hardware-ready claims to false.
+The operator later confirmed that the iMM-6C, CHU II and fixture were disconnected during DEV-03.01 capture. Its role is therefore `development_host_baseline_without_experimental_hardware`: every endpoint is interpreted as `not_experimental_hardware`, both candidate lists are empty, candidate status is `not_applicable_hardware_disconnected`, and binding/confirmation are `deferred_until_hardware_connection`. No current device, Host API or channel needs selection. All readiness and calibration claims remain false.
+
+## Name encoding and generated reports
+
+The verified inventory JSON is authoritative for names and contains correct UTF-8 Chinese. DEV-03.01's console/transcription path damaged some displayed names; evidence does not identify the exact terminal, code-page or tool layer. `audio-list` now emits names as ASCII-only JSON strings marked `DEVICE_NAME_ENCODING=JSON_ASCII_ESCAPED`, allowing standard JSON decoding to restore the original Unicode.
+
+`audio-inventory-summary` loads the inventory only after sidecar verification and renders device rows directly from the parsed model. Markdown backslashes, pipes and line breaks are escaped deterministically; output is UTF-8 with LF endings and a create-only SHA256 sidecar. Console output is never reparsed as a name source.
 
 ## Persistence and privacy
 

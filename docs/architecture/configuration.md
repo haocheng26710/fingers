@@ -10,4 +10,4 @@ AudioConfig can represent N outputs and M inputs at the type level. The formal-m
 
 All Stage 1–4 protocol files are formal-mode drafts with closed far ends, BLK at unselected nodes and `execution_ready: false`. Stage 4 resolves its selected nodes at load time from the supplied manifest recommendation; neither node positions nor the recommended list are embedded in Python. No measurement matrix or randomization engine exists in this step.
 
-The eleven committed generated JSON Schemas are exported directly from active Pydantic models: the original eight configuration/storage schemas plus inventory, hardware-setup and preflight schemas. Run `acoustic-ladder export-schemas --output-dir schemas --check` to detect drift.
+The thirteen committed generated JSON Schemas are exported directly from active Pydantic models: the original eight configuration/storage schemas, DEV-03.01 inventory/hardware/preflight schemas, and DEV-03.02 capture-context/contextual-preflight schemas. Run `acoustic-ladder export-schemas --output-dir schemas --check` to detect drift.

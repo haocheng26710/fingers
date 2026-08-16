@@ -1,0 +1,265 @@
+{
+  "$defs": {
+    "FormatCapabilityResult": {
+      "additionalProperties": false,
+      "properties": {
+        "channels": {
+          "const": 1,
+          "title": "Channels",
+          "type": "integer"
+        },
+        "check_method": {
+          "enum": [
+            "check_input_settings",
+            "check_output_settings"
+          ],
+          "title": "Check Method",
+          "type": "string"
+        },
+        "device_index": {
+          "minimum": 0,
+          "title": "Device Index",
+          "type": "integer"
+        },
+        "direction": {
+          "enum": [
+            "input",
+            "output"
+          ],
+          "title": "Direction",
+          "type": "string"
+        },
+        "dtype": {
+          "const": "float32",
+          "title": "Dtype",
+          "type": "string"
+        },
+        "error_message": {
+          "anyOf": [
+            {
+              "type": "string"
+            },
+            {
+              "type": "null"
+            }
+          ],
+          "title": "Error Message"
+        },
+        "error_type": {
+          "anyOf": [
+            {
+              "type": "string"
+            },
+            {
+              "type": "null"
+            }
+          ],
+          "title": "Error Type"
+        },
+        "sample_rate_hz": {
+          "const": 48000,
+          "title": "Sample Rate Hz",
+          "type": "integer"
+        },
+        "supported": {
+          "title": "Supported",
+          "type": "boolean"
+        }
+      },
+      "required": [
+        "device_index",
+        "direction",
+        "channels",
+        "sample_rate_hz",
+        "dtype",
+        "check_method",
+        "supported",
+        "error_type",
+        "error_message"
+      ],
+      "title": "FormatCapabilityResult",
+      "type": "object"
+    }
+  },
+  "additionalProperties": false,
+  "properties": {
+    "absolute_spl_calibrated": {
+      "const": false,
+      "title": "Absolute Spl Calibrated",
+      "type": "boolean"
+    },
+    "blockers": {
+      "items": {
+        "type": "string"
+      },
+      "title": "Blockers",
+      "type": "array"
+    },
+    "calibration_file_verified": {
+      "const": false,
+      "title": "Calibration File Verified",
+      "type": "boolean"
+    },
+    "capture_context_reference": {
+      "minLength": 1,
+      "title": "Capture Context Reference",
+      "type": "string"
+    },
+    "capture_context_sha256": {
+      "pattern": "^[0-9a-f]{64}$",
+      "title": "Capture Context Sha256",
+      "type": "string"
+    },
+    "channel_mapping_verified": {
+      "const": false,
+      "title": "Channel Mapping Verified",
+      "type": "boolean"
+    },
+    "device_binding_status": {
+      "const": "deferred_until_hardware_connection",
+      "title": "Device Binding Status",
+      "type": "string"
+    },
+    "full_duplex_verified": {
+      "const": false,
+      "title": "Full Duplex Verified",
+      "type": "boolean"
+    },
+    "generated_at": {
+      "format": "date-time",
+      "title": "Generated At",
+      "type": "string"
+    },
+    "hardware_ready": {
+      "const": false,
+      "title": "Hardware Ready",
+      "type": "boolean"
+    },
+    "hardware_setup_reference": {
+      "minLength": 1,
+      "title": "Hardware Setup Reference",
+      "type": "string"
+    },
+    "hardware_setup_sha256": {
+      "pattern": "^[0-9a-f]{64}$",
+      "title": "Hardware Setup Sha256",
+      "type": "string"
+    },
+    "input_candidate_device_indices": {
+      "items": {
+        "type": "integer"
+      },
+      "title": "Input Candidate Device Indices",
+      "type": "array"
+    },
+    "input_candidate_status": {
+      "const": "not_applicable_hardware_disconnected",
+      "title": "Input Candidate Status",
+      "type": "string"
+    },
+    "inventory_reference": {
+      "minLength": 1,
+      "title": "Inventory Reference",
+      "type": "string"
+    },
+    "inventory_role": {
+      "const": "development_host_baseline_without_experimental_hardware",
+      "title": "Inventory Role",
+      "type": "string"
+    },
+    "inventory_sha256": {
+      "pattern": "^[0-9a-f]{64}$",
+      "title": "Inventory Sha256",
+      "type": "string"
+    },
+    "operator_confirmation_status": {
+      "const": "deferred_until_hardware_connection",
+      "title": "Operator Confirmation Status",
+      "type": "string"
+    },
+    "output_candidate_device_indices": {
+      "items": {
+        "type": "integer"
+      },
+      "title": "Output Candidate Device Indices",
+      "type": "array"
+    },
+    "output_candidate_status": {
+      "const": "not_applicable_hardware_disconnected",
+      "title": "Output Candidate Status",
+      "type": "string"
+    },
+    "safety_marker": {
+      "const": "NO_AUDIO_PLAYBACK_OR_RECORDING_PERFORMED",
+      "title": "Safety Marker",
+      "type": "string"
+    },
+    "schema_version": {
+      "const": "1.0.0",
+      "title": "Schema Version",
+      "type": "string"
+    },
+    "separate_input_format_check": {
+      "items": {
+        "$ref": "#/$defs/FormatCapabilityResult"
+      },
+      "title": "Separate Input Format Check",
+      "type": "array"
+    },
+    "separate_output_format_check": {
+      "items": {
+        "$ref": "#/$defs/FormatCapabilityResult"
+      },
+      "title": "Separate Output Format Check",
+      "type": "array"
+    },
+    "shared_clock_verified": {
+      "const": false,
+      "title": "Shared Clock Verified",
+      "type": "boolean"
+    },
+    "software_inventory_status": {
+      "const": "complete",
+      "title": "Software Inventory Status",
+      "type": "string"
+    },
+    "warnings": {
+      "items": {
+        "type": "string"
+      },
+      "title": "Warnings",
+      "type": "array"
+    }
+  },
+  "required": [
+    "schema_version",
+    "generated_at",
+    "inventory_reference",
+    "inventory_sha256",
+    "capture_context_reference",
+    "capture_context_sha256",
+    "hardware_setup_reference",
+    "hardware_setup_sha256",
+    "software_inventory_status",
+    "inventory_role",
+    "input_candidate_device_indices",
+    "output_candidate_device_indices",
+    "input_candidate_status",
+    "output_candidate_status",
+    "operator_confirmation_status",
+    "device_binding_status",
+    "separate_input_format_check",
+    "separate_output_format_check",
+    "hardware_ready",
+    "full_duplex_verified",
+    "shared_clock_verified",
+    "channel_mapping_verified",
+    "calibration_file_verified",
+    "absolute_spl_calibrated",
+    "blockers",
+    "warnings",
+    "safety_marker"
+  ],
+  "title": "ContextualAudioPreflightReport",
+  "type": "object"
+}

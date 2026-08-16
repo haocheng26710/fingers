@@ -1,0 +1,25 @@
+{
+  "absolute_spl_calibrated": false,
+  "calibration_file_verified": false,
+  "candidate_binding_status": "deferred_until_hardware_connection",
+  "channel_mapping_verified": false,
+  "context_id": "DEV-03.02-inventory-capture-context",
+  "context_recorded_at": "2026-08-16T18:18:04.759480Z",
+  "context_source": "operator_fact_correction_after_DEV-03.01",
+  "existing_endpoint_interpretation": "not_experimental_hardware",
+  "experimental_fixture_connected": false,
+  "experimental_input_hardware_connected": false,
+  "experimental_output_hardware_connected": false,
+  "full_duplex_verified": false,
+  "hardware_ready": false,
+  "inventory_reference": "reference/audio/inventory/DEV-03.01_audio_inventory.json",
+  "inventory_role": "development_host_baseline_without_experimental_hardware",
+  "inventory_sha256": "8a68d714a86fa8228e17b7f751da8060c558f79f881fb55994e5130caf199de2",
+  "notes": [
+    "The operator confirmed after DEV-03.01 that iMM-6C, CHU II and the experimental fixture were not connected during capture.",
+    "Existing endpoints are a development-host baseline and are not candidates for experimental device binding.",
+    "Connect the complete experimental hardware and capture a new inventory before selecting any device, host API or channel."
+  ],
+  "schema_version": "1.0.0",
+  "shared_clock_verified": false
+}

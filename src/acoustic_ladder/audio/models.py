@@ -5,7 +5,9 @@ from __future__ import annotations
 from datetime import datetime
 from typing import Literal
 
-from pydantic import AwareDatetime, BaseModel, ConfigDict, Field, model_validator
+from pydantic import AwareDatetime, BaseModel, ConfigDict, Field, field_validator, model_validator
+
+from acoustic_ladder.domain.paths import validate_relative_path
 
 Direction = Literal["input", "output"]
 
@@ -191,6 +193,74 @@ class AudioPreflightReport(AudioModel):
     blockers: list[str]
     warnings: list[str]
     safety_marker: Literal["NO_AUDIO_PLAYBACK_OR_RECORDING_PERFORMED"]
+
+
+class AudioInventoryCaptureContext(AudioModel):
+    schema_version: Literal["1.0.0"]
+    context_id: str = Field(min_length=1)
+    inventory_reference: str = Field(min_length=1)
+    inventory_sha256: str = Field(pattern=r"^[0-9a-f]{64}$")
+    context_recorded_at: AwareDatetime
+    context_source: Literal["operator_fact_correction_after_DEV-03.01"]
+    experimental_input_hardware_connected: Literal[False]
+    experimental_output_hardware_connected: Literal[False]
+    experimental_fixture_connected: Literal[False]
+    inventory_role: Literal["development_host_baseline_without_experimental_hardware"]
+    candidate_binding_status: Literal["deferred_until_hardware_connection"]
+    existing_endpoint_interpretation: Literal["not_experimental_hardware"]
+    hardware_ready: Literal[False]
+    full_duplex_verified: Literal[False]
+    shared_clock_verified: Literal[False]
+    channel_mapping_verified: Literal[False]
+    calibration_file_verified: Literal[False]
+    absolute_spl_calibrated: Literal[False]
+    notes: list[str]
+
+    @field_validator("inventory_reference")
+    @classmethod
+    def inventory_reference_is_relative(cls, value: str) -> str:
+        return validate_relative_path(value)
+
+
+class ContextualAudioPreflightReport(AudioModel):
+    schema_version: Literal["1.0.0"]
+    generated_at: AwareDatetime
+    inventory_reference: str = Field(min_length=1)
+    inventory_sha256: str = Field(pattern=r"^[0-9a-f]{64}$")
+    capture_context_reference: str = Field(min_length=1)
+    capture_context_sha256: str = Field(pattern=r"^[0-9a-f]{64}$")
+    hardware_setup_reference: str = Field(min_length=1)
+    hardware_setup_sha256: str = Field(pattern=r"^[0-9a-f]{64}$")
+    software_inventory_status: Literal["complete"]
+    inventory_role: Literal["development_host_baseline_without_experimental_hardware"]
+    input_candidate_device_indices: list[int]
+    output_candidate_device_indices: list[int]
+    input_candidate_status: Literal["not_applicable_hardware_disconnected"]
+    output_candidate_status: Literal["not_applicable_hardware_disconnected"]
+    operator_confirmation_status: Literal["deferred_until_hardware_connection"]
+    device_binding_status: Literal["deferred_until_hardware_connection"]
+    separate_input_format_check: list[FormatCapabilityResult]
+    separate_output_format_check: list[FormatCapabilityResult]
+    hardware_ready: Literal[False]
+    full_duplex_verified: Literal[False]
+    shared_clock_verified: Literal[False]
+    channel_mapping_verified: Literal[False]
+    calibration_file_verified: Literal[False]
+    absolute_spl_calibrated: Literal[False]
+    blockers: list[str]
+    warnings: list[str]
+    safety_marker: Literal["NO_AUDIO_PLAYBACK_OR_RECORDING_PERFORMED"]
+
+    @field_validator("inventory_reference", "capture_context_reference", "hardware_setup_reference")
+    @classmethod
+    def artifact_references_are_relative(cls, value: str) -> str:
+        return validate_relative_path(value)
+
+    @model_validator(mode="after")
+    def disconnected_context_has_no_candidates(self) -> ContextualAudioPreflightReport:
+        if self.input_candidate_device_indices or self.output_candidate_device_indices:
+            raise ValueError("disconnected experimental hardware cannot have binding candidates")
+        return self
 
 
 def utc_timestamp(value: datetime) -> str:
