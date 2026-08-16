@@ -150,7 +150,7 @@ uv --cache-dir .uv-cache run acoustic-ladder simulate-duplex-capture @bundle --s
 uv --cache-dir .uv-cache run acoustic-ladder validate-simulated-capture @bundle --synthetic-root $syntheticRoot --session-id virtual001 --run-id capture001 --scenario tests/fixtures/audio/virtual_duplex_development.yaml --ess-artifact-root (Join-Path $essRoot 'source_ess')
 ```
 
-正常夹具把 12960 个 ESS samples 加 64 个精确零 tail，以 256-frame blocks 真实推进 51 次，最后一块 224 frames；虚拟输入严格为 `y[k] = 0.5 * x[k-37]`，越界为零。成功 run 包含 output reference、simulated input、源 ESS metadata、strict capture receipt 及各自 sidecar。validator 不只核对哈希，还重新生成 ESS、重放所有 blocks、比较数组与 canonical WAV、重建 trace/receipt，并核对 session 中保存的完整配置来源。
+正常夹具把 12960 个 ESS samples 加 64 个精确零 tail，以 256-frame blocks 真实推进 51 次，最后一块 224 frames；虚拟输入严格为 `y[k] = 0.5 * x[k-37]`，越界为零。成功 run 包含 output reference、simulated input、源 ESS metadata、strict capture receipt 及各自 sidecar；receipt 明确记录与 run 一致的非负 `measurement_order`。publisher 和 validator 都会重新读取同一 project-relative 场景来源，并逐项核对当前原始字节、解析模型与规范化结果，因此加载后被修改、删除、移动或伪造的场景会被拒绝。validator 还重新生成 ESS、重放所有 blocks、比较数组与 canonical WAV、重建 trace/receipt，精确核对 synthetic metadata、完整 run envelope，以及 session 中保存的 manifest sidecar 和配置来源。
 
 CLI 成功输出 `SYNTHETIC_ONLY`、`NO_HARDWARE_AUDIO_IO_PERFORMED` 和 `NOT_AN_EXPERIMENTAL_RESULT`。这些 WAV 不是播放记录或麦克风录音；场景的 latency/gain 不是实测声学参数。详细边界见 `docs/architecture/virtual-capture.md`。
 

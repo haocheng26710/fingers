@@ -384,6 +384,11 @@
       "title": "Linear Gain",
       "type": "number"
     },
+    "measurement_order": {
+      "minimum": 0,
+      "title": "Measurement Order",
+      "type": "integer"
+    },
     "output_dtype": {
       "const": "float32",
       "title": "Output Dtype",
@@ -532,6 +537,7 @@
     "run_id",
     "session_id",
     "reassembly_id",
+    "measurement_order",
     "data_origin",
     "run_mode",
     "backend_id",

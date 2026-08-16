@@ -4,6 +4,7 @@ import inspect
 import json
 import math
 import struct
+from dataclasses import replace
 from datetime import UTC, datetime
 from pathlib import Path
 
@@ -129,9 +130,15 @@ def test_load_nominal_virtual_capture_scenario() -> None:
     assert loaded.model.linear_gain == 0.5
     assert loaded.model.fault_mode == "none"
     assert loaded.model.fault_block_index is None
+    assert loaded.source_path == SCENARIO_PATH.resolve()
+    assert loaded.project_root == PROJECT_ROOT.resolve()
     assert loaded.original_relative_path == ("tests/fixtures/audio/virtual_duplex_development.yaml")
-    assert len(loaded.original_sha256) == 64
-    assert len(loaded.normalized_sha256) == 64
+    assert loaded.original_sha256 == (
+        "74eefa7181d739272726fd59472ae0cd766ec7a8a9391b9a566f0031d6a81ab2"
+    )
+    assert loaded.normalized_sha256 == (
+        "cd5b82148d5fb88ea1fd86737510504030bca219ebe61de018b0f0b00bf90dbe"
+    )
 
 
 @pytest.mark.parametrize(
@@ -507,11 +514,170 @@ def test_publish_virtual_capture_creates_exact_immutable_payload(tmp_path: Path)
     assert published.receipt.capture_sample_count == 13024
     assert published.receipt.actual_block_count == 51
     assert published.receipt.last_block_frame_count == 224
+    assert published.receipt.measurement_order == 0
+    assert published.receipt.output_raw_float32_sha256 == (
+        "51531aedf7b6d253085315bf2ffd1efc7c760de363bc68565756ed5b2c2b3621"
+    )
+    assert published.receipt.input_raw_float32_sha256 == (
+        "284c6bd0d320dfd0d1a97015d80e0bcc6aff3b49d9a2befbe68e55b5ef550b81"
+    )
+    assert published.receipt.output_wav_sha256 == (
+        "1aea497f8868d1f2e187b2ed1f80efd7b05e4c0a6084f1901dcc425180bdb508"
+    )
+    assert published.receipt.input_wav_sha256 == (
+        "51d68378a916f82e9080cba276c8c5dfb386ffd19f4fb3c0b3dd9e9d594222b1"
+    )
     assert published.receipt.data_origin == "synthetic"
     assert published.receipt.virtual_duplex_scheduler_exercised is True
     assert published.receipt.hardware_io_performed is False
+    expected_metadata = {
+        "capture_receipt_sha256": published.receipt_sha256,
+        "data_origin": "synthetic",
+        "hardware_io_performed": False,
+        "safety_marker": "SYNTHETIC_VIRTUAL_CAPTURE_NOT_AN_EXPERIMENTAL_RESULT",
+    }
+    assert (published.run_path / "synthetic_metadata.json").read_bytes() == (
+        canonical_json_bytes(expected_metadata)
+    )
     assert published.receipt.full_duplex_verified is False
     assert not real_root.exists()
+
+
+def test_publish_rejects_forged_scenario_model_without_source_change(
+    tmp_path: Path,
+) -> None:
+    store, bundle, ess_root, _ = _capture_setup(tmp_path)
+    loaded = _loaded_scenario(tmp_path)
+    forged_model = VirtualCaptureScenario.model_validate_json(
+        json.dumps(_scenario_payload(linear_gain=0.25)), strict=True
+    )
+    forged_normalized = canonical_json_bytes(forged_model.model_dump(mode="json"))
+    forged = replace(
+        loaded,
+        model=forged_model,
+        normalized_bytes=forged_normalized,
+        normalized_sha256=hashlib.sha256(forged_normalized).hexdigest(),
+    )
+
+    with pytest.raises(VirtualCapturePersistenceError, match="scenario source provenance"):
+        publish_virtual_capture(
+            store=store,
+            bundle=bundle,
+            scenario=forged,
+            ess_artifact_root=ess_root,
+            session_id="capture-session",
+            reassembly_id="assembly-1",
+            run_id="forged-scenario",
+            measurement_order=0,
+            now=lambda: FIXED_TIME,
+        )
+
+    raw = store.session_path(DataOrigin.SYNTHETIC, "capture-session") / "raw"
+    assert not (raw / "run_forged-scenario").exists()
+    assert not list(raw.glob(".run_forged-scenario.*"))
+
+
+@pytest.mark.parametrize("source_change", ["modified", "deleted"])
+def test_publish_rejects_scenario_source_changed_after_load_without_run_residue(
+    tmp_path: Path, source_change: str
+) -> None:
+    store, bundle, ess_root, _ = _capture_setup(tmp_path)
+    loaded = _loaded_scenario(tmp_path)
+    if source_change == "modified":
+        loaded.source_path.write_bytes(loaded.original_bytes + b"\n")
+    else:
+        loaded.source_path.unlink()
+
+    with pytest.raises(VirtualCapturePersistenceError, match="scenario source provenance"):
+        publish_virtual_capture(
+            store=store,
+            bundle=bundle,
+            scenario=loaded,
+            ess_artifact_root=ess_root,
+            session_id="capture-session",
+            reassembly_id="assembly-1",
+            run_id=f"source-{source_change}",
+            measurement_order=0,
+            now=lambda: FIXED_TIME,
+        )
+
+    raw = store.session_path(DataOrigin.SYNTHETIC, "capture-session") / "raw"
+    assert not (raw / f"run_source-{source_change}").exists()
+    assert not list(raw.glob(f".run_source-{source_change}.*"))
+    if source_change == "modified":
+        assert loaded.source_path.read_bytes() == loaded.original_bytes + b"\n"
+    else:
+        assert not loaded.source_path.exists()
+
+
+def test_publish_rejects_scenario_source_moved_outside_bound_project_root(
+    tmp_path: Path,
+) -> None:
+    project = tmp_path / "project"
+    project.mkdir()
+    loaded = _loaded_scenario(project)
+    outside = tmp_path / "outside.json"
+    loaded.source_path.replace(outside)
+    moved = replace(loaded, source_path=outside)
+    store, bundle, ess_root, _ = _capture_setup(tmp_path / "capture")
+
+    with pytest.raises(VirtualCapturePersistenceError, match="inside project root"):
+        publish_virtual_capture(
+            store=store,
+            bundle=bundle,
+            scenario=moved,
+            ess_artifact_root=ess_root,
+            session_id="capture-session",
+            reassembly_id="assembly-1",
+            run_id="moved-scenario",
+            measurement_order=0,
+            now=lambda: FIXED_TIME,
+        )
+
+    raw = store.session_path(DataOrigin.SYNTHETIC, "capture-session") / "raw"
+    assert not (raw / "run_moved-scenario").exists()
+
+
+def test_validator_rejects_forged_scenario_against_current_source(tmp_path: Path) -> None:
+    store, bundle, ess_root, _ = _capture_setup(tmp_path)
+    loaded = _loaded_scenario(tmp_path)
+    published = publish_virtual_capture(
+        store=store,
+        bundle=bundle,
+        scenario=loaded,
+        ess_artifact_root=ess_root,
+        session_id="capture-session",
+        reassembly_id="assembly-1",
+        run_id="capture-1",
+        measurement_order=0,
+        now=lambda: FIXED_TIME,
+    )
+    forged_model = VirtualCaptureScenario.model_validate_json(
+        json.dumps(_scenario_payload(linear_gain=0.25)), strict=True
+    )
+    forged_normalized = canonical_json_bytes(forged_model.model_dump(mode="json"))
+    forged = replace(
+        loaded,
+        model=forged_model,
+        normalized_bytes=forged_normalized,
+        normalized_sha256=hashlib.sha256(forged_normalized).hexdigest(),
+    )
+    before = (published.run_path / "capture_receipt.json").read_bytes()
+
+    with pytest.raises(
+        VirtualCapturePersistenceError,
+        match=r"scenario source provenance.*published=true",
+    ):
+        validate_virtual_capture(
+            store=store,
+            bundle=bundle,
+            scenario=forged,
+            ess_artifact_root=ess_root,
+            session_id="capture-session",
+            run_id="capture-1",
+        )
+
+    assert (published.run_path / "capture_receipt.json").read_bytes() == before
 
 
 def test_validate_virtual_capture_replays_semantics(tmp_path: Path) -> None:
@@ -538,6 +704,245 @@ def test_validate_virtual_capture_replays_semantics(tmp_path: Path) -> None:
     )
     assert validated.receipt == published.receipt
     assert validated.receipt_sha256 == published.receipt_sha256
+
+
+@pytest.mark.parametrize("tamper", ["semantic", "missing", "extra", "noncanonical"])
+def test_validator_rejects_any_synthetic_metadata_envelope_tamper(
+    tmp_path: Path, tamper: str
+) -> None:
+    store, bundle, ess_root, _ = _capture_setup(tmp_path)
+    scenario = _loaded_scenario(tmp_path)
+    published = publish_virtual_capture(
+        store=store,
+        bundle=bundle,
+        scenario=scenario,
+        ess_artifact_root=ess_root,
+        session_id="capture-session",
+        reassembly_id="assembly-1",
+        run_id="capture-1",
+        measurement_order=0,
+        now=lambda: FIXED_TIME,
+    )
+    metadata_path = published.run_path / "synthetic_metadata.json"
+    value = json.loads(metadata_path.read_bytes())
+    if tamper == "semantic":
+        value["hardware_io_performed"] = True
+        metadata_path.write_bytes(canonical_json_bytes(value))
+    elif tamper == "missing":
+        del value["hardware_io_performed"]
+        metadata_path.write_bytes(canonical_json_bytes(value))
+    elif tamper == "extra":
+        value["unexpected"] = "field"
+        metadata_path.write_bytes(canonical_json_bytes(value))
+    else:
+        metadata_path.write_text(json.dumps(value), encoding="utf-8")
+    tampered_bytes = metadata_path.read_bytes()
+
+    with pytest.raises(VirtualCapturePersistenceError, match="synthetic metadata envelope"):
+        validate_virtual_capture(
+            store=store,
+            bundle=bundle,
+            scenario=scenario,
+            ess_artifact_root=ess_root,
+            session_id="capture-session",
+            run_id="capture-1",
+        )
+    assert metadata_path.read_bytes() == tampered_bytes
+
+
+@pytest.mark.parametrize(
+    "tamper",
+    [
+        "measurement_order",
+        "node_state",
+        "software_version",
+        "notes",
+        "created_at",
+        "started_at",
+        "completed_at",
+    ],
+)
+def test_validator_rejects_run_record_envelope_tamper(tmp_path: Path, tamper: str) -> None:
+    store, bundle, ess_root, _ = _capture_setup(tmp_path)
+    scenario = _loaded_scenario(tmp_path)
+    published = publish_virtual_capture(
+        store=store,
+        bundle=bundle,
+        scenario=scenario,
+        ess_artifact_root=ess_root,
+        session_id="capture-session",
+        reassembly_id="assembly-1",
+        run_id="capture-1",
+        measurement_order=7,
+        now=lambda: FIXED_TIME,
+    )
+    record_path = published.run_path / "run_record.json"
+    value = json.loads(record_path.read_bytes())
+    assert published.receipt.measurement_order == value["measurement_order"] == 7
+    if tamper == "measurement_order":
+        value["measurement_order"] = 999
+    elif tamper == "node_state":
+        first = sorted(value["node_states"])[0]
+        value["node_states"][first]["module_id"] = "NOT_BLK"
+    elif tamper == "software_version":
+        value["software_version"] = "tampered"
+    elif tamper == "notes":
+        value["notes"] = "tampered"
+    elif tamper == "created_at":
+        value["created_at"] = "2026-08-16T11:59:59Z"
+    elif tamper == "started_at":
+        value["started_at"] = None
+    else:
+        value["completed_at"] = "2026-08-16T12:00:01Z"
+    tampered_bytes = canonical_json_bytes(value)
+    record_path.write_bytes(tampered_bytes)
+
+    with pytest.raises(VirtualCapturePersistenceError, match="run record envelope"):
+        validate_virtual_capture(
+            store=store,
+            bundle=bundle,
+            scenario=scenario,
+            ess_artifact_root=ess_root,
+            session_id="capture-session",
+            run_id="capture-1",
+        )
+    assert record_path.read_bytes() == tampered_bytes
+
+
+@pytest.mark.parametrize(
+    "tamper",
+    ["backend", "formal", "marker", "config_hash", "status_failure", "artifact_ref"],
+)
+def test_validator_rejects_remaining_run_record_contract_tamper(
+    tmp_path: Path, tamper: str
+) -> None:
+    store, bundle, ess_root, _ = _capture_setup(tmp_path)
+    scenario = _loaded_scenario(tmp_path)
+    published = publish_virtual_capture(
+        store=store,
+        bundle=bundle,
+        scenario=scenario,
+        ess_artifact_root=ess_root,
+        session_id="capture-session",
+        reassembly_id="assembly-1",
+        run_id="capture-1",
+        measurement_order=0,
+        now=lambda: FIXED_TIME,
+    )
+    record_path = published.run_path / "run_record.json"
+    value = json.loads(record_path.read_bytes())
+    if tamper == "backend":
+        value["backend"] = "tampered"
+    elif tamper == "formal":
+        value["formal_eligible"] = True
+    elif tamper == "marker":
+        value["result_marker"] = "tampered"
+    elif tamper == "config_hash":
+        value["config_hashes"]["bundle"] = "0" * 64
+    elif tamper == "status_failure":
+        value["status"] = "failed"
+        value["failure_reason"] = None
+    else:
+        value["artifacts"][0]["sha256"] = "0" * 64
+    tampered_bytes = canonical_json_bytes(value)
+    record_path.write_bytes(tampered_bytes)
+
+    with pytest.raises(StorageError):
+        validate_virtual_capture(
+            store=store,
+            bundle=bundle,
+            scenario=scenario,
+            ess_artifact_root=ess_root,
+            session_id="capture-session",
+            run_id="capture-1",
+        )
+
+    assert record_path.read_bytes() == tampered_bytes
+
+
+@pytest.mark.parametrize("tamper", ["changed", "filename", "noncanonical", "deleted"])
+def test_validator_rejects_stored_manifest_sidecar_tamper(tmp_path: Path, tamper: str) -> None:
+    store, bundle, ess_root, _ = _capture_setup(tmp_path)
+    scenario = _loaded_scenario(tmp_path)
+    publish_virtual_capture(
+        store=store,
+        bundle=bundle,
+        scenario=scenario,
+        ess_artifact_root=ess_root,
+        session_id="capture-session",
+        reassembly_id="assembly-1",
+        run_id="capture-1",
+        measurement_order=0,
+        now=lambda: FIXED_TIME,
+    )
+    sidecar = (
+        store.session_path(DataOrigin.SYNTHETIC, "capture-session")
+        / "manifest/device_manifest.provisional.sha256"
+    )
+    if tamper == "changed":
+        sidecar.write_text(f"{'0' * 64}  device_manifest.provisional.json\n", encoding="ascii")
+    elif tamper == "filename":
+        sidecar.write_text(
+            f"{bundle.receipt.device_manifest_sha256}  renamed.json\n",
+            encoding="ascii",
+        )
+    elif tamper == "noncanonical":
+        sidecar.write_bytes(bundle.manifest_sidecar_bytes + b"\n")
+    else:
+        sidecar.unlink()
+    tampered_bytes = sidecar.read_bytes() if sidecar.exists() else None
+
+    with pytest.raises(VirtualCapturePersistenceError, match="manifest sidecar"):
+        validate_virtual_capture(
+            store=store,
+            bundle=bundle,
+            scenario=scenario,
+            ess_artifact_root=ess_root,
+            session_id="capture-session",
+            run_id="capture-1",
+        )
+    if tampered_bytes is None:
+        assert not sidecar.exists()
+    else:
+        assert sidecar.read_bytes() == tampered_bytes
+
+
+def test_capture_payloads_are_byte_deterministic_across_separate_roots(
+    tmp_path: Path,
+) -> None:
+    payload_names = {
+        "excitation.metadata.json",
+        "excitation.metadata.sha256",
+        "output_reference.wav",
+        "output_reference.wav.sha256",
+        "simulated_input.wav",
+        "simulated_input.wav.sha256",
+        "capture_receipt.json",
+        "capture_receipt.sha256",
+    }
+    published = []
+    for root_name in ("first", "second"):
+        store, bundle, ess_root, _ = _capture_setup(tmp_path / root_name)
+        published.append(
+            publish_virtual_capture(
+                store=store,
+                bundle=bundle,
+                scenario=load_virtual_capture_scenario(SCENARIO_PATH, project_root=PROJECT_ROOT),
+                ess_artifact_root=ess_root,
+                session_id="capture-session",
+                reassembly_id="assembly-1",
+                run_id="capture-1",
+                measurement_order=0,
+                now=lambda: FIXED_TIME,
+            )
+        )
+
+    first, second = published
+    assert first.receipt_sha256 == second.receipt_sha256
+    for payload_name in payload_names:
+        assert (first.run_path / payload_name).read_bytes() == (
+            second.run_path / payload_name
+        ).read_bytes()
 
 
 def test_publish_virtual_capture_is_create_only(tmp_path: Path) -> None:
@@ -568,6 +973,33 @@ def test_publish_virtual_capture_is_create_only(tmp_path: Path) -> None:
             now=lambda: FIXED_TIME,
         )
     assert (first.run_path / "capture_receipt.json").read_bytes() == before
+
+
+def test_publish_rejects_negative_measurement_order_without_run_residue(
+    tmp_path: Path,
+) -> None:
+    store, bundle, ess_root, _ = _capture_setup(tmp_path)
+    scenario = _loaded_scenario(tmp_path)
+
+    with pytest.raises(
+        VirtualCapturePersistenceError,
+        match=r"measurement_order must be non-negative.*published=false",
+    ):
+        publish_virtual_capture(
+            store=store,
+            bundle=bundle,
+            scenario=scenario,
+            ess_artifact_root=ess_root,
+            session_id="capture-session",
+            reassembly_id="assembly-1",
+            run_id="negative-order",
+            measurement_order=-1,
+            now=lambda: FIXED_TIME,
+        )
+
+    raw = store.session_path(DataOrigin.SYNTHETIC, "capture-session") / "raw"
+    assert not (raw / "run_negative-order").exists()
+    assert not list(raw.glob(".run_negative-order.*"))
 
 
 @pytest.mark.parametrize(

@@ -86,6 +86,8 @@ class VirtualCaptureScenario(VirtualCaptureModel):
 @dataclass(frozen=True)
 class LoadedVirtualCaptureScenario:
     model: VirtualCaptureScenario
+    source_path: Path
+    project_root: Path
     original_relative_path: str
     original_bytes: bytes
     normalized_bytes: bytes
@@ -164,6 +166,7 @@ class VirtualCaptureReceipt(VirtualCaptureModel):
     run_id: str
     session_id: str
     reassembly_id: str
+    measurement_order: int = Field(ge=0)
     data_origin: Literal["synthetic"]
     run_mode: Literal["development"]
     backend_id: Literal["deterministic_virtual_duplex"]
@@ -308,6 +311,8 @@ def load_virtual_capture_scenario(
     normalized = canonical_json_bytes(model.model_dump(mode="json"))
     return LoadedVirtualCaptureScenario(
         model=model,
+        source_path=scenario_path,
+        project_root=root,
         original_relative_path=relative,
         original_bytes=original,
         normalized_bytes=normalized,

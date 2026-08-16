@@ -27,6 +27,8 @@ from acoustic_ladder.audio.virtual_capture_models import (
     LoadedVirtualCaptureScenario,
     VirtualCaptureReceipt,
     VirtualCaptureResult,
+    VirtualScenarioError,
+    load_virtual_capture_scenario,
 )
 from acoustic_ladder.config.bundle import ConfigBundle, LoadedBundle, canonical_json_bytes
 from acoustic_ladder.config.models import ProtocolConfig, manifest_nodes
@@ -65,6 +67,7 @@ RUN_ENVELOPE_NAMES = frozenset({"synthetic_metadata.json", "run_record.json", "R
 SAFETY_MARKER: Literal["SYNTHETIC_VIRTUAL_CAPTURE_NOT_AN_EXPERIMENTAL_RESULT"] = (
     "SYNTHETIC_VIRTUAL_CAPTURE_NOT_AN_EXPERIMENTAL_RESULT"
 )
+RUN_NOTES = "Deterministic synthetic virtual capture; no hardware audio I/O."
 
 
 class VirtualCapturePersistenceError(StorageError):
@@ -86,6 +89,19 @@ def _sidecar(digest: str, filename: str) -> bytes:
     return f"{digest}  {filename}\n".encode("ascii")
 
 
+def _synthetic_metadata(receipt_sha256: str) -> dict[str, object]:
+    return {
+        "capture_receipt_sha256": receipt_sha256,
+        "data_origin": "synthetic",
+        "hardware_io_performed": False,
+        "safety_marker": SAFETY_MARKER,
+    }
+
+
+def _synthetic_metadata_bytes(receipt_sha256: str) -> bytes:
+    return canonical_json_bytes(_synthetic_metadata(receipt_sha256))
+
+
 def _verify_sidecar(root: Path, filename: str, sidecar_name: str) -> str:
     payload = (root / filename).read_bytes()
     digest = sha256_bytes(payload)
@@ -100,17 +116,32 @@ def _verify_sidecar(root: Path, filename: str, sidecar_name: str) -> str:
     return digest
 
 
-def _validate_loaded_scenario(scenario: LoadedVirtualCaptureScenario) -> None:
+def _validate_loaded_scenario(scenario: LoadedVirtualCaptureScenario, *, published: bool) -> None:
+    try:
+        current = load_virtual_capture_scenario(
+            scenario.source_path, project_root=scenario.project_root
+        )
+    except VirtualScenarioError as exc:
+        raise VirtualCapturePersistenceError(
+            f"scenario source provenance cannot be reloaded: {exc}", published=published
+        ) from exc
+    if current != scenario:
+        raise VirtualCapturePersistenceError(
+            "scenario source provenance does not match the loaded scenario",
+            published=published,
+        )
     if hashlib.sha256(scenario.original_bytes).hexdigest() != scenario.original_sha256:
-        raise VirtualCapturePersistenceError("scenario raw SHA256 is inconsistent", published=False)
+        raise VirtualCapturePersistenceError(
+            "scenario raw SHA256 is inconsistent", published=published
+        )
     normalized = canonical_json_bytes(scenario.model.model_dump(mode="json"))
     if normalized != scenario.normalized_bytes:
         raise VirtualCapturePersistenceError(
-            "scenario normalized bytes are inconsistent", published=False
+            "scenario normalized bytes are inconsistent", published=published
         )
     if hashlib.sha256(normalized).hexdigest() != scenario.normalized_sha256:
         raise VirtualCapturePersistenceError(
-            "scenario normalized SHA256 is inconsistent", published=False
+            "scenario normalized SHA256 is inconsistent", published=published
         )
 
 
@@ -145,6 +176,7 @@ def _receipt(
     session_id: str,
     reassembly_id: str,
     run_id: str,
+    measurement_order: int,
     result: VirtualCaptureResult,
     output_wav: bytes,
     input_wav: bytes,
@@ -158,6 +190,7 @@ def _receipt(
         run_id=run_id,
         session_id=session_id,
         reassembly_id=reassembly_id,
+        measurement_order=measurement_order,
         data_origin="synthetic",
         run_mode="development",
         backend_id=scenario.model.backend_id,
@@ -295,7 +328,15 @@ def publish_virtual_capture(
     """Execute then create-only publish one synthetic virtual capture run."""
 
     safe_identifier(run_id, "run_id")
-    _validate_loaded_scenario(scenario)
+    if isinstance(measurement_order, bool) or not isinstance(measurement_order, int):
+        raise VirtualCapturePersistenceError(
+            "measurement_order must be a non-negative integer", published=False
+        )
+    if measurement_order < 0:
+        raise VirtualCapturePersistenceError(
+            "measurement_order must be non-negative", published=False
+        )
+    _validate_loaded_scenario(scenario, published=False)
     session = store.validate_session(DataOrigin.SYNTHETIC, session_id)
     _validate_stored_bundle(
         store.session_path(DataOrigin.SYNTHETIC, session_id), bundle, published=False
@@ -324,6 +365,7 @@ def publish_virtual_capture(
         session_id=session_id,
         reassembly_id=reassembly_id,
         run_id=run_id,
+        measurement_order=measurement_order,
         result=result,
         output_wav=output_wav,
         input_wav=input_wav,
@@ -362,19 +404,14 @@ def publish_virtual_capture(
         status="complete",
         failure_reason=None,
         result_marker="NOT_EXPERIMENTAL_RESULT",
-        notes="Deterministic synthetic virtual capture; no hardware audio I/O.",
+        notes=RUN_NOTES,
     )
     run_path = store.session_path(DataOrigin.SYNTHETIC, session_id) / "raw" / f"run_{run_id}"
     try:
         published_path = store.create_synthetic_run(
             record,
             payloads,
-            {
-                "capture_receipt_sha256": receipt_digest,
-                "data_origin": "synthetic",
-                "hardware_io_performed": False,
-                "safety_marker": SAFETY_MARKER,
-            },
+            _synthetic_metadata(receipt_digest),
         )
     except Exception as exc:
         published = (run_path / "RUN_COMPLETE").is_file()
@@ -383,11 +420,34 @@ def publish_virtual_capture(
 
 
 def _validate_stored_bundle(session_root: Path, bundle: LoadedBundle, *, published: bool) -> None:
-    if (
-        session_root / "manifest/device_manifest.provisional.json"
-    ).read_bytes() != bundle.manifest_bytes:
+    manifest_path = session_root / "manifest/device_manifest.provisional.json"
+    sidecar_path = session_root / "manifest/device_manifest.provisional.sha256"
+    try:
+        stored_manifest = manifest_path.read_bytes()
+    except OSError as exc:
+        raise VirtualCapturePersistenceError(
+            f"stored manifest cannot be read: {exc}", published=published
+        ) from exc
+    if stored_manifest != bundle.manifest_bytes:
         raise VirtualCapturePersistenceError(
             "stored manifest differs from loaded bundle", published=published
+        )
+    try:
+        stored_sidecar = sidecar_path.read_bytes()
+    except OSError as exc:
+        raise VirtualCapturePersistenceError(
+            f"stored manifest sidecar cannot be read: {exc}", published=published
+        ) from exc
+    manifest_digest = sha256_bytes(stored_manifest)
+    expected_sidecar = _sidecar(manifest_digest, "device_manifest.provisional.json")
+    if (
+        stored_sidecar != bundle.manifest_sidecar_bytes
+        or stored_sidecar != expected_sidecar
+        or manifest_digest != bundle.receipt.device_manifest_sha256
+    ):
+        raise VirtualCapturePersistenceError(
+            "stored manifest sidecar differs from the exact digest contract",
+            published=published,
         )
     for kind, loaded in bundle.configs.items():
         suffix = Path(loaded.snapshot.original_relative_path).suffix or ".yaml"
@@ -432,7 +492,7 @@ def validate_virtual_capture(
 ) -> PublishedVirtualCapture:
     """Read-only byte and semantic replay validation of a completed capture run."""
 
-    _validate_loaded_scenario(scenario)
+    _validate_loaded_scenario(scenario, published=True)
     store.validate_session(DataOrigin.SYNTHETIC, session_id)
     run = store.validate_run(DataOrigin.SYNTHETIC, session_id, run_id)
     session_root = store.session_path(DataOrigin.SYNTHETIC, session_id)
@@ -446,6 +506,13 @@ def validate_virtual_capture(
     output_digest = _verify_sidecar(run_path, OUTPUT_WAV, OUTPUT_WAV_SIDECAR)
     input_digest = _verify_sidecar(run_path, INPUT_WAV, INPUT_WAV_SIDECAR)
     receipt_digest = _verify_sidecar(run_path, RECEIPT_JSON, RECEIPT_SIDECAR)
+    if (run_path / "synthetic_metadata.json").read_bytes() != _synthetic_metadata_bytes(
+        receipt_digest
+    ):
+        raise VirtualCapturePersistenceError(
+            "synthetic metadata envelope differs from the canonical contract",
+            published=True,
+        )
     receipt_bytes = (run_path / RECEIPT_JSON).read_bytes()
     try:
         receipt = VirtualCaptureReceipt.model_validate_json(receipt_bytes)
@@ -490,8 +557,9 @@ def validate_virtual_capture(
         ess_raw_sha256=ess.raw_float32_sha256,
         ess_sample_count=excitation.shape[1],
         session_id=session_id,
-        reassembly_id=run.reassembly_id,
+        reassembly_id=receipt.reassembly_id,
         run_id=run_id,
+        measurement_order=receipt.measurement_order,
         result=replayed,
         output_wav=expected_output_wav,
         input_wav=expected_input_wav,
@@ -506,8 +574,7 @@ def validate_virtual_capture(
         output_wav=expected_output_wav,
         input_wav=expected_input_wav,
     )
-    if run.artifacts != _artifact_refs(run_id, expected_payloads, expected_receipt):
-        raise VirtualCapturePersistenceError("run ArtifactRef contract differs", published=True)
+    expected_artifacts = _artifact_refs(run_id, expected_payloads, expected_receipt)
     if (
         metadata_digest != ess.metadata_sha256
         or output_digest != receipt.output_wav_sha256
@@ -515,21 +582,39 @@ def validate_virtual_capture(
         or receipt_digest != expected_receipt_digest
     ):
         raise VirtualCapturePersistenceError("capture digest chain differs", published=True)
-    if (
-        run.protocol_id != receipt.protocol_id
-        or run.backend != receipt.backend_id
-        or run.status != "complete"
-        or run.data_origin is not DataOrigin.SYNTHETIC
-        or run.run_mode is not RunMode.DEVELOPMENT
-        or run.formal_eligible
-        or run.result_marker != "NOT_EXPERIMENTAL_RESULT"
-        or run.config_hashes
-        != {
+    if run.started_at != run.created_at or run.completed_at != run.created_at:
+        raise VirtualCapturePersistenceError(
+            "run record envelope violates the single capture timestamp contract",
+            published=True,
+        )
+    expected_run = MeasurementRunRecord(
+        run_id=run_id,
+        session_id=session_id,
+        reassembly_id=receipt.reassembly_id,
+        protocol_id=receipt.protocol_id,
+        measurement_order=receipt.measurement_order,
+        data_origin=DataOrigin.SYNTHETIC,
+        run_mode=RunMode.DEVELOPMENT,
+        formal_eligible=False,
+        node_states=_blocked_states(bundle),
+        created_at=run.created_at,
+        started_at=run.created_at,
+        completed_at=run.created_at,
+        config_hashes={
             **bundle.receipt.normalized_config_hashes,
             "bundle": bundle.receipt.bundle_content_sha256,
-        }
-    ):
+        },
+        artifacts=expected_artifacts,
+        backend="deterministic_virtual_duplex",
+        software_version=__version__,
+        status="complete",
+        failure_reason=None,
+        result_marker="NOT_EXPERIMENTAL_RESULT",
+        notes=RUN_NOTES,
+    )
+    if run != expected_run:
         raise VirtualCapturePersistenceError(
-            "run record disagrees with capture receipt", published=True
+            "run record envelope differs from the canonical capture contract",
+            published=True,
         )
     return PublishedVirtualCapture(run_path, receipt, receipt_digest)
