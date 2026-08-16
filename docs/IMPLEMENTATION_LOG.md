@@ -322,3 +322,37 @@
 - 已知限制：实验硬件身份、索引、Host API 和通道完全未知，必须等完整硬件连接并在后续授权步骤重新采集。全双工、共享时钟、通道映射、校准文件和绝对 SPL 仍未验证。旧编码故障只能定位到 inventory 之后，无法证明精确层级。
 - Git 结果：本文档冻结时尚未提交/推送，不能在提交内自引用最终 SHA。仅在最终门禁再次通过后提交推送；实际结果以 Git 历史和最终回复为准，若失败则最终状态改报 FAIL。
 - 提交主题：`DEV-03.02: correct audio inventory context and encoding`
+
+## DEV-03.03
+
+- 序列号：`DEV-03.03`
+- 名称：离线 ESS 激励契约、确定性生成与审计闭环加固
+- 状态：`PASSED`
+- 开始时间：`2026-08-16T19:47:08+01:00`
+- 基线提交与远端基线：`1ca161c1da4fa02054c023a86941a72adb517e9c`
+- 范围：离线 ESS 数学、float32 WAV、确定性/受限成组发布、只读验证，以及 DEV-03.02 context 审计语义闭环；不实施真实音频实验。
+- 硬件状态：操作者已确认 iMM-6C、竹 2 与实验装置均未连接；设备绑定继续 deferred，全部 readiness/calibration 状态保持 false。
+- 禁止范围：不枚举硬件、不播放、不录音、不开流、不选择设备/Host API/通道、不校准、不反卷积、不执行正式协议、不进入 DEV-03.04。
+- 提示词归档：原附件为 UTF-8 CRLF（1550 个 CRLF）；“原样附件及 SHA256 一致”与“转换 LF”无法同时满足，因此按更强的原始审计要求直接复制，源/目标 SHA256 均为 `ca82c8a7ced1e7ba2ca7e59200a2b82626ac23f35c531695dd432cd2ef71e484`，并标记 binary 防止 Git 换行改写。
+- 实现：为 strict `AudioConfig` 增加 nullable fade-in/fade-out/digital-peak 以及显式 false 安全/结果标记；新增 strict `EssSignalSpec`、`EssArtifactMetadata`、round-half-up 时间换算、规范指数扫频相位、inclusive-endpoint 半余弦淡入淡出、post-fade 峰值归一化、完整时序/指标记录和 `[1,n]` C-contiguous NumPy float32 输出。新增稳定 mono IEEE-float32 RIFF/WAV 编解码、raw/WAV/metadata SHA256、canonical metadata、四文件 sidecar bundle、同父 staging、协作式 create-only 发布锁、已有目录不覆盖、失败仅清理自有 staging、发布前后严格回读和逐样本重生成验证。
+- CLI 与审计闭环：新增 `ess-generate-offline`、`ess-validate-offline`，均不调用 `_audio_backend()`；增强 `audio-context-validate`，strict 解析 hardware setup，核对所有 sidecar/仓库相对引用/跨文件哈希，byte-exact 重建 summary，并使用持久化 `generated_at` 重建和全模型比较 contextual preflight。有效 sidecar 下的 summary、设备名、hardware、preflight hash/path 和 swapped context 篡改均被回归测试拒绝。
+- 配置与 Schema：正式 `config/audio/default_1x1_ess.yaml` 的 duration/pre/post/fade/peak/gain/设备/Host API/通道仍为 null，所有安全/结果/readiness 标记 false；新增显式 development-only fixture。新增两个模型生成 Schema，总数 15。
+- 新增/修改文件：修改 `.gitattributes`、README、`config/audio/default_1x1_ess.yaml`、`data/README.md`、`docs/architecture/{audio-inventory,configuration}.md`、`src/acoustic_ladder/cli.py`、`src/acoustic_ladder/config/{models,schema}.py`、`schemas/audio_config.schema.json`；新增 prompt/report、`docs/architecture/ess-excitation.md`、`src/acoustic_ladder/audio/{context_validation,ess,excitation_models,excitation_persistence}.py`、两个 ESS Schema、development fixture 和 `tests/dev03/test_ess_offline.py`。既有 implementation log 字节保持为当前文件前缀，本块是唯一新增区。
+- 实际运行命令：
+  - Git 根/branch/local HEAD/origin/main/remote/status/log，项目级指令文件扫描；`git ls-remote origin refs/heads/main` 经批准核对 GitHub main。
+  - `Get-FileHash` 核对 7 个保护输入；直接 `Copy-Item` 原附件并比较源/目标 SHA256；读取提示词全段、输入源码/测试/架构/数据根文档。
+  - 多次 `.venv/Scripts/ruff.exe format/check`、`.venv/Scripts/mypy.exe --strict src tests`、目标 pytest 与完整 pytest；`acoustic-ladder export-schemas` 生成/检查 15 Schema。
+  - `uv --cache-dir .uv-cache sync --all-groups --frozen`。
+  - 分组 pytest：`tests/unit tests/integration`；四个 DEV-02.01 文件；DEV-02.02 event boundaries；DEV-03.01 inventory/preflight；DEV-03.02 context；DEV-03.03 ESS；以及完整 suite。
+  - Ruff format check、Ruff lint、strict mypy、Schema check、`git diff --check`；skip/xfail/noqa/type-ignore、U+FFFD、绝对路径/身份扫描；Python AST 禁止音频调用扫描及直接 sounddevice import 扫描。
+  - `audio-context-validate` 显式传入 inventory/context/summary/contextual-preflight/hardware 及 sidecar/reference，语义重建 PASS。
+  - 系统临时 development root 中 `ess-generate-offline` → `ess-validate-offline`；正式 config 负例；目标精确路径属性/存在性检查；仅清理该自有临时目录并确认 `SMOKE_CLEANUP_PASS`。
+  - `git diff --name-only 1ca161c... -- <protected surfaces>`；Python 验证日志以基线完整字节开头；保护 SHA256 复核。
+- 初次失败及修正：未指定 `--cache-dir` 的 uv 因默认用户 cache 路径无法创建而失败，之后使用仓库 `.uv-cache` 成功。首次用 `python -m acoustic_ladder.cli export-schemas` 未进入 console entry point，导致原测试 `4 failed, 188 passed`（audio schema stale、两个 ESS schema 未生成）；改用安装的 `acoustic-ladder` 入口生成 15 Schema 后原 `192 passed`。首次 strict mypy 报 11 个 bytes 返回、Literal 和跨分支 receipt 类型错误，以显式类型和独立变量修正，无 suppression。首次临时目录清理经 escalated 身份两次因无法遍历 sandbox 身份创建的子目录而失败；回到原创建身份、保持完全相同目标路径后成功清理，无其他删除。
+- 测试结果：原 192 项全部继续通过，其中 DEV-01 `43 passed in 0.77s`、DEV-02.01 `66 passed in 1.85s`、DEV-02.02 `23 passed in 2.08s`、DEV-03.01 `36 passed in 0.80s`、DEV-03.02 `24 passed in 0.37s`；DEV-03.03 新增 `70 passed in 1.11s`；最终完整 `262 passed in 4.72s`。
+- 静态/审计结果：format `79 files already formatted`、Ruff PASS、strict mypy `Success: no issues found in 55 source files`、15 Schema PASS、diff whitespace PASS、source/tests suppression 扫描无匹配、corrected surfaces U+FFFD 无匹配、禁止音频 AST 与 direct sounddevice import 无匹配。绝对路径/身份扫描唯一匹配为既有受保护 `docs/reports/DEV-01.01.md` 历史输入路径；本步骤新增内容无匹配。保护 diff 和日志前缀 PASS。
+- development demo：artifact ID `smoke`；config original/normalized SHA256 `b1b8167743e91acb708e67dce75386a2d98b54850dabd656db60507af67b01b9` / `b3685be8bddec9e988ca78da620adc886e5eafb79dc37b2bab06639c0d8a6de1`；shape `[1,12960]`、dtype float32、sweep/pre/post `12000/480/480`、fade `240/240`、总时长 0.27 s；WAV/metadata/raw SHA256 `608311700bb64350c9eecc428fb78e1e82d30edea404dbb9d6d3a79b38c422e0` / `e581731a06f0951594f73f5d62c7b1d8291027cb64973723a045f92e05d1c25a` / `eabd87614dd0d204ee948b13561298c879539af82258809f1d35dc5ed8ac70ca`；生成、验证、清理成功。正式负例在创建 root 前拒绝，并列出六个缺失字段。
+- 保护哈希：ZIP `1bf3cc17a46cac8552b8eb80d543cec5880afef7f8c716fd8f029636899d688b`；manifest `bd69f27305681e6552e61d402571300c2eea340a6d7878dc2b93531c8b6608b0`；inventory `8a68d714a86fa8228e17b7f751da8060c558f79f881fb55994e5130caf199de2`；context `10472424e35958bc6cef156fe8b48c9b927f13b041414b2125b53dbec7d5e67c`；summary `84879af2f2229bbbd4511b0f6985db6adedc6b9e2764262721bebec71756a159`；contextual preflight `e47678644a36ddc7d4e8d1fad06ba0cb0ec3a02a179de2816d2d8ba767e35e15`；hardware `013fd2b10df23569a8998dad1c36fa5793146df29fdb4fa19210d26bbe3c0ac1`。
+- 未执行项目及原因：按范围禁止，未运行 production `audio-list`/`audio-inventory`，未枚举或绑定设备/Host API/通道，未播放、录音、开流、校准、测 SPL/回环/延迟/时钟，未反卷积/DSP、执行正式协议、修改 CAD/manifest、读取校准文件或进入 DEV-03.04。没有未执行的授权软件验收项。
+- 已知限制：development fixture 数值不是正式参数或听力安全建议；实验硬件身份与 readiness 仍未知/false。成组发布采用同父 staging、协作锁和 Windows no-replace rename；Python 无法对所有平台的非协作 filesystem actor 声称绝对多文件原子性。没有 WAV/demo 进入 Git。
+- Git 结果：报告/日志冻结时尚未提交或推送，不能在提交中自引用最终 SHA。仅在最终门禁和远端基线复核全部通过后提交 `DEV-03.03: add deterministic offline ESS generation` 并推送；最终实际结果以 Git 历史和最终回复为准。

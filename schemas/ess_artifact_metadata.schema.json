@@ -1,0 +1,519 @@
+{
+  "$defs": {
+    "EssSampleTiming": {
+      "additionalProperties": false,
+      "properties": {
+        "actual_fade_in_s": {
+          "minimum": 0,
+          "title": "Actual Fade In S",
+          "type": "number"
+        },
+        "actual_fade_out_s": {
+          "minimum": 0,
+          "title": "Actual Fade Out S",
+          "type": "number"
+        },
+        "actual_post_silence_s": {
+          "minimum": 0,
+          "title": "Actual Post Silence S",
+          "type": "number"
+        },
+        "actual_pre_silence_s": {
+          "minimum": 0,
+          "title": "Actual Pre Silence S",
+          "type": "number"
+        },
+        "actual_sweep_duration_s": {
+          "exclusiveMinimum": 0,
+          "title": "Actual Sweep Duration S",
+          "type": "number"
+        },
+        "fade_in_error_s": {
+          "title": "Fade In Error S",
+          "type": "number"
+        },
+        "fade_in_sample_count": {
+          "minimum": 0,
+          "title": "Fade In Sample Count",
+          "type": "integer"
+        },
+        "fade_out_error_s": {
+          "title": "Fade Out Error S",
+          "type": "number"
+        },
+        "fade_out_sample_count": {
+          "minimum": 0,
+          "title": "Fade Out Sample Count",
+          "type": "integer"
+        },
+        "post_silence_error_s": {
+          "title": "Post Silence Error S",
+          "type": "number"
+        },
+        "post_silence_sample_count": {
+          "minimum": 0,
+          "title": "Post Silence Sample Count",
+          "type": "integer"
+        },
+        "pre_silence_error_s": {
+          "title": "Pre Silence Error S",
+          "type": "number"
+        },
+        "pre_silence_sample_count": {
+          "minimum": 0,
+          "title": "Pre Silence Sample Count",
+          "type": "integer"
+        },
+        "requested_fade_in_s": {
+          "minimum": 0,
+          "title": "Requested Fade In S",
+          "type": "number"
+        },
+        "requested_fade_out_s": {
+          "minimum": 0,
+          "title": "Requested Fade Out S",
+          "type": "number"
+        },
+        "requested_post_silence_s": {
+          "minimum": 0,
+          "title": "Requested Post Silence S",
+          "type": "number"
+        },
+        "requested_pre_silence_s": {
+          "minimum": 0,
+          "title": "Requested Pre Silence S",
+          "type": "number"
+        },
+        "requested_sweep_duration_s": {
+          "exclusiveMinimum": 0,
+          "title": "Requested Sweep Duration S",
+          "type": "number"
+        },
+        "sweep_duration_error_s": {
+          "title": "Sweep Duration Error S",
+          "type": "number"
+        },
+        "sweep_sample_count": {
+          "exclusiveMinimum": 0,
+          "title": "Sweep Sample Count",
+          "type": "integer"
+        },
+        "total_sample_count": {
+          "exclusiveMinimum": 0,
+          "title": "Total Sample Count",
+          "type": "integer"
+        }
+      },
+      "required": [
+        "requested_sweep_duration_s",
+        "actual_sweep_duration_s",
+        "sweep_duration_error_s",
+        "requested_pre_silence_s",
+        "actual_pre_silence_s",
+        "pre_silence_error_s",
+        "requested_post_silence_s",
+        "actual_post_silence_s",
+        "post_silence_error_s",
+        "requested_fade_in_s",
+        "actual_fade_in_s",
+        "fade_in_error_s",
+        "requested_fade_out_s",
+        "actual_fade_out_s",
+        "fade_out_error_s",
+        "sweep_sample_count",
+        "pre_silence_sample_count",
+        "post_silence_sample_count",
+        "fade_in_sample_count",
+        "fade_out_sample_count",
+        "total_sample_count"
+      ],
+      "title": "EssSampleTiming",
+      "type": "object"
+    },
+    "EssSignalMetrics": {
+      "additionalProperties": false,
+      "properties": {
+        "actual_peak": {
+          "maximum": 1,
+          "minimum": 0,
+          "title": "Actual Peak",
+          "type": "number"
+        },
+        "all_finite": {
+          "const": true,
+          "title": "All Finite",
+          "type": "boolean"
+        },
+        "crest_factor": {
+          "minimum": 0,
+          "title": "Crest Factor",
+          "type": "number"
+        },
+        "maximum": {
+          "maximum": 1,
+          "minimum": -1,
+          "title": "Maximum",
+          "type": "number"
+        },
+        "mean_dc": {
+          "title": "Mean Dc",
+          "type": "number"
+        },
+        "minimum": {
+          "maximum": 1,
+          "minimum": -1,
+          "title": "Minimum",
+          "type": "number"
+        },
+        "normalization_factor": {
+          "exclusiveMinimum": 0,
+          "title": "Normalization Factor",
+          "type": "number"
+        },
+        "pre_normalization_peak": {
+          "exclusiveMinimum": 0,
+          "title": "Pre Normalization Peak",
+          "type": "number"
+        },
+        "rms": {
+          "minimum": 0,
+          "title": "Rms",
+          "type": "number"
+        },
+        "target_linear_peak": {
+          "exclusiveMinimum": 0,
+          "maximum": 1,
+          "title": "Target Linear Peak",
+          "type": "number"
+        },
+        "target_peak_dbfs": {
+          "maximum": 0,
+          "title": "Target Peak Dbfs",
+          "type": "number"
+        }
+      },
+      "required": [
+        "target_peak_dbfs",
+        "target_linear_peak",
+        "pre_normalization_peak",
+        "normalization_factor",
+        "actual_peak",
+        "rms",
+        "crest_factor",
+        "mean_dc",
+        "minimum",
+        "maximum",
+        "all_finite"
+      ],
+      "title": "EssSignalMetrics",
+      "type": "object"
+    },
+    "EssSignalSpec": {
+      "additionalProperties": false,
+      "properties": {
+        "algorithm_id": {
+          "const": "exponential_sine_sweep",
+          "title": "Algorithm Id",
+          "type": "string"
+        },
+        "algorithm_version": {
+          "const": "1.0.0",
+          "title": "Algorithm Version",
+          "type": "string"
+        },
+        "artifact_origin": {
+          "const": "software_generated",
+          "title": "Artifact Origin",
+          "type": "string"
+        },
+        "artifact_role": {
+          "const": "development_test_excitation",
+          "title": "Artifact Role",
+          "type": "string"
+        },
+        "digital_peak_dbfs": {
+          "maximum": 0,
+          "title": "Digital Peak Dbfs",
+          "type": "number"
+        },
+        "end_frequency_hz": {
+          "exclusiveMinimum": 0,
+          "title": "End Frequency Hz",
+          "type": "number"
+        },
+        "experimental_result": {
+          "const": false,
+          "title": "Experimental Result",
+          "type": "boolean"
+        },
+        "fade_in_s": {
+          "minimum": 0,
+          "title": "Fade In S",
+          "type": "number"
+        },
+        "fade_out_s": {
+          "minimum": 0,
+          "title": "Fade Out S",
+          "type": "number"
+        },
+        "formal_eligible": {
+          "const": false,
+          "title": "Formal Eligible",
+          "type": "boolean"
+        },
+        "output_channel_count": {
+          "const": 1,
+          "title": "Output Channel Count",
+          "type": "integer"
+        },
+        "output_dtype": {
+          "const": "float32",
+          "title": "Output Dtype",
+          "type": "string"
+        },
+        "playback_authorized": {
+          "const": false,
+          "title": "Playback Authorized",
+          "type": "boolean"
+        },
+        "post_silence_s": {
+          "minimum": 0,
+          "title": "Post Silence S",
+          "type": "number"
+        },
+        "pre_silence_s": {
+          "minimum": 0,
+          "title": "Pre Silence S",
+          "type": "number"
+        },
+        "sample_rate_hz": {
+          "exclusiveMinimum": 0,
+          "title": "Sample Rate Hz",
+          "type": "integer"
+        },
+        "schema_version": {
+          "const": "1.0.0",
+          "title": "Schema Version",
+          "type": "string"
+        },
+        "start_frequency_hz": {
+          "exclusiveMinimum": 0,
+          "title": "Start Frequency Hz",
+          "type": "number"
+        },
+        "sweep_duration_s": {
+          "exclusiveMinimum": 0,
+          "title": "Sweep Duration S",
+          "type": "number"
+        },
+        "usage_scope": {
+          "const": "development_fixture",
+          "title": "Usage Scope",
+          "type": "string"
+        }
+      },
+      "required": [
+        "schema_version",
+        "algorithm_id",
+        "algorithm_version",
+        "sample_rate_hz",
+        "start_frequency_hz",
+        "end_frequency_hz",
+        "sweep_duration_s",
+        "pre_silence_s",
+        "post_silence_s",
+        "fade_in_s",
+        "fade_out_s",
+        "digital_peak_dbfs",
+        "output_channel_count",
+        "output_dtype",
+        "usage_scope",
+        "playback_authorized",
+        "formal_eligible",
+        "experimental_result",
+        "artifact_origin",
+        "artifact_role"
+      ],
+      "title": "EssSignalSpec",
+      "type": "object"
+    }
+  },
+  "additionalProperties": false,
+  "properties": {
+    "algorithm_id": {
+      "const": "exponential_sine_sweep",
+      "title": "Algorithm Id",
+      "type": "string"
+    },
+    "algorithm_version": {
+      "const": "1.0.0",
+      "title": "Algorithm Version",
+      "type": "string"
+    },
+    "artifact_id": {
+      "pattern": "^[A-Za-z0-9_-]+$",
+      "title": "Artifact Id",
+      "type": "string"
+    },
+    "artifact_origin": {
+      "const": "software_generated",
+      "title": "Artifact Origin",
+      "type": "string"
+    },
+    "artifact_role": {
+      "const": "development_test_excitation",
+      "title": "Artifact Role",
+      "type": "string"
+    },
+    "channel_count": {
+      "const": 1,
+      "title": "Channel Count",
+      "type": "integer"
+    },
+    "dtype": {
+      "const": "float32",
+      "title": "Dtype",
+      "type": "string"
+    },
+    "experimental_result": {
+      "const": false,
+      "title": "Experimental Result",
+      "type": "boolean"
+    },
+    "fade_window": {
+      "const": "half_cosine_inclusive_endpoints",
+      "title": "Fade Window",
+      "type": "string"
+    },
+    "formal_eligible": {
+      "const": false,
+      "title": "Formal Eligible",
+      "type": "boolean"
+    },
+    "hardware_ready": {
+      "const": false,
+      "title": "Hardware Ready",
+      "type": "boolean"
+    },
+    "memory_layout": {
+      "const": "channel_first_c_contiguous",
+      "title": "Memory Layout",
+      "type": "string"
+    },
+    "metrics": {
+      "$ref": "#/$defs/EssSignalMetrics"
+    },
+    "playback_authorized": {
+      "const": false,
+      "title": "Playback Authorized",
+      "type": "boolean"
+    },
+    "raw_float32_sha256": {
+      "pattern": "^[0-9a-f]{64}$",
+      "title": "Raw Float32 Sha256",
+      "type": "string"
+    },
+    "safety_marker": {
+      "const": "OFFLINE_GENERATION_ONLY_NOT_AUTHORIZED_FOR_PLAYBACK",
+      "title": "Safety Marker",
+      "type": "string"
+    },
+    "sample_rate_hz": {
+      "exclusiveMinimum": 0,
+      "title": "Sample Rate Hz",
+      "type": "integer"
+    },
+    "sample_rounding": {
+      "const": "floor_seconds_times_rate_plus_0.5",
+      "title": "Sample Rounding",
+      "type": "string"
+    },
+    "schema_version": {
+      "const": "1.0.0",
+      "title": "Schema Version",
+      "type": "string"
+    },
+    "shape": {
+      "maxItems": 2,
+      "minItems": 2,
+      "prefixItems": [
+        {
+          "const": 1,
+          "type": "integer"
+        },
+        {
+          "type": "integer"
+        }
+      ],
+      "title": "Shape",
+      "type": "array"
+    },
+    "source_audio_config_normalized_sha256": {
+      "pattern": "^[0-9a-f]{64}$",
+      "title": "Source Audio Config Normalized Sha256",
+      "type": "string"
+    },
+    "source_audio_config_reference": {
+      "title": "Source Audio Config Reference",
+      "type": "string"
+    },
+    "source_audio_config_sha256": {
+      "pattern": "^[0-9a-f]{64}$",
+      "title": "Source Audio Config Sha256",
+      "type": "string"
+    },
+    "spec": {
+      "$ref": "#/$defs/EssSignalSpec"
+    },
+    "timing": {
+      "$ref": "#/$defs/EssSampleTiming"
+    },
+    "wav_sha256": {
+      "pattern": "^[0-9a-f]{64}$",
+      "title": "Wav Sha256",
+      "type": "string"
+    },
+    "wav_writer": {
+      "const": "acoustic_ladder_ieee_float_wav",
+      "title": "Wav Writer",
+      "type": "string"
+    },
+    "wav_writer_version": {
+      "const": "1.0.0",
+      "title": "Wav Writer Version",
+      "type": "string"
+    }
+  },
+  "required": [
+    "schema_version",
+    "artifact_id",
+    "artifact_origin",
+    "artifact_role",
+    "algorithm_id",
+    "algorithm_version",
+    "source_audio_config_reference",
+    "source_audio_config_sha256",
+    "source_audio_config_normalized_sha256",
+    "spec",
+    "sample_rate_hz",
+    "channel_count",
+    "dtype",
+    "shape",
+    "timing",
+    "metrics",
+    "raw_float32_sha256",
+    "wav_sha256",
+    "wav_writer",
+    "wav_writer_version",
+    "memory_layout",
+    "fade_window",
+    "sample_rounding",
+    "playback_authorized",
+    "formal_eligible",
+    "experimental_result",
+    "hardware_ready",
+    "safety_marker"
+  ],
+  "title": "EssArtifactMetadata",
+  "type": "object"
+}

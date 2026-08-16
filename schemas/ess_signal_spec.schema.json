@@ -1,0 +1,129 @@
+{
+  "additionalProperties": false,
+  "properties": {
+    "algorithm_id": {
+      "const": "exponential_sine_sweep",
+      "title": "Algorithm Id",
+      "type": "string"
+    },
+    "algorithm_version": {
+      "const": "1.0.0",
+      "title": "Algorithm Version",
+      "type": "string"
+    },
+    "artifact_origin": {
+      "const": "software_generated",
+      "title": "Artifact Origin",
+      "type": "string"
+    },
+    "artifact_role": {
+      "const": "development_test_excitation",
+      "title": "Artifact Role",
+      "type": "string"
+    },
+    "digital_peak_dbfs": {
+      "maximum": 0,
+      "title": "Digital Peak Dbfs",
+      "type": "number"
+    },
+    "end_frequency_hz": {
+      "exclusiveMinimum": 0,
+      "title": "End Frequency Hz",
+      "type": "number"
+    },
+    "experimental_result": {
+      "const": false,
+      "title": "Experimental Result",
+      "type": "boolean"
+    },
+    "fade_in_s": {
+      "minimum": 0,
+      "title": "Fade In S",
+      "type": "number"
+    },
+    "fade_out_s": {
+      "minimum": 0,
+      "title": "Fade Out S",
+      "type": "number"
+    },
+    "formal_eligible": {
+      "const": false,
+      "title": "Formal Eligible",
+      "type": "boolean"
+    },
+    "output_channel_count": {
+      "const": 1,
+      "title": "Output Channel Count",
+      "type": "integer"
+    },
+    "output_dtype": {
+      "const": "float32",
+      "title": "Output Dtype",
+      "type": "string"
+    },
+    "playback_authorized": {
+      "const": false,
+      "title": "Playback Authorized",
+      "type": "boolean"
+    },
+    "post_silence_s": {
+      "minimum": 0,
+      "title": "Post Silence S",
+      "type": "number"
+    },
+    "pre_silence_s": {
+      "minimum": 0,
+      "title": "Pre Silence S",
+      "type": "number"
+    },
+    "sample_rate_hz": {
+      "exclusiveMinimum": 0,
+      "title": "Sample Rate Hz",
+      "type": "integer"
+    },
+    "schema_version": {
+      "const": "1.0.0",
+      "title": "Schema Version",
+      "type": "string"
+    },
+    "start_frequency_hz": {
+      "exclusiveMinimum": 0,
+      "title": "Start Frequency Hz",
+      "type": "number"
+    },
+    "sweep_duration_s": {
+      "exclusiveMinimum": 0,
+      "title": "Sweep Duration S",
+      "type": "number"
+    },
+    "usage_scope": {
+      "const": "development_fixture",
+      "title": "Usage Scope",
+      "type": "string"
+    }
+  },
+  "required": [
+    "schema_version",
+    "algorithm_id",
+    "algorithm_version",
+    "sample_rate_hz",
+    "start_frequency_hz",
+    "end_frequency_hz",
+    "sweep_duration_s",
+    "pre_silence_s",
+    "post_silence_s",
+    "fade_in_s",
+    "fade_out_s",
+    "digital_peak_dbfs",
+    "output_channel_count",
+    "output_dtype",
+    "usage_scope",
+    "playback_authorized",
+    "formal_eligible",
+    "experimental_result",
+    "artifact_origin",
+    "artifact_role"
+  ],
+  "title": "EssSignalSpec",
+  "type": "object"
+}

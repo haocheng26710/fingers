@@ -1,4 +1,4 @@
-"""Top-level DEV-02.01 CLI for configuration, storage and synthetic interface data."""
+"""Auditable configuration, storage, synthetic, and offline-audio CLI."""
 
 from __future__ import annotations
 
@@ -12,19 +12,24 @@ from pydantic import ValidationError
 
 from acoustic_ladder import __version__
 from acoustic_ladder.audio.backend import SoundDeviceInventoryBackend
+from acoustic_ladder.audio.context_validation import validate_audio_context_bundle
+from acoustic_ladder.audio.ess import spec_from_audio_config
+from acoustic_ladder.audio.excitation_persistence import (
+    SAFETY_MARKER,
+    publish_offline_ess_artifact,
+    validate_offline_ess_artifact,
+)
 from acoustic_ladder.audio.inventory import collect_inventory
 from acoustic_ladder.audio.models import (
     AudioInventoryCaptureContext,
     AudioInventorySnapshot,
     AudioPreflightReport,
-    ContextualAudioPreflightReport,
     HardwareSetupRecord,
 )
 from acoustic_ladder.audio.persistence import (
     load_audio_artifact,
     persist_audio_artifact,
     persist_bytes_with_sidecar,
-    verify_bytes_sidecar,
 )
 from acoustic_ladder.audio.preflight import (
     build_contextual_preflight_report,
@@ -32,7 +37,12 @@ from acoustic_ladder.audio.preflight import (
 )
 from acoustic_ladder.audio.summary import render_inventory_summary
 from acoustic_ladder.config.bundle import LoadedBundle, load_bundle, load_config
-from acoustic_ladder.config.models import ProtocolConfig, SyntheticConfig, manifest_nodes
+from acoustic_ladder.config.models import (
+    AudioConfig,
+    ProtocolConfig,
+    SyntheticConfig,
+    manifest_nodes,
+)
 from acoustic_ladder.config.schema import check_schemas, export_schemas
 from acoustic_ladder.domain.models import (
     ArtifactRef,
@@ -224,6 +234,33 @@ def _parser() -> argparse.ArgumentParser:
     context_validate.add_argument("--summary-sidecar", required=True)
     context_validate.add_argument("--contextual-preflight", required=True)
     context_validate.add_argument("--contextual-preflight-sidecar", required=True)
+    context_validate.add_argument("--project-root", default=".")
+    context_validate.add_argument(
+        "--hardware-setup", default="reference/audio/hardware_setup.provisional.json"
+    )
+    context_validate.add_argument(
+        "--inventory-reference",
+        default="reference/audio/inventory/DEV-03.01_audio_inventory.json",
+    )
+    context_validate.add_argument(
+        "--context-reference",
+        default="reference/audio/inventory/DEV-03.02_inventory_capture_context.json",
+    )
+    context_validate.add_argument(
+        "--hardware-setup-reference",
+        default="reference/audio/hardware_setup.provisional.json",
+    )
+
+    ess_generate = commands.add_parser("ess-generate-offline")
+    ess_generate.add_argument("--project-root", default=".")
+    ess_generate.add_argument("--audio-config", required=True)
+    ess_generate.add_argument("--development-root", required=True)
+    ess_generate.add_argument("--artifact-id", required=True)
+
+    ess_validate = commands.add_parser("ess-validate-offline")
+    ess_validate.add_argument("--project-root", default=".")
+    ess_validate.add_argument("--audio-config", required=True)
+    ess_validate.add_argument("--artifact-root", required=True)
     return parser
 
 
@@ -379,26 +416,54 @@ def main(argv: list[str] | None = None) -> None:
         _audio_safety_marker()
         return
     if args.command == "audio-context-validate":
-        _, inventory_digest = load_audio_artifact(
-            args.inventory, args.inventory_sidecar, AudioInventorySnapshot
+        project_root = Path(args.project_root).resolve()
+        hardware_path = Path(args.hardware_setup)
+        if not hardware_path.is_absolute():
+            hardware_path = project_root / hardware_path
+        context_receipt = validate_audio_context_bundle(
+            inventory_path=args.inventory,
+            inventory_sidecar_path=args.inventory_sidecar,
+            context_path=args.context,
+            context_sidecar_path=args.context_sidecar,
+            summary_path=args.summary,
+            summary_sidecar_path=args.summary_sidecar,
+            contextual_preflight_path=args.contextual_preflight,
+            contextual_preflight_sidecar_path=args.contextual_preflight_sidecar,
+            hardware_setup_path=hardware_path,
+            inventory_reference=args.inventory_reference,
+            context_reference=args.context_reference,
+            hardware_setup_reference=args.hardware_setup_reference,
         )
-        context, context_digest = load_audio_artifact(
-            args.context, args.context_sidecar, AudioInventoryCaptureContext
-        )
-        summary_digest = verify_bytes_sidecar(args.summary, args.summary_sidecar)
-        contextual_report_loaded, _ = load_audio_artifact(
-            args.contextual_preflight,
-            args.contextual_preflight_sidecar,
-            ContextualAudioPreflightReport,
-        )
-        if context.inventory_sha256 != inventory_digest:
-            raise ValueError("capture context inventory SHA256 does not match inventory")
-        if contextual_report_loaded.capture_context_sha256 != context_digest:
-            raise ValueError("contextual preflight context SHA256 does not match")
-        if contextual_report_loaded.inventory_sha256 != inventory_digest:
-            raise ValueError("contextual preflight inventory SHA256 does not match")
-        print(f"PASS audio context artifacts: summary={summary_digest}")
+        print(f"PASS audio context artifacts: summary={context_receipt.summary_sha256}")
         _audio_safety_marker()
+        return
+    if args.command in {"ess-generate-offline", "ess-validate-offline"}:
+        project_root = Path(args.project_root).resolve()
+        loaded = load_config(
+            "audio",
+            project_root / args.audio_config,
+            project_root=project_root,
+        )
+        assert isinstance(loaded.model, AudioConfig)
+        spec = spec_from_audio_config(loaded.model)
+        if args.command == "ess-generate-offline":
+            ess_receipt = publish_offline_ess_artifact(
+                args.development_root, args.artifact_id, loaded, spec
+            )
+            print(
+                "PASS offline ESS: "
+                f"artifact_id={ess_receipt.artifact_id} wav_sha256={ess_receipt.wav_sha256} "
+                f"metadata_sha256={ess_receipt.metadata_sha256} "
+                f"raw_float32_sha256={ess_receipt.raw_float32_sha256}"
+            )
+        else:
+            ess_receipt = validate_offline_ess_artifact(args.artifact_root, loaded, spec)
+            print(
+                "PASS offline ESS validation: "
+                f"artifact_id={ess_receipt.artifact_id} wav_sha256={ess_receipt.wav_sha256} "
+                f"metadata_sha256={ess_receipt.metadata_sha256}"
+            )
+        print(SAFETY_MARKER)
         return
     if args.command in {"validate-config", "config-hash"}:
         root = Path(args.project_root).resolve()

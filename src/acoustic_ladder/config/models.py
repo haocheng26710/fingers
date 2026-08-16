@@ -12,7 +12,7 @@ from acoustic_ladder.domain.paths import validate_relative_path
 
 
 class StrictConfigModel(BaseModel):
-    model_config = ConfigDict(extra="forbid", strict=True)
+    model_config = ConfigDict(extra="forbid", strict=True, allow_inf_nan=False)
 
 
 class ConfigStatus(StrEnum):
@@ -52,6 +52,12 @@ class AudioConfig(StrictConfigModel):
     ess_duration_s: float | None = Field(gt=0)
     pre_silence_s: float | None = Field(ge=0)
     post_silence_s: float | None = Field(ge=0)
+    ess_fade_in_s: float | None = Field(ge=0)
+    ess_fade_out_s: float | None = Field(ge=0)
+    ess_digital_peak_dbfs: float | None = Field(le=0)
+    playback_authorized: bool
+    formal_eligible: bool
+    experimental_result: bool
     output_gain_db: float | None
     input_gain_db: float | None
     hardware_ready: bool
@@ -89,6 +95,9 @@ class AudioConfig(StrictConfigModel):
             self.ess_duration_s,
             self.pre_silence_s,
             self.post_silence_s,
+            self.ess_fade_in_s,
+            self.ess_fade_out_s,
+            self.ess_digital_peak_dbfs,
             self.output_gain_db,
             self.input_gain_db,
             self.inventory_snapshot_reference,

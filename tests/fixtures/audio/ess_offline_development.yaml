@@ -1,10 +1,10 @@
 schema_version: "1.0.0"
-config_id: default_1x1_ess_draft
+config_id: ess_offline_development_fixture
 config_status: draft
-run_mode: formal
+run_mode: development
 audio_backend: null
 hardware_setup_reference: reference/audio/hardware_setup.provisional.json
-inventory_snapshot_reference: reference/audio/inventory/DEV-03.01_audio_inventory.json
+inventory_snapshot_reference: null
 input_candidate_device_index: null
 output_candidate_device_index: null
 host_api_candidate_index: null
@@ -24,12 +24,12 @@ input_channels:
 sample_rate_hz: 48000
 ess_start_frequency_hz: 300.0
 ess_end_frequency_hz: 10000.0
-ess_duration_s: null
-pre_silence_s: null
-post_silence_s: null
-ess_fade_in_s: null
-ess_fade_out_s: null
-ess_digital_peak_dbfs: null
+ess_duration_s: 0.25
+pre_silence_s: 0.01
+post_silence_s: 0.01
+ess_fade_in_s: 0.005
+ess_fade_out_s: 0.005
+ess_digital_peak_dbfs: -20.0
 playback_authorized: false
 formal_eligible: false
 experimental_result: false
@@ -37,5 +37,5 @@ output_gain_db: null
 input_gain_db: null
 hardware_ready: false
 notes:
-  - The read-only inventory is referenced, but no audio backend, device, host API, or channel has been confirmed.
-  - This step does not generate or play a formal ESS.
+  - Development fixture for offline mathematical, persistence, and CLI tests only.
+  - Not a formal parameter recommendation, experimental result, or playback authorization.

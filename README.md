@@ -1,6 +1,6 @@
 # Acoustic Ladder
 
-本仓库当前实现到 `DEV-03.01`：除模型包、配置、不可变存储和 synthetic 接口数据外，现提供 sounddevice/PortAudio 只读设备枚举、硬件档案和非流式格式预检。
+本仓库当前实现到 `DEV-03.03`：除模型包、配置、不可变存储、synthetic 接口数据和只读音频清单外，现提供严格的离线 ESS 开发夹具生成、确定性 float32 WAV 持久化与跨文件审计验证。
 
 当前状态固定为：
 
@@ -9,7 +9,7 @@
 - `calibration_status = applied`
 - `release_role = calibrated_printed_candidate`
 
-本项目不会导入或执行 ZIP 内 Python，也不会解压或重建 CAD。DEV-03.01 绝不播放、录音或打开音频流；单方向格式检查不能证明全双工、共享时钟或实验就绪。它仍不包含真实音频采集、正式 ESS、信号处理、协议矩阵执行、分类器、界面或最终几何锁定。synthetic 输出不是实验结果，不能证明真实结构有效。
+本项目不会导入或执行 ZIP 内 Python，也不会解压或重建 CAD。DEV-03.03 的 ESS 只生成离线软件测试产物，绝不播放、录音、打开音频流或枚举新设备；-20 dBFS 测试值不是听力安全级别。它仍不包含真实音频采集、正式 ESS 参数、反卷积/DSP、协议矩阵执行、分类器、界面或最终几何锁定。synthetic 与离线 ESS 输出都不是实验结果，不能证明真实结构有效。
 
 ## 环境安装
 
@@ -119,6 +119,20 @@ uv --cache-dir .uv-cache run acoustic-ladder audio-validate --inventory referenc
 uv --cache-dir .uv-cache run acoustic-ladder audio-inventory-summary --inventory reference/audio/inventory/DEV-03.01_audio_inventory.json --inventory-sidecar reference/audio/inventory/DEV-03.01_audio_inventory.sha256 --context reference/audio/inventory/DEV-03.02_inventory_capture_context.json --context-sidecar reference/audio/inventory/DEV-03.02_inventory_capture_context.sha256 --output reference/audio/inventory/DEV-03.02_audio_inventory_summary.md --output-sidecar reference/audio/inventory/DEV-03.02_audio_inventory_summary.sha256
 uv --cache-dir .uv-cache run acoustic-ladder audio-context-validate --inventory reference/audio/inventory/DEV-03.01_audio_inventory.json --inventory-sidecar reference/audio/inventory/DEV-03.01_audio_inventory.sha256 --context reference/audio/inventory/DEV-03.02_inventory_capture_context.json --context-sidecar reference/audio/inventory/DEV-03.02_inventory_capture_context.sha256 --summary reference/audio/inventory/DEV-03.02_audio_inventory_summary.md --summary-sidecar reference/audio/inventory/DEV-03.02_audio_inventory_summary.sha256 --contextual-preflight reference/audio/inventory/DEV-03.02_contextual_preflight_report.json --contextual-preflight-sidecar reference/audio/inventory/DEV-03.02_contextual_preflight_report.sha256
 ```
+
+该验证会重建 summary 和 contextual preflight，而不是只检查各文件自己的 sidecar；hardware setup、全部仓库相对引用和跨文件哈希也必须一致。
+
+## DEV-03.03 离线 ESS 开发夹具
+
+以下命令只在指定 development root 生成或只读验证四文件 artifact bundle。示例夹具明确为非正式、非实验、未授权播放；命令不会加载设备后端：
+
+```powershell
+$developmentRoot = Join-Path $env:TEMP 'acoustic-ladder-offline-ess'
+uv --cache-dir .uv-cache run acoustic-ladder ess-generate-offline --project-root . --audio-config tests/fixtures/audio/ess_offline_development.yaml --development-root $developmentRoot --artifact-id dev_fixture
+uv --cache-dir .uv-cache run acoustic-ladder ess-validate-offline --project-root . --audio-config tests/fixtures/audio/ess_offline_development.yaml --artifact-root (Join-Path $developmentRoot 'dev_fixture')
+```
+
+生成目录只含 `excitation.wav`、其 sidecar、canonical metadata 和其 sidecar；同一配置与 artifact ID 产生逐字节相同的内容。正式 `config/audio/default_1x1_ess.yaml` 的 duration、silence、fade 和 digital peak 仍为 null，因此会明确拒绝生成。这里不提供任何播放命令。
 
 详细契约见 `docs/architecture/`；数据根目录政策见 `data/README.md`。
 

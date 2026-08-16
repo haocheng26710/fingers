@@ -103,6 +103,18 @@
     "config_status": {
       "$ref": "#/$defs/ConfigStatus"
     },
+    "ess_digital_peak_dbfs": {
+      "anyOf": [
+        {
+          "maximum": 0,
+          "type": "number"
+        },
+        {
+          "type": "null"
+        }
+      ],
+      "title": "Ess Digital Peak Dbfs"
+    },
     "ess_duration_s": {
       "anyOf": [
         {
@@ -120,10 +132,42 @@
       "title": "Ess End Frequency Hz",
       "type": "number"
     },
+    "ess_fade_in_s": {
+      "anyOf": [
+        {
+          "minimum": 0,
+          "type": "number"
+        },
+        {
+          "type": "null"
+        }
+      ],
+      "title": "Ess Fade In S"
+    },
+    "ess_fade_out_s": {
+      "anyOf": [
+        {
+          "minimum": 0,
+          "type": "number"
+        },
+        {
+          "type": "null"
+        }
+      ],
+      "title": "Ess Fade Out S"
+    },
     "ess_start_frequency_hz": {
       "exclusiveMinimum": 0,
       "title": "Ess Start Frequency Hz",
       "type": "number"
+    },
+    "experimental_result": {
+      "title": "Experimental Result",
+      "type": "boolean"
+    },
+    "formal_eligible": {
+      "title": "Formal Eligible",
+      "type": "boolean"
     },
     "hardware_ready": {
       "title": "Hardware Ready",
@@ -237,6 +281,10 @@
       ],
       "title": "Output Gain Db"
     },
+    "playback_authorized": {
+      "title": "Playback Authorized",
+      "type": "boolean"
+    },
     "post_silence_s": {
       "anyOf": [
         {
@@ -296,6 +344,12 @@
     "ess_duration_s",
     "pre_silence_s",
     "post_silence_s",
+    "ess_fade_in_s",
+    "ess_fade_out_s",
+    "ess_digital_peak_dbfs",
+    "playback_authorized",
+    "formal_eligible",
+    "experimental_result",
     "output_gain_db",
     "input_gain_db",
     "hardware_ready",

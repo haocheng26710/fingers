@@ -25,3 +25,9 @@ The verified inventory JSON is authoritative for names and contains correct UTF-
 Inventory JSON uses canonical sorted UTF-8 serialization and create-only atomic publication. Its SHA256 sidecar is verified before loading. The snapshot records no username, hostname, environment variable or local absolute path. It necessarily preserves the device names returned by PortAudio because those names are required to audit the enumeration.
 
 The hardware record deliberately has no invented calibration path, digest, serial number or measurement. The known calibration-file availability is recorded separately from application; without the file and digest, `microphone_calibration_applied` must remain false. Without an acoustic calibrator or electrical loopback, absolute SPL calibration and electrical loopback availability also remain false.
+
+## Semantic audit closure
+
+`audio-context-validate` now verifies more than each file against its own sidecar. It strictly parses the hardware setup, validates every persisted reference as a repository-relative path, checks all cross-file references and hashes, regenerates the inventory summary byte for byte, then reconstructs the contextual preflight using its persisted `generated_at` and compares the complete model. Consequently, changing a device name, summary, hardware record, reference, or any member of a swapped bundle remains detectable even if an attacker recalculates the modified file's sidecar.
+
+This validation is read-only and does not instantiate the inventory backend. Candidate lists remain empty, binding and confirmation remain deferred, and every readiness/calibration field remains false.
