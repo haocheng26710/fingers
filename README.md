@@ -1,6 +1,6 @@
 # Acoustic Ladder
 
-本仓库当前实现到 `DEV-03.03R`：除模型包、配置、不可变存储、synthetic 接口数据和只读音频清单外，现提供严格的离线 ESS 开发夹具生成、确定性 float32 WAV 持久化与跨文件审计验证。DEV-03.03R 关闭了配置/spec 双重事实源以及 0/1 样本和 float32 幅度下溢边界，不增加后续实验功能。
+本仓库当前实现到 `DEV-03.04`：除模型包、配置、不可变存储、synthetic 接口数据和只读音频清单外，现提供严格的离线 ESS 开发夹具，以及基于显式状态机和确定性虚拟全双工后端的软件采集执行内核。DEV-03.04 只生成、持久化和语义重放验证 synthetic 原始采集，不增加真实硬件接入或后续实验功能。
 
 当前状态固定为：
 
@@ -9,7 +9,7 @@
 - `calibration_status = applied`
 - `release_role = calibrated_printed_candidate`
 
-本项目不会导入或执行 ZIP 内 Python，也不会解压或重建 CAD。DEV-03.03 的 ESS 只生成离线软件测试产物，绝不播放、录音、打开音频流或枚举新设备；-20 dBFS 测试值不是听力安全级别。它仍不包含真实音频采集、正式 ESS 参数、反卷积/DSP、协议矩阵执行、分类器、界面或最终几何锁定。synthetic 与离线 ESS 输出都不是实验结果，不能证明真实结构有效。
+本项目不会导入或执行 ZIP 内 Python，也不会解压或重建 CAD。DEV-03.03 的 ESS 和 DEV-03.04 的虚拟采集只生成离线软件测试产物，绝不播放、录音、打开音频流或枚举新设备；-20 dBFS 测试值不是听力安全级别。`virtual_duplex_scheduler_exercised=true` 只表示软件调度器被执行，不表示 `full_duplex_verified=true`。项目仍不包含真实音频采集、正式 ESS 参数、反卷积/DSP、协议矩阵执行、分类器、界面或最终几何锁定。
 
 ## 环境安装
 
@@ -135,6 +135,24 @@ uv --cache-dir .uv-cache run acoustic-ladder ess-validate-offline --project-root
 生成目录只含 `excitation.wav`、其 sidecar、canonical metadata 和其 sidecar；同一配置与 artifact ID 产生逐字节相同的内容。正式 `config/audio/default_1x1_ess.yaml` 的 duration、silence、fade 和 digital peak 仍为 null，因此会明确拒绝生成。这里不提供任何播放命令。
 
 持久化发布与验证 API 只接受已加载的 audio config，并在内部派生 ESS spec；调用者不能另传 peak、duration 或其他 spec 覆盖配置。纯数学 `generate_ess(spec)` 仍接受 strict spec，但它不声明配置哈希。正式参数、硬件状态和 experiment-ready 状态均未改变。
+
+## DEV-03.04 确定性虚拟采集
+
+以下示例在系统临时目录中创建 development-only ESS、synthetic session 和 virtual capture run。两个采集命令都加载完整配置 bundle 与严格场景文件；命令行不能覆盖 ESS spec、block size、整数延迟或线性增益，也没有 real root、设备索引、Host API 或通道参数。
+
+```powershell
+$essRoot = Join-Path $env:TEMP 'acoustic-ladder-dev0304-ess'
+$syntheticRoot = Join-Path $env:TEMP 'acoustic-ladder-dev0304-synthetic'
+$bundle = @('--project-root', '.', '--audio', 'tests/fixtures/audio/ess_offline_development.yaml', '--protocol', 'config/protocols/stage4_four_node_states.yaml')
+uv --cache-dir .uv-cache run acoustic-ladder ess-generate-offline --project-root . --audio-config tests/fixtures/audio/ess_offline_development.yaml --development-root $essRoot --artifact-id source_ess
+uv --cache-dir .uv-cache run acoustic-ladder create-synthetic-session @bundle --synthetic-root $syntheticRoot --session-id virtual001 --reassembly-id assembly001
+uv --cache-dir .uv-cache run acoustic-ladder simulate-duplex-capture @bundle --synthetic-root $syntheticRoot --session-id virtual001 --reassembly-id assembly001 --run-id capture001 --scenario tests/fixtures/audio/virtual_duplex_development.yaml --ess-artifact-root (Join-Path $essRoot 'source_ess')
+uv --cache-dir .uv-cache run acoustic-ladder validate-simulated-capture @bundle --synthetic-root $syntheticRoot --session-id virtual001 --run-id capture001 --scenario tests/fixtures/audio/virtual_duplex_development.yaml --ess-artifact-root (Join-Path $essRoot 'source_ess')
+```
+
+正常夹具把 12960 个 ESS samples 加 64 个精确零 tail，以 256-frame blocks 真实推进 51 次，最后一块 224 frames；虚拟输入严格为 `y[k] = 0.5 * x[k-37]`，越界为零。成功 run 包含 output reference、simulated input、源 ESS metadata、strict capture receipt 及各自 sidecar。validator 不只核对哈希，还重新生成 ESS、重放所有 blocks、比较数组与 canonical WAV、重建 trace/receipt，并核对 session 中保存的完整配置来源。
+
+CLI 成功输出 `SYNTHETIC_ONLY`、`NO_HARDWARE_AUDIO_IO_PERFORMED` 和 `NOT_AN_EXPERIMENTAL_RESULT`。这些 WAV 不是播放记录或麦克风录音；场景的 latency/gain 不是实测声学参数。详细边界见 `docs/architecture/virtual-capture.md`。
 
 详细契约见 `docs/architecture/`；数据根目录政策见 `data/README.md`。
 

@@ -1,0 +1,112 @@
+{
+  "$defs": {
+    "FaultMode": {
+      "enum": [
+        "none",
+        "short_input_block",
+        "dropout",
+        "clipping",
+        "backend_error",
+        "abort_requested"
+      ],
+      "title": "FaultMode",
+      "type": "string"
+    }
+  },
+  "additionalProperties": false,
+  "properties": {
+    "backend_id": {
+      "const": "deterministic_virtual_duplex",
+      "title": "Backend Id",
+      "type": "string"
+    },
+    "backend_version": {
+      "const": "1.0.0",
+      "title": "Backend Version",
+      "type": "string"
+    },
+    "block_size_frames": {
+      "exclusiveMinimum": 0,
+      "title": "Block Size Frames",
+      "type": "integer"
+    },
+    "capture_tail_samples": {
+      "minimum": 0,
+      "title": "Capture Tail Samples",
+      "type": "integer"
+    },
+    "experimental_result": {
+      "const": false,
+      "title": "Experimental Result",
+      "type": "boolean"
+    },
+    "fault_block_index": {
+      "anyOf": [
+        {
+          "minimum": 0,
+          "type": "integer"
+        },
+        {
+          "type": "null"
+        }
+      ],
+      "title": "Fault Block Index"
+    },
+    "fault_mode": {
+      "$ref": "#/$defs/FaultMode"
+    },
+    "formal_eligible": {
+      "const": false,
+      "title": "Formal Eligible",
+      "type": "boolean"
+    },
+    "hardware_io_authorized": {
+      "const": false,
+      "title": "Hardware Io Authorized",
+      "type": "boolean"
+    },
+    "integer_latency_samples": {
+      "minimum": 0,
+      "title": "Integer Latency Samples",
+      "type": "integer"
+    },
+    "linear_gain": {
+      "exclusiveMinimum": 0,
+      "title": "Linear Gain",
+      "type": "number"
+    },
+    "scenario_id": {
+      "pattern": "^[A-Za-z0-9_-]+$",
+      "title": "Scenario Id",
+      "type": "string"
+    },
+    "schema_version": {
+      "const": "1.0.0",
+      "title": "Schema Version",
+      "type": "string"
+    },
+    "usage_scope": {
+      "const": "development_fixture",
+      "title": "Usage Scope",
+      "type": "string"
+    }
+  },
+  "required": [
+    "schema_version",
+    "scenario_id",
+    "usage_scope",
+    "backend_id",
+    "backend_version",
+    "block_size_frames",
+    "integer_latency_samples",
+    "capture_tail_samples",
+    "linear_gain",
+    "fault_mode",
+    "fault_block_index",
+    "hardware_io_authorized",
+    "formal_eligible",
+    "experimental_result"
+  ],
+  "title": "VirtualCaptureScenario",
+  "type": "object"
+}

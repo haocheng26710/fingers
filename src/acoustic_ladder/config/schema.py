@@ -15,6 +15,10 @@ from acoustic_ladder.audio.models import (
     ContextualAudioPreflightReport,
     HardwareSetupRecord,
 )
+from acoustic_ladder.audio.virtual_capture_models import (
+    VirtualCaptureReceipt,
+    VirtualCaptureScenario,
+)
 from acoustic_ladder.config.models import (
     AnalysisConfig,
     AudioConfig,
@@ -53,7 +57,13 @@ ESS_SCHEMA_MODELS: dict[str, type[BaseModel]] = {
     "ess_signal_spec.schema.json": EssSignalSpec,
     "ess_artifact_metadata.schema.json": EssArtifactMetadata,
 }
-ALL_GENERATED_SCHEMA_MODELS = GENERATED_SCHEMA_MODELS | ESS_SCHEMA_MODELS
+VIRTUAL_CAPTURE_SCHEMA_MODELS: dict[str, type[BaseModel]] = {
+    "virtual_capture_scenario.schema.json": VirtualCaptureScenario,
+    "virtual_capture_receipt.schema.json": VirtualCaptureReceipt,
+}
+ALL_GENERATED_SCHEMA_MODELS = (
+    GENERATED_SCHEMA_MODELS | ESS_SCHEMA_MODELS | VIRTUAL_CAPTURE_SCHEMA_MODELS
+)
 
 
 class SchemaDriftError(ValueError):

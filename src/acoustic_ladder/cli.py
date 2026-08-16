@@ -35,6 +35,11 @@ from acoustic_ladder.audio.preflight import (
     build_preflight_report,
 )
 from acoustic_ladder.audio.summary import render_inventory_summary
+from acoustic_ladder.audio.virtual_capture_models import load_virtual_capture_scenario
+from acoustic_ladder.audio.virtual_capture_persistence import (
+    publish_virtual_capture,
+    validate_virtual_capture,
+)
 from acoustic_ladder.config.bundle import LoadedBundle, load_bundle, load_config
 from acoustic_ladder.config.models import ProtocolConfig, SyntheticConfig, manifest_nodes
 from acoustic_ladder.config.schema import check_schemas, export_schemas
@@ -255,6 +260,24 @@ def _parser() -> argparse.ArgumentParser:
     ess_validate.add_argument("--project-root", default=".")
     ess_validate.add_argument("--audio-config", required=True)
     ess_validate.add_argument("--artifact-root", required=True)
+
+    simulate_capture = commands.add_parser("simulate-duplex-capture")
+    _add_bundle_arguments(simulate_capture)
+    simulate_capture.add_argument("--synthetic-root", required=True)
+    simulate_capture.add_argument("--session-id", required=True)
+    simulate_capture.add_argument("--reassembly-id", required=True)
+    simulate_capture.add_argument("--run-id", required=True)
+    simulate_capture.add_argument("--measurement-order", type=int, default=0)
+    simulate_capture.add_argument("--scenario", required=True)
+    simulate_capture.add_argument("--ess-artifact-root", required=True)
+
+    validate_capture = commands.add_parser("validate-simulated-capture")
+    _add_bundle_arguments(validate_capture)
+    validate_capture.add_argument("--synthetic-root", required=True)
+    validate_capture.add_argument("--session-id", required=True)
+    validate_capture.add_argument("--run-id", required=True)
+    validate_capture.add_argument("--scenario", required=True)
+    validate_capture.add_argument("--ess-artifact-root", required=True)
     return parser
 
 
@@ -456,6 +479,51 @@ def main(argv: list[str] | None = None) -> None:
                 f"metadata_sha256={ess_receipt.metadata_sha256}"
             )
         print(SAFETY_MARKER)
+        return
+    if args.command in {"simulate-duplex-capture", "validate-simulated-capture"}:
+        project_root = Path(args.project_root).resolve()
+        loaded_bundle = _load_bundle(args)
+        scenario_path = Path(args.scenario)
+        if not scenario_path.is_absolute():
+            scenario_path = project_root / scenario_path
+        loaded_scenario = load_virtual_capture_scenario(scenario_path, project_root=project_root)
+        capture_store = _synthetic_store(args.synthetic_root)
+        if args.command == "simulate-duplex-capture":
+            capture = publish_virtual_capture(
+                store=capture_store,
+                bundle=loaded_bundle,
+                scenario=loaded_scenario,
+                ess_artifact_root=args.ess_artifact_root,
+                session_id=args.session_id,
+                reassembly_id=args.reassembly_id,
+                run_id=args.run_id,
+                measurement_order=args.measurement_order,
+                now=_now,
+            )
+            label = "PASS simulated duplex capture"
+        else:
+            capture = validate_virtual_capture(
+                store=capture_store,
+                bundle=loaded_bundle,
+                scenario=loaded_scenario,
+                ess_artifact_root=args.ess_artifact_root,
+                session_id=args.session_id,
+                run_id=args.run_id,
+            )
+            label = "PASS simulated capture validation"
+        receipt = capture.receipt
+        print(
+            f"{label}: capture_id={receipt.capture_id} run_id={receipt.run_id} "
+            f"sample_count={receipt.capture_sample_count} "
+            f"block_count={receipt.actual_block_count} "
+            f"output_wav_sha256={receipt.output_wav_sha256} "
+            f"simulated_input_wav_sha256={receipt.input_wav_sha256} "
+            f"receipt_sha256={capture.receipt_sha256} "
+            f"final_state={receipt.final_state}"
+        )
+        print("SYNTHETIC_ONLY")
+        print("NO_HARDWARE_AUDIO_IO_PERFORMED")
+        print("NOT_AN_EXPERIMENTAL_RESULT")
         return
     if args.command in {"validate-config", "config-hash"}:
         root = Path(args.project_root).resolve()
