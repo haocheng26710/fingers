@@ -191,3 +191,47 @@
 - Git 目标仓库：`https://github.com/haocheng26710/fingers.git`
 - Git 目标分支：`main`
 - 提交主题：`DEV-02.01: add config, immutable storage, and synthetic data`
+
+## DEV-02.02
+
+- 序列号：`DEV-02.02`
+- 名称：不可变事件存储的根目录约束修正
+- `work_type`：storage boundary bug fix and regression tests
+- 状态：`PASSED`
+- 开始时间：`2026-08-16T16:05:48+01:00`
+- 结束时间：`2026-08-16T16:13:24+01:00`
+- 基线提交：`d767c31be682197a6cd09811dc0d6570577950e1`
+- 缺陷复现：未修改基线中，调用 `store.append_event(outside, "boundary_probe", ...)` 成功在两个配置根之外创建 `outside/events/000001_boundary_probe.json`；`outside_event_exists=True` 且 `outside_roots=True`。临时复现目录已自动清理。
+- 根因：公开事件 API 直接接受并信任任意 `session: Path`，未从 DataRoots 推导 session，也未验证完成标记、SessionRecord 身份、事件名或 payload 保留字段。
+- API 修改：公开入口改为 `append_event(DataOrigin, session_id, event, payload)`；session/events 路径只能由 DataRoots 推导并以解析后包含关系验证；要求 SESSION_COMPLETE 和 SessionRecord 身份匹配；事件名限定 ASCII `[A-Za-z0-9_-]+`；payload 禁止覆盖 `event/sequence/session_id/data_origin`；`create_run()` 改用受约束入口。
+- 实际动作：完成只读基线/远端/指令文件检查和历史哈希；在未修改基线上复现外部写入；先增加 22 项失败回归；实施最小 API 修复；新增 Unicode 安全用例后达到 23 项；更新直接调用测试和存储契约文档；运行分组/全量/静态/Schema 验收；在真实临时目录完成 CLI 四步烟雾与修正后反例；验证并删除烟雾临时目录；再次完成历史文件 diff/hash 回归。
+- 新增和修改文件：修改 `.gitattributes`、`README.md`、`docs/IMPLEMENTATION_LOG.md`（仅末尾追加）、`docs/architecture/storage-layout.md`、`src/acoustic_ladder/storage/store.py`、`tests/dev02/test_storage.py`；新增 `docs/prompts/DEV-02.02.md`、`docs/reports/DEV-02.02.md`、`tests/dev02/test_event_boundaries.py`。
+- 实际运行命令：
+  - `git rev-parse --show-toplevel; git branch --show-current; git rev-parse HEAD; git rev-parse origin/main; git remote -v; git status --short --branch; git log --oneline --decorate -5`
+  - `rg --files -g 'AGENTS.md' -g 'CLAUDE.md' -g 'CONTEXT.md' -g 'CONTEXT-MAP.md' -g 'docs/adr/**' -g 'src/*/docs/adr/**' -g 'docs/agents/**' -g '.scratch/**' -g '.agents/**' -g '.codex/**'`
+  - `git ls-remote --heads origin main`（沙箱网络失败后，经批准重试成功）
+  - `Get-FileHash -Algorithm SHA256 -LiteralPath <protected files and implementation log>`
+  - `uv --cache-dir .uv-cache run python -c '<temporary-directory external-root append_event counterexample>'`
+  - `uv --cache-dir .uv-cache run pytest tests/dev02/test_event_boundaries.py -q`
+  - `uv --cache-dir .uv-cache run ruff format src/acoustic_ladder/storage/store.py tests/dev02/test_storage.py tests/dev02/test_event_boundaries.py`
+  - `uv --cache-dir .uv-cache run pytest tests/dev02/test_storage.py -q`
+  - `uv --cache-dir .uv-cache run mypy src/acoustic_ladder/storage tests/dev02/test_event_boundaries.py tests/dev02/test_storage.py`
+  - `uv --cache-dir .uv-cache run pytest tests/unit tests/integration -q`
+  - `uv --cache-dir .uv-cache run pytest tests/dev02/test_config.py tests/dev02/test_domain_schema_cli.py tests/dev02/test_storage.py tests/dev02/test_synthetic.py -q`
+  - `uv --cache-dir .uv-cache run pytest -q`
+  - `uv --cache-dir .uv-cache run ruff format --check .; uv --cache-dir .uv-cache run ruff check .; uv --cache-dir .uv-cache run mypy`
+  - `uv --cache-dir .uv-cache run acoustic-ladder export-schemas --output-dir schemas --check`
+  - `git diff --check; rg -n "pytest.mark.(skip|xfail)|@unittest.skip|type: ignore|noqa" src tests`
+  - `uv --cache-dir .uv-cache run acoustic-ladder create-synthetic-session ...; generate-synthetic-run ...; validate-session ...; validate-run ...`
+  - `uv --cache-dir .uv-cache run python -c '<fixed external-root counterexample>'`
+  - `Resolve-Path <smoke-root>; Remove-Item -LiteralPath <verified-smoke-root> -Recurse -Force; Test-Path <smoke-root>`
+  - `git diff --exit-code d767c31... -- <protected files>; Get-FileHash -Algorithm SHA256 -LiteralPath <protected files>`
+- 修正前失败测试：新增文件首次执行为 `22 failed in 1.95s`；21 项因新签名不存在而 TypeError，`create_run` 用例因旧事件缺少 `sequence` 失败。独立原始反例也真实创建了外部事件。
+- 修正后结果：目标测试先为 `22 passed in 1.75s`，加入非 ASCII 用例后最终 `23 passed in 1.78s`；旧存储测试 `14 passed in 0.88s`。最终关门全量为 `132 passed in 3.36s`。
+- 原有测试与新增测试数量：DEV-01 原 43（最终 `43 passed in 0.46s`）、DEV-02.01 原 66（最终 `66 passed in 1.51s`）、新增 DEV-02.02 23；完整 132。
+- 静态检查结果：最终 format `52 files already formatted`、Ruff PASS、strict mypy `Success: no issues found in 37 source files`、Schema PASS、diff whitespace PASS、抑制扫描无匹配。
+- 受保护文件回归结果：十二个历史保护文件相对基线无 diff；ZIP/manifest 仍为 `1bf3cc17a46cac8552b8eb80d543cec5880afef7f8c716fd8f029636899d688b` / `bd69f27305681e6552e61d402571300c2eea340a6d7878dc2b93531c8b6608b0`；DEV-02.01 prompt/report 为 `e37580cef7420d9782fd40ad60623c8c0c4b4bec219c62890a6b9a351ab35b49` / `64e140ec108e9c6ab343e2f0b8001f04ba64ee4cf0fad43fb3360ba2ecb3e3a8`。日志 diff 只有末尾 DEV-02.02。
+- 未执行检查及原因：无验收检查遗漏。真实音频与 DEV-03.01 功能按范围禁止执行。提交、推送及远端 SHA 验证在本文档冻结后执行，因此其最终 SHA 只能由 Git 历史和最终回复报告，不能自引用写入本提交。
+- Git 提交和推送结果：本地验收已 PASS；目标为 `origin/main`，提交主题如下。本文档冻结时尚未执行 Git 提交/推送，不编造结果；随后若提交、推送或远端验证任一失败，则最终状态必须改报 FAIL。
+- 已知限制：本步骤只修复事件写入边界，不扩展真实音频或 DEV-03.01 功能。
+- 提交主题：`DEV-02.02: confine immutable event writes`

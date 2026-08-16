@@ -98,6 +98,8 @@ uv --cache-dir .uv-cache run acoustic-ladder validate-run --synthetic-root $synt
 uv --cache-dir .uv-cache run acoustic-ladder verify-artifact --session-root <session-root> --artifact-ref <artifact-ref.json>
 ```
 
+代码层事件追加接口固定为 `append_event(DataOrigin, session_id, event, payload)`；session 路径只能由已注入的 synthetic/real 根推导，调用者不能提供任意文件系统路径。事件名只接受安全 ASCII 标识字符，系统事件字段不可由 payload 覆盖。
+
 详细契约见 `docs/architecture/`；数据根目录政策见 `data/README.md`。
 
 单元测试、真实包集成测试、完整测试与静态检查：

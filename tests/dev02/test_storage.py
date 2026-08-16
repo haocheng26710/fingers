@@ -167,7 +167,7 @@ def test_events_are_create_only_and_sequential(
     original = first_event.read_bytes()
     with pytest.raises(StorageError, match="already exists"):
         atomic_write_bytes(first_event, b"replacement")
-    new_event = store.append_event(session, "manual_check", {"status": "ok"})
+    new_event = store.append_event(DataOrigin.SYNTHETIC, "s001", "manual_check", {"status": "ok"})
     assert new_event.name == "000003_manual_check.json"
     assert first_event.read_bytes() == original
 

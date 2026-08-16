@@ -4,6 +4,7 @@ from __future__ import annotations
 
 import json
 import os
+import re
 import shutil
 import tempfile
 from dataclasses import dataclass
@@ -40,6 +41,8 @@ SESSION_DIRECTORIES = (
     "reports",
     "events",
 )
+EVENT_NAME_PATTERN = re.compile(r"^[A-Za-z0-9_-]+$")
+EVENT_RESERVED_FIELDS = frozenset({"event", "sequence", "session_id", "data_origin"})
 
 
 @dataclass(frozen=True)
@@ -79,7 +82,11 @@ class ImmutableSessionStore:
 
     def session_path(self, origin: DataOrigin, session_id: str) -> Path:
         safe_identifier(session_id, "session_id")
-        return self.roots.for_origin(origin).resolve() / f"session_{session_id}"
+        root = self.roots.for_origin(origin).resolve()
+        session = (root / f"session_{session_id}").resolve()
+        if not session.is_relative_to(root):
+            raise StorageError("resolved session path escapes its configured data root")
+        return session
 
     def create_session(
         self,
@@ -206,7 +213,8 @@ class ImmutableSessionStore:
                 shutil.rmtree(staging)
             raise
         self.append_event(
-            session,
+            record.data_origin,
+            record.session_id,
             "run_created",
             {"run_id": record.run_id, "created_at": record.created_at.isoformat()},
         )
@@ -224,13 +232,62 @@ class ImmutableSessionStore:
             raise StorageError("synthetic writer refuses non-synthetic run records")
         return self.create_run(record, artifact_payloads, metadata)
 
-    def append_event(self, session: Path, event: str, payload: dict[str, object]) -> Path:
-        events = session / "events"
+    def append_event(
+        self,
+        origin: DataOrigin,
+        session_id: str,
+        event: str,
+        payload: dict[str, object],
+    ) -> Path:
+        """Append an event only to a verified session derived from configured roots."""
+
+        if EVENT_NAME_PATTERN.fullmatch(event) is None:
+            raise StorageError(
+                "event name must be non-empty ASCII letters, digits, hyphens or underscores"
+            )
+        reserved = sorted(EVENT_RESERVED_FIELDS.intersection(payload))
+        if reserved:
+            raise StorageError(f"event payload contains reserved fields: {reserved}")
+        session = self._validated_completed_session(origin, session_id)
+        root = self.roots.for_origin(origin).resolve()
+        events = (session / "events").resolve()
+        if not events.is_dir():
+            raise StorageError(f"session events directory is missing: {session_id}")
+        if not events.is_relative_to(session) or not events.is_relative_to(root):
+            raise StorageError("resolved events path escapes the verified session data root")
         existing = sorted(events.glob("[0-9][0-9][0-9][0-9][0-9][0-9]_*.json"))
         sequence = int(existing[-1].name[:6]) + 1 if existing else 1
         path = events / f"{sequence:06d}_{event}.json"
-        atomic_write_json(path, {"event": event, **payload})
+        atomic_write_json(
+            path,
+            {
+                "event": event,
+                "sequence": sequence,
+                "session_id": session_id,
+                "data_origin": origin.value,
+                **payload,
+            },
+        )
         return path
+
+    def _validated_completed_session(self, origin: DataOrigin, session_id: str) -> Path:
+        session = self.session_path(origin, session_id)
+        root = self.roots.for_origin(origin).resolve()
+        if not session.is_relative_to(root):
+            raise StorageError("session path escapes the selected data root")
+        if not session.is_dir() or not (session / "SESSION_COMPLETE").is_file():
+            raise StorageError(f"session is missing or incomplete: {session_id}")
+        try:
+            record = SessionRecord.model_validate_json(
+                (session / "session_record.json").read_text(encoding="utf-8")
+            )
+        except (OSError, ValidationError) as exc:
+            raise StorageError(f"invalid session record: {exc}") from exc
+        if record.session_id != session_id:
+            raise StorageError("session record session_id does not match selected session")
+        if record.data_origin is not origin:
+            raise StorageError("session record origin does not match selected data root")
+        return session
 
     def validate_session(self, origin: DataOrigin, session_id: str) -> SessionRecord:
         session = self.session_path(origin, session_id)

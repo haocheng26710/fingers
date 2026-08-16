@@ -8,4 +8,6 @@ Runs live at `raw/run_<id>/` and contain `run_record.json`, synthetic metadata/a
 
 Existing session IDs, run IDs, artifacts and numbered event files fail rather than overwrite. Events use monotonically numbered create-only JSON files. Artifact validation confines the relative path to the selected session and recomputes byte size and SHA256. Session validation also validates every completed run and referenced artifact.
 
+The public event API is `append_event(origin, session_id, event, payload)`. It never accepts a caller-selected session filesystem path: the store derives the resolved session from its injected DataRoots, verifies root containment, `SESSION_COMPLETE`, SessionRecord identity/origin and the resolved events directory before writing. Event names are restricted to ASCII letters, digits, hyphens and underscores. Payloads cannot replace the system-owned `event`, `sequence`, `session_id` or `data_origin` fields. A numbering race fails through the same create-only atomic publication and cannot replace the competing event.
+
 The immutable session record is not rewritten when a run is appended; the append-only event ledger and immutable run records capture that evolution. Callers that know a planned run set may place it in the initial SessionRecord.
