@@ -13,7 +13,6 @@ from pydantic import ValidationError
 from acoustic_ladder import __version__
 from acoustic_ladder.audio.backend import SoundDeviceInventoryBackend
 from acoustic_ladder.audio.context_validation import validate_audio_context_bundle
-from acoustic_ladder.audio.ess import spec_from_audio_config
 from acoustic_ladder.audio.excitation_persistence import (
     SAFETY_MARKER,
     publish_offline_ess_artifact,
@@ -37,12 +36,7 @@ from acoustic_ladder.audio.preflight import (
 )
 from acoustic_ladder.audio.summary import render_inventory_summary
 from acoustic_ladder.config.bundle import LoadedBundle, load_bundle, load_config
-from acoustic_ladder.config.models import (
-    AudioConfig,
-    ProtocolConfig,
-    SyntheticConfig,
-    manifest_nodes,
-)
+from acoustic_ladder.config.models import ProtocolConfig, SyntheticConfig, manifest_nodes
 from acoustic_ladder.config.schema import check_schemas, export_schemas
 from acoustic_ladder.domain.models import (
     ArtifactRef,
@@ -444,11 +438,9 @@ def main(argv: list[str] | None = None) -> None:
             project_root / args.audio_config,
             project_root=project_root,
         )
-        assert isinstance(loaded.model, AudioConfig)
-        spec = spec_from_audio_config(loaded.model)
         if args.command == "ess-generate-offline":
             ess_receipt = publish_offline_ess_artifact(
-                args.development_root, args.artifact_id, loaded, spec
+                args.development_root, args.artifact_id, loaded
             )
             print(
                 "PASS offline ESS: "
@@ -457,7 +449,7 @@ def main(argv: list[str] | None = None) -> None:
                 f"raw_float32_sha256={ess_receipt.raw_float32_sha256}"
             )
         else:
-            ess_receipt = validate_offline_ess_artifact(args.artifact_root, loaded, spec)
+            ess_receipt = validate_offline_ess_artifact(args.artifact_root, loaded)
             print(
                 "PASS offline ESS validation: "
                 f"artifact_id={ess_receipt.artifact_id} wav_sha256={ess_receipt.wav_sha256} "

@@ -1,6 +1,6 @@
 # Acoustic Ladder
 
-本仓库当前实现到 `DEV-03.03`：除模型包、配置、不可变存储、synthetic 接口数据和只读音频清单外，现提供严格的离线 ESS 开发夹具生成、确定性 float32 WAV 持久化与跨文件审计验证。
+本仓库当前实现到 `DEV-03.03R`：除模型包、配置、不可变存储、synthetic 接口数据和只读音频清单外，现提供严格的离线 ESS 开发夹具生成、确定性 float32 WAV 持久化与跨文件审计验证。DEV-03.03R 关闭了配置/spec 双重事实源以及 0/1 样本和 float32 幅度下溢边界，不增加后续实验功能。
 
 当前状态固定为：
 
@@ -133,6 +133,8 @@ uv --cache-dir .uv-cache run acoustic-ladder ess-validate-offline --project-root
 ```
 
 生成目录只含 `excitation.wav`、其 sidecar、canonical metadata 和其 sidecar；同一配置与 artifact ID 产生逐字节相同的内容。正式 `config/audio/default_1x1_ess.yaml` 的 duration、silence、fade 和 digital peak 仍为 null，因此会明确拒绝生成。这里不提供任何播放命令。
+
+持久化发布与验证 API 只接受已加载的 audio config，并在内部派生 ESS spec；调用者不能另传 peak、duration 或其他 spec 覆盖配置。纯数学 `generate_ess(spec)` 仍接受 strict spec，但它不声明配置哈希。正式参数、硬件状态和 experiment-ready 状态均未改变。
 
 详细契约见 `docs/architecture/`；数据根目录政策见 `data/README.md`。
 

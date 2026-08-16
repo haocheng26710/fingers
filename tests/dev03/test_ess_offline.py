@@ -1,10 +1,12 @@
 from __future__ import annotations
 
 import hashlib
+import inspect
 import json
 import math
 import shutil
 import struct
+from collections.abc import Callable
 from pathlib import Path
 
 import numpy as np
@@ -14,11 +16,13 @@ from pydantic import ValidationError
 from acoustic_ladder import cli
 from acoustic_ladder.audio.context_validation import validate_audio_context_bundle
 from acoustic_ladder.audio.ess import (
+    EssError,
     MissingEssFieldsError,
     generate_ess,
     raw_float32_bytes,
     spec_from_audio_config,
     theoretical_frequency,
+    theoretical_phase,
 )
 from acoustic_ladder.audio.excitation_models import (
     EssArtifactMetadata,
@@ -71,8 +75,7 @@ def _spec_data() -> dict[str, object]:
 
 def _publish(tmp_path: Path, artifact_id: str = "fixture") -> tuple[LoadedConfig, Path]:
     loaded = _load_development()
-    spec = _spec()
-    receipt = publish_offline_ess_artifact(tmp_path, artifact_id, loaded, spec)
+    receipt = publish_offline_ess_artifact(tmp_path, artifact_id, loaded)
     return loaded, receipt.artifact_root
 
 
@@ -345,7 +348,7 @@ def test_publish_creates_exactly_four_files_and_valid_sidecars(tmp_path: Path) -
         METADATA_NAME,
         METADATA_SIDECAR_NAME,
     }
-    validate_offline_ess_artifact(root, loaded, _spec())
+    validate_offline_ess_artifact(root, loaded)
 
 
 def test_metadata_is_canonical_strict_and_contains_no_timestamp_or_absolute_path(
@@ -362,9 +365,8 @@ def test_metadata_is_canonical_strict_and_contains_no_timestamp_or_absolute_path
 
 def test_two_roots_produce_identical_artifact_file_bytes(tmp_path: Path) -> None:
     loaded = _load_development()
-    spec = _spec()
-    first = publish_offline_ess_artifact(tmp_path / "one", "same", loaded, spec)
-    second = publish_offline_ess_artifact(tmp_path / "two", "same", loaded, spec)
+    first = publish_offline_ess_artifact(tmp_path / "one", "same", loaded)
+    second = publish_offline_ess_artifact(tmp_path / "two", "same", loaded)
     for name in (WAV_NAME, WAV_SIDECAR_NAME, METADATA_NAME, METADATA_SIDECAR_NAME):
         assert (first.artifact_root / name).read_bytes() == (
             second.artifact_root / name
@@ -375,7 +377,7 @@ def test_existing_artifact_is_not_overwritten(tmp_path: Path) -> None:
     loaded, root = _publish(tmp_path)
     before = {path.name: path.read_bytes() for path in root.iterdir()}
     with pytest.raises(EssArtifactError, match="already exists"):
-        publish_offline_ess_artifact(tmp_path, "fixture", loaded, _spec())
+        publish_offline_ess_artifact(tmp_path, "fixture", loaded)
     assert {path.name: path.read_bytes() for path in root.iterdir()} == before
 
 
@@ -385,7 +387,7 @@ def test_unsafe_artifact_id_is_rejected_without_creating_root(
 ) -> None:
     development_root = tmp_path / "absent"
     with pytest.raises(EssArtifactError):
-        publish_offline_ess_artifact(development_root, artifact_id, _load_development(), _spec())
+        publish_offline_ess_artifact(development_root, artifact_id, _load_development())
     assert not development_root.exists()
 
 
@@ -406,7 +408,7 @@ def test_staging_failure_leaves_no_target_staging_or_lock(
 
     monkeypatch.setattr(excitation_persistence, "_write_staged", fail_third)
     with pytest.raises(EssArtifactError, match="could not publish"):
-        publish_offline_ess_artifact(tmp_path, "failure", _load_development(), _spec())
+        publish_offline_ess_artifact(tmp_path, "failure", _load_development())
     assert list(tmp_path.iterdir()) == []
 
 
@@ -417,7 +419,7 @@ def test_wav_tamper_with_recomputed_sidecar_is_rejected(tmp_path: Path) -> None:
     (root / WAV_NAME).write_bytes(wav)
     _rewrite_sidecar(root / WAV_NAME, root / WAV_SIDECAR_NAME)
     with pytest.raises(EssArtifactError):
-        validate_offline_ess_artifact(root, loaded, _spec())
+        validate_offline_ess_artifact(root, loaded)
 
 
 def test_metadata_tamper_with_recomputed_sidecar_is_rejected(tmp_path: Path) -> None:
@@ -428,7 +430,7 @@ def test_metadata_tamper_with_recomputed_sidecar_is_rejected(tmp_path: Path) -> 
     _write_canonical(path, value)
     _rewrite_sidecar(path, root / METADATA_SIDECAR_NAME)
     with pytest.raises(EssArtifactError):
-        validate_offline_ess_artifact(root, loaded, _spec())
+        validate_offline_ess_artifact(root, loaded)
 
 
 def test_swapped_wav_and_metadata_combination_is_rejected(tmp_path: Path) -> None:
@@ -440,20 +442,17 @@ def test_swapped_wav_and_metadata_combination_is_rejected(tmp_path: Path) -> Non
     changed_config.write_text(changed_text, encoding="utf-8", newline="\n")
     changed_loaded = _load_development(changed_config, project_root=changed_root)
     assert isinstance(changed_loaded.model, AudioConfig)
-    changed_spec = spec_from_audio_config(changed_loaded.model)
-    second_receipt = publish_offline_ess_artifact(
-        tmp_path / "second", "fixture", changed_loaded, changed_spec
-    )
+    second_receipt = publish_offline_ess_artifact(tmp_path / "second", "fixture", changed_loaded)
     shutil.copy2(second_receipt.artifact_root / WAV_NAME, first / WAV_NAME)
     shutil.copy2(second_receipt.artifact_root / WAV_SIDECAR_NAME, first / WAV_SIDECAR_NAME)
     with pytest.raises(EssArtifactError):
-        validate_offline_ess_artifact(first, loaded, _spec())
+        validate_offline_ess_artifact(first, loaded)
 
 
 def test_validation_is_read_only(tmp_path: Path) -> None:
     loaded, root = _publish(tmp_path)
     before = {path.name: path.read_bytes() for path in root.iterdir()}
-    validate_offline_ess_artifact(root, loaded, _spec())
+    validate_offline_ess_artifact(root, loaded)
     assert {path.name: path.read_bytes() for path in root.iterdir()} == before
 
 
@@ -564,3 +563,230 @@ def test_swapped_context_combination_with_valid_sidecars_is_rejected(tmp_path: P
     _rewrite_sidecar(paths["context"], paths["context_sidecar"])
     with pytest.raises(ValueError, match="capture context SHA256"):
         _validate_context(paths)
+
+
+def test_public_persistence_apis_have_no_independent_spec_parameter() -> None:
+    assert "spec" not in inspect.signature(publish_offline_ess_artifact).parameters
+    assert "spec" not in inspect.signature(validate_offline_ess_artifact).parameters
+
+
+def test_publish_derives_spec_from_loaded_config_before_creating_root(tmp_path: Path) -> None:
+    development_root = tmp_path / "not-created"
+    receipt = publish_offline_ess_artifact(development_root, "derived", _load_development())
+    assert receipt.metadata.spec == _spec()
+    assert receipt.metadata.spec.digital_peak_dbfs == -20.0
+
+
+@pytest.mark.parametrize(
+    ("sample_units", "expected_count"),
+    [(0.25, 0), (1.0, 1)],
+)
+def test_spec_rejects_sweep_duration_below_two_rounded_samples(
+    sample_units: float, expected_count: int
+) -> None:
+    data = _spec_data()
+    duration_s = sample_units / 48000
+    data.update(
+        {
+            "sweep_duration_s": duration_s,
+            "fade_in_s": 0.0,
+            "fade_out_s": 0.0,
+        }
+    )
+    assert round_half_up_samples(duration_s, 48000) == expected_count
+    with pytest.raises(ValidationError, match="at least two samples"):
+        EssSignalSpec.model_validate(data)
+
+
+def test_spec_accepts_sweep_duration_rounding_to_two_samples() -> None:
+    data = _spec_data()
+    data.update(
+        {
+            "sweep_duration_s": 1.5 / 48000,
+            "fade_in_s": 0.0,
+            "fade_out_s": 0.0,
+        }
+    )
+    spec = EssSignalSpec.model_validate(data)
+    assert round_half_up_samples(spec.sweep_duration_s, spec.sample_rate_hz) == 2
+
+
+def test_spec_rejects_float32_underflowing_digital_peak() -> None:
+    data = _spec_data()
+    data["digital_peak_dbfs"] = -10000.0
+    with pytest.raises(
+        ValidationError,
+        match="digital peak is not representable as a positive float32 amplitude",
+    ):
+        EssSignalSpec.model_validate(data)
+
+
+def test_generator_zero_energy_guard_raises_ess_error_not_zero_division() -> None:
+    invalid = _spec().model_copy(update={"digital_peak_dbfs": -10000.0})
+    with pytest.raises(EssError, match="positive float32 amplitude"):
+        generate_ess(invalid)
+
+
+def test_explicit_mismatched_spec_is_rejected_by_public_api_before_write(
+    tmp_path: Path,
+) -> None:
+    development_root = tmp_path / "must-not-exist"
+    mismatch = _spec().model_copy(update={"digital_peak_dbfs": -18.0})
+    public_publish: Callable[..., object] = publish_offline_ess_artifact
+    with pytest.raises(TypeError):
+        public_publish(development_root, "mismatch", _load_development(), mismatch)
+    assert not development_root.exists()
+
+
+def test_metadata_other_spec_with_recomputed_sidecar_is_rejected_against_config(
+    tmp_path: Path,
+) -> None:
+    loaded, root = _publish(tmp_path)
+    metadata_path = root / METADATA_NAME
+    value = json.loads(metadata_path.read_bytes())
+    value["spec"]["digital_peak_dbfs"] = -18.0
+    _write_canonical(metadata_path, value)
+    _rewrite_sidecar(metadata_path, root / METADATA_SIDECAR_NAME)
+    with pytest.raises(
+        EssArtifactError,
+        match="ESS specification does not match the loaded audio configuration",
+    ):
+        validate_offline_ess_artifact(root, loaded)
+
+
+def test_smallest_positive_float32_peak_can_generate_positive_energy() -> None:
+    smallest = float(np.nextafter(np.float32(0), np.float32(1)))
+    data = _spec_data()
+    data["digital_peak_dbfs"] = 20.0 * math.log10(smallest)
+    result = generate_ess(EssSignalSpec.model_validate(data))
+    assert result.metrics.actual_peak > 0
+    assert result.metrics.rms > 0
+    assert math.isfinite(result.metrics.crest_factor)
+
+
+def test_zero_dbfs_remains_mathematically_valid_without_playback_authorization() -> None:
+    data = _spec_data()
+    data["digital_peak_dbfs"] = 0.0
+    spec = EssSignalSpec.model_validate(data)
+    assert spec.digital_peak_dbfs == 0.0
+    assert spec.playback_authorized is False
+
+
+def test_generator_defensively_rejects_zero_rms(
+    monkeypatch: pytest.MonkeyPatch,
+) -> None:
+    monkeypatch.setattr(np, "sqrt", lambda value: np.float64(0.0))
+    with pytest.raises(EssError, match="zero or non-finite RMS"):
+        generate_ess(_spec())
+
+
+def test_smoke_fixture_golden_hashes_are_unchanged(tmp_path: Path) -> None:
+    receipt = publish_offline_ess_artifact(tmp_path, "smoke", _load_development())
+    assert receipt.wav_sha256 == "608311700bb64350c9eecc428fb78e1e82d30edea404dbb9d6d3a79b38c422e0"
+    assert (
+        receipt.metadata_sha256
+        == "e581731a06f0951594f73f5d62c7b1d8291027cb64973723a045f92e05d1c25a"
+    )
+    assert (
+        receipt.raw_float32_sha256
+        == "eabd87614dd0d204ee948b13561298c879539af82258809f1d35dc5ed8ac70ca"
+    )
+
+
+def test_independent_high_precision_eight_sample_reference_vector() -> None:
+    data = _spec_data()
+    data.update(
+        {
+            "sample_rate_hz": 10,
+            "start_frequency_hz": 1.0,
+            "end_frequency_hz": 4.0,
+            "sweep_duration_s": 0.8,
+            "pre_silence_s": 0.0,
+            "post_silence_s": 0.0,
+            "fade_in_s": 0.0,
+            "fade_out_s": 0.0,
+            "digital_peak_dbfs": 0.0,
+        }
+    )
+    spec = EssSignalSpec.model_validate(data)
+    times = np.arange(8, dtype=np.float64) / 10.0
+    expected_phase = np.array(
+        [
+            0.0,
+            0.6860438292707576,
+            1.5018920322432546,
+            2.472104519980332,
+            3.625888113461755,
+            4.99797577200327,
+            6.629672177948264,
+            8.57009715342242,
+        ],
+        dtype=np.float64,
+    )
+    expected_frequency = np.array(
+        [
+            1.0,
+            1.189207115002721,
+            1.4142135623730951,
+            1.681792830507429,
+            2.0,
+            2.378414230005442,
+            2.8284271247461903,
+            3.363585661014858,
+        ],
+        dtype=np.float64,
+    )
+    expected_float32 = np.array(
+        [
+            0.0,
+            0.6349878311157227,
+            1.0,
+            0.6220608353614807,
+            -0.46669238805770874,
+            -0.9617787599563599,
+            0.34040331840515137,
+            0.7561557292938232,
+        ],
+        dtype=np.float32,
+    )
+    np.testing.assert_allclose(theoretical_phase(spec, times), expected_phase, rtol=1e-15)
+    np.testing.assert_allclose(
+        [theoretical_frequency(spec, float(time)) for time in times],
+        expected_frequency,
+        rtol=1e-15,
+    )
+    result = generate_ess(spec)
+    assert np.array_equal(result.samples[0], expected_float32)
+    assert result.raw_float32_sha256 == (
+        "32b08516c8f9b2d40942764e607077cdc42d638a759318d3bf6534ae5d6d6a68"
+    )
+
+
+def test_formal_cli_rejection_lists_six_fields_and_creates_no_root(
+    tmp_path: Path,
+) -> None:
+    development_root = tmp_path / "formal-must-not-exist"
+    with pytest.raises(MissingEssFieldsError) as caught:
+        cli.main(
+            [
+                "ess-generate-offline",
+                "--project-root",
+                str(REPO_ROOT),
+                "--audio-config",
+                "config/audio/default_1x1_ess.yaml",
+                "--development-root",
+                str(development_root),
+                "--artifact-id",
+                "formal_rejected",
+            ]
+        )
+    for field in (
+        "ess_duration_s",
+        "pre_silence_s",
+        "post_silence_s",
+        "ess_fade_in_s",
+        "ess_fade_out_s",
+        "ess_digital_peak_dbfs",
+    ):
+        assert field in str(caught.value)
+    assert not development_root.exists()

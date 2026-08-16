@@ -356,3 +356,30 @@
 - 未执行项目及原因：按范围禁止，未运行 production `audio-list`/`audio-inventory`，未枚举或绑定设备/Host API/通道，未播放、录音、开流、校准、测 SPL/回环/延迟/时钟，未反卷积/DSP、执行正式协议、修改 CAD/manifest、读取校准文件或进入 DEV-03.04。没有未执行的授权软件验收项。
 - 已知限制：development fixture 数值不是正式参数或听力安全建议；实验硬件身份与 readiness 仍未知/false。成组发布采用同父 staging、协作锁和 Windows no-replace rename；Python 无法对所有平台的非协作 filesystem actor 声称绝对多文件原子性。没有 WAV/demo 进入 Git。
 - Git 结果：报告/日志冻结时尚未提交或推送，不能在提交中自引用最终 SHA。仅在最终门禁和远端基线复核全部通过后提交 `DEV-03.03: add deterministic offline ESS generation` 并推送；最终实际结果以 Git 历史和最终回复为准。
+
+## DEV-03.03R
+
+- 序列号：`DEV-03.03R`
+- 名称：ESS 配置溯源与数值边界闭环修正
+- 状态：`PASSED`
+- 开始时间：`2026-08-16T20:46:16+01:00`
+- 基线提交与远端基线：`7a5859a84a606f535e2c91f4a16d7a69acb332be`
+- 范围：仅修正持久化 ESS 配置/spec 双重事实源、round-half-up 后 0/1 sweep 样本边界、不可表示 float32 dBFS 与生成阶段零能量防御，并增加独立 golden reference；不扩展到 DEV-03.04。
+- 已知复现事实：独立审查已得到 `MISMATCH_ACCEPTED ... metadata=-18.0 config=-20.0`、`TINY_SPEC_ACCEPTED 0` 和 `digital_peak_dbfs=-10000.0` 导致原始 `ZeroDivisionError`；本步骤将在未修改生产代码前以本地确定性反例再次确认。
+- 硬件与禁止范围：CHU II、iMM-6C、实验装置仍未连接；不枚举/绑定设备，不选择 Host API/通道，不播放、不录音、不开流、不读取校准文件、不做 SPL/反卷积/DSP/正式协议。
+- 提示词归档：原附件为 UTF-8 CRLF（1030 个 CRLF），直接复制以保留审计字节；源/目标 SHA256 均为 `028162ce746d6aea5ee69a1fb8cb16f11424d48abcc3ab31b5ebe57186fafec4`，并按既有方式标记 binary。
+- 三个基线复现：在生产代码未修改时，临时目录反例再次得到 `MISMATCH_ACCEPTED metadata=-18.0 config=-20.0`；新增回归的首个 red run 为 `6 failed, 3 passed`，确认公开 API 暴露 spec、0/1 派生样本被接受、`-10000 dBFS` 被接受且 `generate_ess` 泄漏 `ZeroDivisionError`。
+- 根因：持久化只比较 metadata 与调用者 spec，未从 `LoadedConfig.model` 派生；duration 的正数约束不保证 round-half-up 后至少两个样本；dBFS 上界不保证 float32 正幅可表示，生成器在 float32 量化后未检查 peak/RMS 即计算 crest factor。
+- 实际修正：公开 publish/validate API 删除 spec 参数，验证 audio `LoadedConfig` 后内部唯一调用 `spec_from_audio_config`；仅私有 staging validator 接受已派生 spec。CLI 不再派生/传递第二事实源。`EssSignalSpec` 要求 sweep_count >=2，要求 target peak 在 float64 和实际 NumPy float32 中 finite 且 >0；timing/metrics 收紧为正样本数、正 peak/RMS/crest。generator 对 target、normalization、float32 sweep peak、output peak、RMS、crest 全部保留 `EssError` 防御。
+- 修正证明：错配旧签名调用在任何写入前得到 `MISMATCH_REJECTED_BEFORE_WRITE`，development root/artifact/staging/lock 均不存在；metadata 改为 -18 spec 并重算 sidecar 后以 `ESS specification does not match the loaded audio configuration` 拒绝。0/1 样本得到 `ZERO_SAMPLE_SPEC_REJECTED 0` / `ONE_SAMPLE_SPEC_REJECTED 1`，2 样本模型边界通过；`-10000 dBFS` 得到 `UNREPRESENTABLE_FLOAT32_PEAK_REJECTED`，不再出现 raw division by zero。
+- 独立参考：使用一次性 Python Decimal 脚本（precision 80、75 位 pi 常量、Decimal ln/exp、自写 Taylor sine）为 fs=10/f0=1/f1=4/T=0.8/no fade/0 dBFS 的八样本规格计算并人工固化 phase、frequency、normalized float32 vector；reference raw SHA256 为 `32b08516c8f9b2d40942764e607077cdc42d638a759318d3bf6534ae5d6d6a68`。测试运行时不调用生产函数生成 expected，phase/frequency rtol 1e-15，float32/vector/hash exact。
+- 正常 fixture 复核：临时 artifact ID `smoke` 真实 generate/validate，shape `[1,12960]`、dtype float32、sweep/total `12000/12960`；WAV/metadata/raw SHA256 仍为 `608311700bb64350c9eecc428fb78e1e82d30edea404dbb9d6d3a79b38c422e0` / `e581731a06f0951594f73f5d62c7b1d8291027cb64973723a045f92e05d1c25a` / `eabd87614dd0d204ee948b13561298c879539af82258809f1d35dc5ed8ac70ca`；同一命令 finally 仅删除预先确认不存在的精确临时 root，`SMOKE_CLEANUP_PASS`。正式负例列出六个缺失字段、exit 1、root 不存在。
+- 新增/修改文件：修改 `.gitattributes`、README、`docs/architecture/ess-excitation.md`、`src/acoustic_ladder/audio/{excitation_models,ess,excitation_persistence}.py`、`src/acoustic_ladder/cli.py`、`tests/dev03/test_ess_offline.py` 和模型实际变化导致的 `schemas/ess_artifact_metadata.schema.json`；新增本 prompt/report。未修改旧 DEV-03.03 prompt/report、fixture 参数、正式 config、其他 Schema 或保护产物。
+- 测试数量：DEV-01 `43 passed in 0.60s`；DEV-02.01 `66 passed in 2.16s`；DEV-02.02 `23 passed in 2.31s`；DEV-03.01 `36 passed in 0.58s`；DEV-03.02 `24 passed in 1.13s`；DEV-03.03/03.03R 文件 `85 passed in 1.59s`（原 70 + 新增 15）；原 262 项均保留，最终完整 `277 passed in 5.98s`。
+- 初次失败及修正：首个 TDD red run 如上为 6 fail/3 pass。生产修正后首个 85-test run 为 `1 failed, 84 passed`，仅因 metadata schema 的 timing/metrics 约束真实变化导致 drift；从模型导出后 85 pass，Schema 总数仍 15。首次 strict mypy 发现测试中 `object` 转 float 的一个参数类型错误，保留 typed duration local 后通过，无 suppression。
+- 实际重要命令：完整读取附件与 diagnose skill；Git root/branch/status/HEAD/origin/main/remote/项目指令扫描及经批准 `git ls-remote`；保护 `Get-FileHash`；直接 Copy-Item prompt 并核对源/目标 SHA；rg 阅读调用点/源码/测试/文档；新增 red tests 并运行目标 `pytest -k`；临时 mismatch 基线/修正 Python harness；Decimal 独立 reference 脚本；多次 Ruff format/check、strict mypy、Schema export/check、目标/full pytest；临时 smoke CLI generate/validate/hash/cleanup；正式 config CLI 负例；`uv --cache-dir .uv-cache sync --all-groups --frozen`；六组历史/新测试。
+- 静态检查：最终 Ruff format `81 files already formatted`、lint PASS、strict mypy `Success: no issues found in 55 source files`、15 Schema consistency PASS、`git diff --check` PASS；skip/xfail/noqa/type-ignore、U+FFFD、本机绝对路径/身份、禁止音频 AST、direct sounddevice import 扫描 PASS；保护 diff、旧日志前缀、SHA256 PASS；无 WAV/NPY/NPZ/staging/publication lock 进入工作区状态。
+- 保护哈希：ZIP `1bf3cc17a46cac8552b8eb80d543cec5880afef7f8c716fd8f029636899d688b`；manifest `bd69f27305681e6552e61d402571300c2eea340a6d7878dc2b93531c8b6608b0`；inventory `8a68d714a86fa8228e17b7f751da8060c558f79f881fb55994e5130caf199de2`；context `10472424e35958bc6cef156fe8b48c9b927f13b041414b2125b53dbec7d5e67c`；summary `84879af2f2229bbbd4511b0f6985db6adedc6b9e2764262721bebec71756a159`；contextual preflight `e47678644a36ddc7d4e8d1fad06ba0cb0ec3a02a179de2816d2d8ba767e35e15`；hardware `013fd2b10df23569a8998dad1c36fa5793146df29fdb4fa19210d26bbe3c0ac1`。
+- 未执行项目：未运行 production audio-list/inventory，未枚举/绑定真实硬件，未选设备/Host API/通道，未播放/录音/开流，未读取/应用校准文件，未做 SPL/回环/延迟/时钟、反卷积/DSP/正式协议、CAD/数据根或 DEV-03.04；均为明确禁止范围，无授权软件验收遗漏。
+- 已知限制：float32 representability 是运行时跨字段数值约束，JSON Schema 无法完整表达；development fixture 与 0 dBFS 边界测试均不是播放授权、安全建议或正式参数。既有同父 staging/跨平台非协作 filesystem actor 限制不变。
+- Git 结果：尚未提交或推送；仅在最终全门禁和远端基线复核通过后提交 `DEV-03.03R: close ESS provenance and numeric boundaries`。

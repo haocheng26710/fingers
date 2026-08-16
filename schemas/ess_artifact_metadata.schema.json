@@ -94,7 +94,7 @@
           "type": "number"
         },
         "sweep_sample_count": {
-          "exclusiveMinimum": 0,
+          "minimum": 2,
           "title": "Sweep Sample Count",
           "type": "integer"
         },
@@ -134,8 +134,8 @@
       "additionalProperties": false,
       "properties": {
         "actual_peak": {
+          "exclusiveMinimum": 0,
           "maximum": 1,
-          "minimum": 0,
           "title": "Actual Peak",
           "type": "number"
         },
@@ -145,7 +145,7 @@
           "type": "boolean"
         },
         "crest_factor": {
-          "minimum": 0,
+          "exclusiveMinimum": 0,
           "title": "Crest Factor",
           "type": "number"
         },
@@ -176,7 +176,7 @@
           "type": "number"
         },
         "rms": {
-          "minimum": 0,
+          "exclusiveMinimum": 0,
           "title": "Rms",
           "type": "number"
         },

@@ -15,7 +15,12 @@ from typing import Literal
 import numpy as np
 from numpy.typing import NDArray
 
-from acoustic_ladder.audio.ess import GeneratedEss, generate_ess, raw_float32_bytes
+from acoustic_ladder.audio.ess import (
+    GeneratedEss,
+    generate_ess,
+    raw_float32_bytes,
+    spec_from_audio_config,
+)
 from acoustic_ladder.audio.excitation_models import EssArtifactMetadata, EssSignalSpec
 from acoustic_ladder.config.bundle import LoadedConfig, canonical_json_bytes
 from acoustic_ladder.config.models import AudioConfig
@@ -184,7 +189,7 @@ def _validate_loaded_audio(loaded: LoadedConfig) -> AudioConfig:
     return loaded.model
 
 
-def validate_offline_ess_artifact(
+def _validate_offline_ess_artifact(
     artifact_root: str | Path,
     loaded: LoadedConfig,
     spec: EssSignalSpec,
@@ -224,7 +229,7 @@ def validate_offline_ess_artifact(
     if metadata.source_audio_config_normalized_sha256 != loaded.snapshot.normalized_sha256:
         raise EssArtifactError("metadata normalized audio config SHA256 does not match")
     if metadata.spec != spec:
-        raise EssArtifactError("metadata ESS specification does not match loaded config")
+        raise EssArtifactError("ESS specification does not match the loaded audio configuration")
     wav_bytes = wav_path.read_bytes()
     if metadata.wav_sha256 != wav_digest:
         raise EssArtifactError("metadata WAV SHA256 does not match WAV")
@@ -257,16 +262,27 @@ def validate_offline_ess_artifact(
     )
 
 
+def validate_offline_ess_artifact(
+    artifact_root: str | Path,
+    loaded: LoadedConfig,
+) -> EssArtifactReceipt:
+    """Validate an artifact against the ESS specification derived from its loaded config."""
+
+    audio_config = _validate_loaded_audio(loaded)
+    spec = spec_from_audio_config(audio_config)
+    return _validate_offline_ess_artifact(artifact_root, loaded, spec)
+
+
 def publish_offline_ess_artifact(
     development_root: str | Path,
     artifact_id: str,
     loaded: LoadedConfig,
-    spec: EssSignalSpec,
 ) -> EssArtifactReceipt:
     """Stage, verify, and create-only publish a complete offline development bundle."""
 
     validate_artifact_id(artifact_id)
-    _validate_loaded_audio(loaded)
+    audio_config = _validate_loaded_audio(loaded)
+    spec = spec_from_audio_config(audio_config)
     root = Path(development_root).resolve()
     root.mkdir(parents=True, exist_ok=True)
     target = (root / artifact_id).resolve()
@@ -298,13 +314,13 @@ def publish_offline_ess_artifact(
             staging / METADATA_SIDECAR_NAME,
             _sidecar_bytes(metadata_digest, METADATA_NAME),
         )
-        validate_offline_ess_artifact(staging, loaded, spec, require_directory_identity=False)
+        _validate_offline_ess_artifact(staging, loaded, spec, require_directory_identity=False)
         lock_descriptor = os.open(lock_path, os.O_CREAT | os.O_EXCL | os.O_WRONLY)
         if target.exists():
             raise EssArtifactError(f"immutable artifact directory already exists: {artifact_id}")
         staging.rename(target)
         published = True
-        receipt = validate_offline_ess_artifact(target, loaded, spec)
+        receipt = _validate_offline_ess_artifact(target, loaded, spec)
         return receipt
     except FileExistsError as exc:
         raise EssArtifactError(

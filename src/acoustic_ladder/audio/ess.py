@@ -173,9 +173,29 @@ def generate_ess(spec: EssSignalSpec) -> GeneratedEss:
     pre_normalization_peak = float(np.max(np.abs(sweep)))
     if not math.isfinite(pre_normalization_peak) or pre_normalization_peak <= 0:
         raise EssError("generated sweep has no finite non-zero peak")
-    target_peak = 10.0 ** (spec.digital_peak_dbfs / 20.0)
+    try:
+        target_peak = 10.0 ** (spec.digital_peak_dbfs / 20.0)
+    except OverflowError as exc:
+        raise EssError("digital peak is not representable as a positive float32 amplitude") from exc
+    target_peak_float32 = np.float32(target_peak)
+    if (
+        not math.isfinite(target_peak)
+        or target_peak <= 0
+        or not np.isfinite(target_peak_float32)
+        or target_peak_float32 <= 0
+    ):
+        raise EssError("digital peak is not representable as a positive float32 amplitude")
     normalization_factor = target_peak / pre_normalization_peak
-    sweep32 = np.asarray(sweep * normalization_factor, dtype=np.float32)
+    if not math.isfinite(normalization_factor) or normalization_factor <= 0:
+        raise EssError("ESS normalization factor must be finite and positive")
+    try:
+        with np.errstate(over="raise", invalid="raise", under="ignore"):
+            sweep32 = np.asarray(sweep * normalization_factor, dtype=np.float32)
+    except FloatingPointError as exc:
+        raise EssError("ESS normalization produced non-finite float32 samples") from exc
+    sweep32_peak = float(np.max(np.abs(sweep32)))
+    if not math.isfinite(sweep32_peak) or sweep32_peak <= 0:
+        raise EssError("ESS float32 sweep has zero or non-finite peak")
     samples = np.zeros((1, timing.total_sample_count), dtype=np.float32)
     start = timing.pre_silence_sample_count
     samples[0, start : start + timing.sweep_sample_count] = sweep32
@@ -183,6 +203,13 @@ def generate_ess(spec: EssSignalSpec) -> GeneratedEss:
         raise EssError("generated samples must be finite and C-contiguous")
     actual_peak = float(np.max(np.abs(samples)))
     rms = float(np.sqrt(np.mean(np.square(samples, dtype=np.float64))))
+    if not math.isfinite(actual_peak) or actual_peak <= 0:
+        raise EssError("ESS output has zero or non-finite peak")
+    if not math.isfinite(rms) or rms <= 0:
+        raise EssError("ESS output has zero or non-finite RMS")
+    crest_factor = actual_peak / rms
+    if not math.isfinite(crest_factor):
+        raise EssError("ESS output crest factor is not finite")
     metrics = EssSignalMetrics(
         target_peak_dbfs=spec.digital_peak_dbfs,
         target_linear_peak=target_peak,
@@ -190,7 +217,7 @@ def generate_ess(spec: EssSignalSpec) -> GeneratedEss:
         normalization_factor=normalization_factor,
         actual_peak=actual_peak,
         rms=rms,
-        crest_factor=actual_peak / rms,
+        crest_factor=crest_factor,
         mean_dc=float(np.mean(samples, dtype=np.float64)),
         minimum=float(np.min(samples)),
         maximum=float(np.max(samples)),

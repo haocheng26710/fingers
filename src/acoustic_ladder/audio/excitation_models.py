@@ -5,6 +5,7 @@ from __future__ import annotations
 import math
 from typing import Literal
 
+import numpy as np
 from pydantic import BaseModel, ConfigDict, Field, field_validator, model_validator
 
 from acoustic_ladder.domain.paths import validate_relative_path
@@ -51,6 +52,17 @@ class EssSignalSpec(ExcitationModel):
         if self.fade_in_s + self.fade_out_s > self.sweep_duration_s:
             raise ValueError("fade durations cannot exceed sweep duration")
         sweep_count = round_half_up_samples(self.sweep_duration_s, self.sample_rate_hz)
+        if sweep_count < 2:
+            raise ValueError("sweep duration must produce at least two samples")
+        target_peak = 10.0 ** (self.digital_peak_dbfs / 20.0)
+        target_peak_float32 = np.float32(target_peak)
+        if (
+            not math.isfinite(target_peak)
+            or target_peak <= 0
+            or not np.isfinite(target_peak_float32)
+            or target_peak_float32 <= 0
+        ):
+            raise ValueError("digital peak is not representable as a positive float32 amplitude")
         fade_counts = (
             round_half_up_samples(self.fade_in_s, self.sample_rate_hz),
             round_half_up_samples(self.fade_out_s, self.sample_rate_hz),
@@ -81,7 +93,7 @@ class EssSampleTiming(ExcitationModel):
     requested_fade_out_s: float = Field(ge=0)
     actual_fade_out_s: float = Field(ge=0)
     fade_out_error_s: float
-    sweep_sample_count: int = Field(gt=0)
+    sweep_sample_count: int = Field(ge=2)
     pre_silence_sample_count: int = Field(ge=0)
     post_silence_sample_count: int = Field(ge=0)
     fade_in_sample_count: int = Field(ge=0)
@@ -94,9 +106,9 @@ class EssSignalMetrics(ExcitationModel):
     target_linear_peak: float = Field(gt=0, le=1)
     pre_normalization_peak: float = Field(gt=0)
     normalization_factor: float = Field(gt=0)
-    actual_peak: float = Field(ge=0, le=1)
-    rms: float = Field(ge=0)
-    crest_factor: float = Field(ge=0)
+    actual_peak: float = Field(gt=0, le=1)
+    rms: float = Field(gt=0)
+    crest_factor: float = Field(gt=0)
     mean_dc: float
     minimum: float = Field(ge=-1, le=1)
     maximum: float = Field(ge=-1, le=1)
