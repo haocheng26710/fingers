@@ -129,6 +129,34 @@
       "title": "Hardware Ready",
       "type": "boolean"
     },
+    "hardware_setup_reference": {
+      "title": "Hardware Setup Reference",
+      "type": "string"
+    },
+    "host_api_candidate_index": {
+      "anyOf": [
+        {
+          "minimum": 0,
+          "type": "integer"
+        },
+        {
+          "type": "null"
+        }
+      ],
+      "title": "Host Api Candidate Index"
+    },
+    "input_candidate_device_index": {
+      "anyOf": [
+        {
+          "minimum": 0,
+          "type": "integer"
+        },
+        {
+          "type": "null"
+        }
+      ],
+      "title": "Input Candidate Device Index"
+    },
     "input_channels": {
       "items": {
         "$ref": "#/$defs/AudioChannel"
@@ -150,12 +178,43 @@
       ],
       "title": "Input Gain Db"
     },
+    "inventory_snapshot_reference": {
+      "anyOf": [
+        {
+          "type": "string"
+        },
+        {
+          "type": "null"
+        }
+      ],
+      "title": "Inventory Snapshot Reference"
+    },
     "notes": {
       "items": {
         "type": "string"
       },
       "title": "Notes",
       "type": "array"
+    },
+    "operator_confirmation_status": {
+      "enum": [
+        "needs_operator_confirmation",
+        "confirmed"
+      ],
+      "title": "Operator Confirmation Status",
+      "type": "string"
+    },
+    "output_candidate_device_index": {
+      "anyOf": [
+        {
+          "minimum": 0,
+          "type": "integer"
+        },
+        {
+          "type": "null"
+        }
+      ],
+      "title": "Output Candidate Device Index"
     },
     "output_channels": {
       "items": {
@@ -221,6 +280,12 @@
     "config_status",
     "run_mode",
     "audio_backend",
+    "hardware_setup_reference",
+    "inventory_snapshot_reference",
+    "input_candidate_device_index",
+    "output_candidate_device_index",
+    "host_api_candidate_index",
+    "operator_confirmation_status",
     "output_device",
     "input_device",
     "output_channels",

@@ -1,6 +1,6 @@
 # Acoustic Ladder
 
-本仓库当前实现到 `DEV-02.01`：在 DEV-01.01 的 V1.3 模型包审计与 provisional device manifest 基础上，提供严格分层配置、领域记录、不可覆盖文件存储，以及仅供接口测试的确定性 synthetic 数据。
+本仓库当前实现到 `DEV-03.01`：除模型包、配置、不可变存储和 synthetic 接口数据外，现提供 sounddevice/PortAudio 只读设备枚举、硬件档案和非流式格式预检。
 
 当前状态固定为：
 
@@ -9,7 +9,7 @@
 - `calibration_status = applied`
 - `release_role = calibrated_printed_candidate`
 
-本项目不会导入或执行 ZIP 内 Python，也不会解压或重建 CAD。它仍不包含真实音频采集、正式 ESS、信号处理、协议矩阵执行、分类器、界面或最终几何锁定。synthetic 输出不是实验结果，不能证明真实结构有效。
+本项目不会导入或执行 ZIP 内 Python，也不会解压或重建 CAD。DEV-03.01 绝不播放、录音或打开音频流；单方向格式检查不能证明全双工、共享时钟或实验就绪。它仍不包含真实音频采集、正式 ESS、信号处理、协议矩阵执行、分类器、界面或最终几何锁定。synthetic 输出不是实验结果，不能证明真实结构有效。
 
 ## 环境安装
 
@@ -100,6 +100,19 @@ uv --cache-dir .uv-cache run acoustic-ladder verify-artifact --session-root <ses
 
 代码层事件追加接口固定为 `append_event(DataOrigin, session_id, event, payload)`；session 路径只能由已注入的 synthetic/real 根推导，调用者不能提供任意文件系统路径。事件名只接受安全 ASCII 标识字符，系统事件字段不可由 payload 覆盖。
 
+## DEV-03 只读音频清单与预检
+
+以下命令只枚举 host API/设备元数据，并用 `check_input_settings`、`check_output_settings` 分别检查 48 kHz、float32、单通道格式。它们不打开流：
+
+```powershell
+uv --cache-dir .uv-cache run acoustic-ladder audio-list
+uv --cache-dir .uv-cache run acoustic-ladder audio-inventory --output reference/audio/inventory/DEV-03.01_audio_inventory.json --sidecar reference/audio/inventory/DEV-03.01_audio_inventory.sha256
+uv --cache-dir .uv-cache run acoustic-ladder audio-preflight --inventory reference/audio/inventory/DEV-03.01_audio_inventory.json --inventory-sidecar reference/audio/inventory/DEV-03.01_audio_inventory.sha256 --hardware-setup reference/audio/hardware_setup.provisional.json --output reference/audio/inventory/DEV-03.01_preflight_report.json
+uv --cache-dir .uv-cache run acoustic-ladder audio-validate --inventory reference/audio/inventory/DEV-03.01_audio_inventory.json --inventory-sidecar reference/audio/inventory/DEV-03.01_audio_inventory.sha256 --preflight reference/audio/inventory/DEV-03.01_preflight_report.json
+```
+
+每个命令均输出 `NO_AUDIO_PLAYBACK_OR_RECORDING_PERFORMED`。设备索引仅在对应 inventory 快照内有效；名称匹配只产生候选，不会确认设备、host API 或通道。当前绑定状态为 `needs_operator_confirmation`，`hardware_ready=false`。
+
 详细契约见 `docs/architecture/`；数据根目录政策见 `data/README.md`。
 
 单元测试、真实包集成测试、完整测试与静态检查：
@@ -108,6 +121,7 @@ uv --cache-dir .uv-cache run acoustic-ladder verify-artifact --session-root <ses
 uv --cache-dir .uv-cache run pytest tests/unit
 uv --cache-dir .uv-cache run pytest tests/integration
 uv --cache-dir .uv-cache run pytest tests/dev02
+uv --cache-dir .uv-cache run pytest tests/dev03
 uv --cache-dir .uv-cache run pytest
 uv --cache-dir .uv-cache run ruff format --check .
 uv --cache-dir .uv-cache run ruff check .

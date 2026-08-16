@@ -3,6 +3,12 @@ config_id: default_1x1_ess_draft
 config_status: draft
 run_mode: formal
 audio_backend: null
+hardware_setup_reference: reference/audio/hardware_setup.provisional.json
+inventory_snapshot_reference: reference/audio/inventory/DEV-03.01_audio_inventory.json
+input_candidate_device_index: null
+output_candidate_device_index: null
+host_api_candidate_index: null
+operator_confirmation_status: needs_operator_confirmation
 output_device:
   device_id: null
   device_name: null
@@ -25,5 +31,5 @@ output_gain_db: null
 input_gain_db: null
 hardware_ready: false
 notes:
-  - Structural draft only; no audio backend or hardware identity has been confirmed.
+  - The read-only inventory is referenced, but no audio backend, device, host API, or channel has been confirmed.
   - This step does not generate or play a formal ESS.

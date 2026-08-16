@@ -1,0 +1,40 @@
+{
+  "absolute_spl_calibrated": false,
+  "acoustic_calibrator_available": false,
+  "amplifier_used": false,
+  "electrical_loopback_available": false,
+  "exact_physical_connection_pending_confirmation": true,
+  "input_transducer": {
+    "brand": "Dayton Audio",
+    "connection": "USB-C",
+    "model": "iMM-6C",
+    "role": "RX",
+    "transducer_type": "calibrated USB-C measurement microphone"
+  },
+  "interface_model": "Dayton Audio iMM-6C",
+  "microphone_calibration_applied": false,
+  "microphone_calibration_file_available": true,
+  "microphone_calibration_reference": null,
+  "microphone_calibration_sha256": null,
+  "microphone_connection": "USB-C",
+  "notes": [
+    "The user reports that the input and output share this interface.",
+    "The exact enumerated device indices, host API, channel mapping and physical connection require operator confirmation.",
+    "Manufacturer specifications are descriptive sources, not experimental measurements."
+  ],
+  "operator_reported_shared_interface": true,
+  "output_transducer": {
+    "brand": "MOONDROP 水月雨",
+    "connection": "3.5 mm stereo single-ended",
+    "model": "CHU II / 竹 2",
+    "role": "TX",
+    "transducer_type": "10 mm dynamic-driver in-ear earphone"
+  },
+  "record_status": "provisional",
+  "schema_version": "1.0.0",
+  "source_urls": [
+    "https://www.daytonaudio.com/product/1974/imm-6c-idevice-usb-c-calibrated-microphone",
+    "https://www.daytonaudio.com/images/resources/390-813--dayton-audio-imm-6c-quick-reference-guide.pdf",
+    "https://moondroplab.com/cn/products/chu-ii"
+  ]
+}

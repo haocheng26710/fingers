@@ -3,11 +3,23 @@
 from __future__ import annotations
 
 import argparse
+import hashlib
 import json
 from datetime import UTC, datetime
 from pathlib import Path
 
+from pydantic import ValidationError
+
 from acoustic_ladder import __version__
+from acoustic_ladder.audio.backend import SoundDeviceInventoryBackend
+from acoustic_ladder.audio.inventory import collect_inventory
+from acoustic_ladder.audio.models import (
+    AudioInventorySnapshot,
+    AudioPreflightReport,
+    HardwareSetupRecord,
+)
+from acoustic_ladder.audio.persistence import load_audio_artifact, persist_audio_artifact
+from acoustic_ladder.audio.preflight import build_preflight_report
 from acoustic_ladder.config.bundle import LoadedBundle, load_bundle, load_config
 from acoustic_ladder.config.models import ProtocolConfig, SyntheticConfig, manifest_nodes
 from acoustic_ladder.config.schema import check_schemas, export_schemas
@@ -21,6 +33,7 @@ from acoustic_ladder.domain.models import (
     RunMode,
     SessionRecord,
 )
+from acoustic_ladder.storage.io import atomic_write_bytes
 from acoustic_ladder.storage.store import (
     DataRoots,
     ImmutableSessionStore,
@@ -64,6 +77,14 @@ def _synthetic_store(synthetic_root: str | Path) -> ImmutableSessionStore:
     root = Path(synthetic_root).resolve()
     unavailable_real_root = root.parent / ".real_root_unavailable_to_synthetic_cli"
     return ImmutableSessionStore(DataRoots(synthetic=root, real=unavailable_real_root))
+
+
+def _audio_backend() -> SoundDeviceInventoryBackend:
+    return SoundDeviceInventoryBackend()
+
+
+def _audio_safety_marker() -> None:
+    print("NO_AUDIO_PLAYBACK_OR_RECORDING_PERFORMED")
 
 
 def _parser() -> argparse.ArgumentParser:
@@ -120,6 +141,31 @@ def _parser() -> argparse.ArgumentParser:
     artifact = commands.add_parser("verify-artifact")
     artifact.add_argument("--session-root", required=True)
     artifact.add_argument("--artifact-ref", required=True)
+
+    commands.add_parser("audio-list")
+
+    inventory = commands.add_parser("audio-inventory")
+    inventory.add_argument("--output", required=True)
+    inventory.add_argument("--sidecar", required=True)
+
+    preflight = commands.add_parser("audio-preflight")
+    preflight.add_argument("--inventory", required=True)
+    preflight.add_argument("--inventory-sidecar", required=True)
+    preflight.add_argument("--hardware-setup", required=True)
+    preflight.add_argument("--output", required=True)
+    preflight.add_argument(
+        "--inventory-reference",
+        default="reference/audio/inventory/DEV-03.01_audio_inventory.json",
+    )
+    preflight.add_argument(
+        "--hardware-setup-reference",
+        default="reference/audio/hardware_setup.provisional.json",
+    )
+
+    audio_validate = commands.add_parser("audio-validate")
+    audio_validate.add_argument("--inventory", required=True)
+    audio_validate.add_argument("--inventory-sidecar", required=True)
+    audio_validate.add_argument("--preflight", required=True)
     return parser
 
 
@@ -160,6 +206,73 @@ def _all_blocked_states(manifest: dict[str, object], overrides: list[str]) -> di
 
 def main(argv: list[str] | None = None) -> None:
     args = _parser().parse_args(argv)
+    if args.command == "audio-list":
+        snapshot = collect_inventory(_audio_backend(), now=_now())
+        for host_api in snapshot.host_apis:
+            print(
+                f"HOST_API {host_api.host_api_index}: {host_api.name} "
+                f"({host_api.device_count} devices)"
+            )
+        for device in snapshot.devices:
+            print(
+                f"DEVICE {device.snapshot_device_index}: {device.name} "
+                f"[host_api={device.host_api_index}, input={device.max_input_channels}, "
+                f"output={device.max_output_channels}]"
+            )
+        _audio_safety_marker()
+        return
+    if args.command == "audio-inventory":
+        snapshot = collect_inventory(_audio_backend(), now=_now())
+        digest = persist_audio_artifact(args.output, args.sidecar, snapshot)
+        print(f"PASS audio inventory: {digest}")
+        _audio_safety_marker()
+        return
+    if args.command == "audio-preflight":
+        snapshot, inventory_digest = load_audio_artifact(
+            args.inventory, args.inventory_sidecar, AudioInventorySnapshot
+        )
+        hardware_bytes = Path(args.hardware_setup).read_bytes()
+        try:
+            hardware = HardwareSetupRecord.model_validate_json(hardware_bytes)
+        except ValidationError as exc:
+            raise ValueError(f"invalid hardware setup: {exc}") from exc
+        hardware_digest = hashlib.sha256(hardware_bytes).hexdigest()
+        report = build_preflight_report(
+            snapshot,
+            hardware,
+            inventory_reference=args.inventory_reference,
+            inventory_sha256=inventory_digest,
+            hardware_setup_reference=args.hardware_setup_reference,
+            hardware_setup_sha256=hardware_digest,
+            now=_now(),
+        )
+        atomic_write_bytes(
+            args.output,
+            (
+                json.dumps(
+                    report.model_dump(mode="json"),
+                    ensure_ascii=False,
+                    sort_keys=True,
+                    indent=2,
+                    allow_nan=False,
+                )
+                + "\n"
+            ).encode("utf-8"),
+        )
+        print(f"PASS audio preflight: {args.output}")
+        _audio_safety_marker()
+        return
+    if args.command == "audio-validate":
+        snapshot, digest = load_audio_artifact(
+            args.inventory, args.inventory_sidecar, AudioInventorySnapshot
+        )
+        del snapshot
+        report = AudioPreflightReport.model_validate_json(Path(args.preflight).read_bytes())
+        if report.inventory_sha256 != digest:
+            raise ValueError("preflight inventory SHA256 does not match inventory")
+        print(f"PASS audio artifacts: {digest}")
+        _audio_safety_marker()
+        return
     if args.command in {"validate-config", "config-hash"}:
         root = Path(args.project_root).resolve()
         manifest = _manifest_for_config(root, args.manifest)

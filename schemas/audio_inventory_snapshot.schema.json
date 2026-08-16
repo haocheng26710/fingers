@@ -1,0 +1,443 @@
+{
+  "$defs": {
+    "AudioDeviceRecord": {
+      "additionalProperties": false,
+      "properties": {
+        "default_high_input_latency_s": {
+          "anyOf": [
+            {
+              "minimum": 0,
+              "type": "number"
+            },
+            {
+              "type": "null"
+            }
+          ],
+          "title": "Default High Input Latency S"
+        },
+        "default_high_output_latency_s": {
+          "anyOf": [
+            {
+              "minimum": 0,
+              "type": "number"
+            },
+            {
+              "type": "null"
+            }
+          ],
+          "title": "Default High Output Latency S"
+        },
+        "default_low_input_latency_s": {
+          "anyOf": [
+            {
+              "minimum": 0,
+              "type": "number"
+            },
+            {
+              "type": "null"
+            }
+          ],
+          "title": "Default Low Input Latency S"
+        },
+        "default_low_output_latency_s": {
+          "anyOf": [
+            {
+              "minimum": 0,
+              "type": "number"
+            },
+            {
+              "type": "null"
+            }
+          ],
+          "title": "Default Low Output Latency S"
+        },
+        "default_sample_rate_hz": {
+          "exclusiveMinimum": 0,
+          "title": "Default Sample Rate Hz",
+          "type": "number"
+        },
+        "device_index_scope": {
+          "const": "single_inventory_snapshot",
+          "title": "Device Index Scope",
+          "type": "string"
+        },
+        "host_api_index": {
+          "minimum": 0,
+          "title": "Host Api Index",
+          "type": "integer"
+        },
+        "host_api_name": {
+          "minLength": 1,
+          "title": "Host Api Name",
+          "type": "string"
+        },
+        "is_default_input": {
+          "title": "Is Default Input",
+          "type": "boolean"
+        },
+        "is_default_output": {
+          "title": "Is Default Output",
+          "type": "boolean"
+        },
+        "max_input_channels": {
+          "minimum": 0,
+          "title": "Max Input Channels",
+          "type": "integer"
+        },
+        "max_output_channels": {
+          "minimum": 0,
+          "title": "Max Output Channels",
+          "type": "integer"
+        },
+        "name": {
+          "minLength": 1,
+          "title": "Name",
+          "type": "string"
+        },
+        "snapshot_device_index": {
+          "minimum": 0,
+          "title": "Snapshot Device Index",
+          "type": "integer"
+        },
+        "supports_input": {
+          "title": "Supports Input",
+          "type": "boolean"
+        },
+        "supports_output": {
+          "title": "Supports Output",
+          "type": "boolean"
+        }
+      },
+      "required": [
+        "snapshot_device_index",
+        "device_index_scope",
+        "name",
+        "host_api_index",
+        "host_api_name",
+        "max_input_channels",
+        "max_output_channels",
+        "default_sample_rate_hz",
+        "default_low_input_latency_s",
+        "default_low_output_latency_s",
+        "default_high_input_latency_s",
+        "default_high_output_latency_s",
+        "is_default_input",
+        "is_default_output",
+        "supports_input",
+        "supports_output"
+      ],
+      "title": "AudioDeviceRecord",
+      "type": "object"
+    },
+    "FormatCapabilityResult": {
+      "additionalProperties": false,
+      "properties": {
+        "channels": {
+          "const": 1,
+          "title": "Channels",
+          "type": "integer"
+        },
+        "check_method": {
+          "enum": [
+            "check_input_settings",
+            "check_output_settings"
+          ],
+          "title": "Check Method",
+          "type": "string"
+        },
+        "device_index": {
+          "minimum": 0,
+          "title": "Device Index",
+          "type": "integer"
+        },
+        "direction": {
+          "enum": [
+            "input",
+            "output"
+          ],
+          "title": "Direction",
+          "type": "string"
+        },
+        "dtype": {
+          "const": "float32",
+          "title": "Dtype",
+          "type": "string"
+        },
+        "error_message": {
+          "anyOf": [
+            {
+              "type": "string"
+            },
+            {
+              "type": "null"
+            }
+          ],
+          "title": "Error Message"
+        },
+        "error_type": {
+          "anyOf": [
+            {
+              "type": "string"
+            },
+            {
+              "type": "null"
+            }
+          ],
+          "title": "Error Type"
+        },
+        "sample_rate_hz": {
+          "const": 48000,
+          "title": "Sample Rate Hz",
+          "type": "integer"
+        },
+        "supported": {
+          "title": "Supported",
+          "type": "boolean"
+        }
+      },
+      "required": [
+        "device_index",
+        "direction",
+        "channels",
+        "sample_rate_hz",
+        "dtype",
+        "check_method",
+        "supported",
+        "error_type",
+        "error_message"
+      ],
+      "title": "FormatCapabilityResult",
+      "type": "object"
+    },
+    "HostApiRecord": {
+      "additionalProperties": false,
+      "properties": {
+        "default_input_device_index": {
+          "anyOf": [
+            {
+              "minimum": 0,
+              "type": "integer"
+            },
+            {
+              "type": "null"
+            }
+          ],
+          "title": "Default Input Device Index"
+        },
+        "default_output_device_index": {
+          "anyOf": [
+            {
+              "minimum": 0,
+              "type": "integer"
+            },
+            {
+              "type": "null"
+            }
+          ],
+          "title": "Default Output Device Index"
+        },
+        "device_count": {
+          "minimum": 0,
+          "title": "Device Count",
+          "type": "integer"
+        },
+        "device_indices": {
+          "items": {
+            "type": "integer"
+          },
+          "title": "Device Indices",
+          "type": "array"
+        },
+        "host_api_index": {
+          "minimum": 0,
+          "title": "Host Api Index",
+          "type": "integer"
+        },
+        "name": {
+          "minLength": 1,
+          "title": "Name",
+          "type": "string"
+        }
+      },
+      "required": [
+        "host_api_index",
+        "name",
+        "device_indices",
+        "device_count",
+        "default_input_device_index",
+        "default_output_device_index"
+      ],
+      "title": "HostApiRecord",
+      "type": "object"
+    },
+    "InventoryProvenance": {
+      "additionalProperties": false,
+      "properties": {
+        "backend": {
+          "const": "sounddevice",
+          "title": "Backend",
+          "type": "string"
+        },
+        "backend_version": {
+          "minLength": 1,
+          "title": "Backend Version",
+          "type": "string"
+        },
+        "operating_system": {
+          "$ref": "#/$defs/OperatingSystemRecord"
+        },
+        "portaudio_version": {
+          "minimum": 0,
+          "title": "Portaudio Version",
+          "type": "integer"
+        },
+        "portaudio_version_text": {
+          "minLength": 1,
+          "title": "Portaudio Version Text",
+          "type": "string"
+        },
+        "python_version": {
+          "minLength": 1,
+          "title": "Python Version",
+          "type": "string"
+        }
+      },
+      "required": [
+        "backend",
+        "backend_version",
+        "portaudio_version",
+        "portaudio_version_text",
+        "operating_system",
+        "python_version"
+      ],
+      "title": "InventoryProvenance",
+      "type": "object"
+    },
+    "OperatingSystemRecord": {
+      "additionalProperties": false,
+      "properties": {
+        "machine": {
+          "minLength": 1,
+          "title": "Machine",
+          "type": "string"
+        },
+        "release": {
+          "minLength": 1,
+          "title": "Release",
+          "type": "string"
+        },
+        "system": {
+          "minLength": 1,
+          "title": "System",
+          "type": "string"
+        },
+        "version": {
+          "minLength": 1,
+          "title": "Version",
+          "type": "string"
+        }
+      },
+      "required": [
+        "system",
+        "release",
+        "version",
+        "machine"
+      ],
+      "title": "OperatingSystemRecord",
+      "type": "object"
+    }
+  },
+  "additionalProperties": false,
+  "properties": {
+    "capability_results": {
+      "items": {
+        "$ref": "#/$defs/FormatCapabilityResult"
+      },
+      "title": "Capability Results",
+      "type": "array"
+    },
+    "captured_at": {
+      "format": "date-time",
+      "title": "Captured At",
+      "type": "string"
+    },
+    "default_input_device_index": {
+      "anyOf": [
+        {
+          "minimum": 0,
+          "type": "integer"
+        },
+        {
+          "type": "null"
+        }
+      ],
+      "title": "Default Input Device Index"
+    },
+    "default_output_device_index": {
+      "anyOf": [
+        {
+          "minimum": 0,
+          "type": "integer"
+        },
+        {
+          "type": "null"
+        }
+      ],
+      "title": "Default Output Device Index"
+    },
+    "devices": {
+      "items": {
+        "$ref": "#/$defs/AudioDeviceRecord"
+      },
+      "title": "Devices",
+      "type": "array"
+    },
+    "host_apis": {
+      "items": {
+        "$ref": "#/$defs/HostApiRecord"
+      },
+      "title": "Host Apis",
+      "type": "array"
+    },
+    "provenance": {
+      "$ref": "#/$defs/InventoryProvenance"
+    },
+    "safety_marker": {
+      "const": "NO_AUDIO_PLAYBACK_OR_RECORDING_PERFORMED",
+      "title": "Safety Marker",
+      "type": "string"
+    },
+    "schema_version": {
+      "const": "1.0.0",
+      "title": "Schema Version",
+      "type": "string"
+    },
+    "snapshot_id": {
+      "minLength": 1,
+      "title": "Snapshot Id",
+      "type": "string"
+    },
+    "warnings": {
+      "items": {
+        "type": "string"
+      },
+      "title": "Warnings",
+      "type": "array"
+    }
+  },
+  "required": [
+    "schema_version",
+    "snapshot_id",
+    "captured_at",
+    "provenance",
+    "host_apis",
+    "devices",
+    "default_input_device_index",
+    "default_output_device_index",
+    "capability_results",
+    "warnings",
+    "safety_marker"
+  ],
+  "title": "AudioInventorySnapshot",
+  "type": "object"
+}

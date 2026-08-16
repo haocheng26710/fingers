@@ -36,6 +36,12 @@ class AudioConfig(StrictConfigModel):
     config_status: ConfigStatus
     run_mode: RunMode
     audio_backend: str | None
+    hardware_setup_reference: str
+    inventory_snapshot_reference: str | None
+    input_candidate_device_index: int | None = Field(ge=0)
+    output_candidate_device_index: int | None = Field(ge=0)
+    host_api_candidate_index: int | None = Field(ge=0)
+    operator_confirmation_status: Literal["needs_operator_confirmation", "confirmed"]
     output_device: AudioDeviceRef
     input_device: AudioDeviceRef
     output_channels: list[AudioChannel]
@@ -50,6 +56,11 @@ class AudioConfig(StrictConfigModel):
     input_gain_db: float | None
     hardware_ready: bool
     notes: list[str]
+
+    @field_validator("hardware_setup_reference", "inventory_snapshot_reference")
+    @classmethod
+    def audio_references_are_relative(cls, value: str | None) -> str | None:
+        return validate_relative_path(value) if value is not None else None
 
     @model_validator(mode="after")
     def validate_audio_contract(self) -> AudioConfig:
@@ -80,10 +91,16 @@ class AudioConfig(StrictConfigModel):
             self.post_silence_s,
             self.output_gain_db,
             self.input_gain_db,
+            self.inventory_snapshot_reference,
+            self.input_candidate_device_index,
+            self.output_candidate_device_index,
+            self.host_api_candidate_index,
             *[channel.channel_index for channel in self.output_channels + self.input_channels],
         )
         if self.hardware_ready and any(value is None for value in readiness_values):
             raise ValueError("hardware_ready cannot be true while a hardware field is null")
+        if self.hardware_ready and self.operator_confirmation_status != "confirmed":
+            raise ValueError("hardware_ready requires operator confirmation")
         return self
 
 

@@ -1,0 +1,166 @@
+{
+  "$defs": {
+    "TransducerRecord": {
+      "additionalProperties": false,
+      "properties": {
+        "brand": {
+          "minLength": 1,
+          "title": "Brand",
+          "type": "string"
+        },
+        "connection": {
+          "minLength": 1,
+          "title": "Connection",
+          "type": "string"
+        },
+        "model": {
+          "minLength": 1,
+          "title": "Model",
+          "type": "string"
+        },
+        "role": {
+          "enum": [
+            "TX",
+            "RX"
+          ],
+          "title": "Role",
+          "type": "string"
+        },
+        "transducer_type": {
+          "minLength": 1,
+          "title": "Transducer Type",
+          "type": "string"
+        }
+      },
+      "required": [
+        "role",
+        "brand",
+        "model",
+        "transducer_type",
+        "connection"
+      ],
+      "title": "TransducerRecord",
+      "type": "object"
+    }
+  },
+  "additionalProperties": false,
+  "properties": {
+    "absolute_spl_calibrated": {
+      "title": "Absolute Spl Calibrated",
+      "type": "boolean"
+    },
+    "acoustic_calibrator_available": {
+      "title": "Acoustic Calibrator Available",
+      "type": "boolean"
+    },
+    "amplifier_used": {
+      "title": "Amplifier Used",
+      "type": "boolean"
+    },
+    "electrical_loopback_available": {
+      "title": "Electrical Loopback Available",
+      "type": "boolean"
+    },
+    "exact_physical_connection_pending_confirmation": {
+      "title": "Exact Physical Connection Pending Confirmation",
+      "type": "boolean"
+    },
+    "input_transducer": {
+      "$ref": "#/$defs/TransducerRecord"
+    },
+    "interface_model": {
+      "minLength": 1,
+      "title": "Interface Model",
+      "type": "string"
+    },
+    "microphone_calibration_applied": {
+      "title": "Microphone Calibration Applied",
+      "type": "boolean"
+    },
+    "microphone_calibration_file_available": {
+      "title": "Microphone Calibration File Available",
+      "type": "boolean"
+    },
+    "microphone_calibration_reference": {
+      "anyOf": [
+        {
+          "type": "string"
+        },
+        {
+          "type": "null"
+        }
+      ],
+      "title": "Microphone Calibration Reference"
+    },
+    "microphone_calibration_sha256": {
+      "anyOf": [
+        {
+          "pattern": "^[0-9a-f]{64}$",
+          "type": "string"
+        },
+        {
+          "type": "null"
+        }
+      ],
+      "title": "Microphone Calibration Sha256"
+    },
+    "microphone_connection": {
+      "minLength": 1,
+      "title": "Microphone Connection",
+      "type": "string"
+    },
+    "notes": {
+      "items": {
+        "type": "string"
+      },
+      "title": "Notes",
+      "type": "array"
+    },
+    "operator_reported_shared_interface": {
+      "title": "Operator Reported Shared Interface",
+      "type": "boolean"
+    },
+    "output_transducer": {
+      "$ref": "#/$defs/TransducerRecord"
+    },
+    "record_status": {
+      "const": "provisional",
+      "title": "Record Status",
+      "type": "string"
+    },
+    "schema_version": {
+      "const": "1.0.0",
+      "title": "Schema Version",
+      "type": "string"
+    },
+    "source_urls": {
+      "items": {
+        "type": "string"
+      },
+      "title": "Source Urls",
+      "type": "array"
+    }
+  },
+  "required": [
+    "schema_version",
+    "record_status",
+    "output_transducer",
+    "input_transducer",
+    "interface_model",
+    "operator_reported_shared_interface",
+    "amplifier_used",
+    "microphone_connection",
+    "microphone_calibration_file_available",
+    "microphone_calibration_reference",
+    "microphone_calibration_sha256",
+    "microphone_calibration_applied",
+    "acoustic_calibrator_available",
+    "absolute_spl_calibrated",
+    "electrical_loopback_available",
+    "exact_physical_connection_pending_confirmation",
+    "source_urls",
+    "notes"
+  ],
+  "title": "HardwareSetupRecord",
+  "type": "object"
+}

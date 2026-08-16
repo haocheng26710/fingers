@@ -235,3 +235,51 @@
 - Git 提交和推送结果：本地验收已 PASS；目标为 `origin/main`，提交主题如下。本文档冻结时尚未执行 Git 提交/推送，不编造结果；随后若提交、推送或远端验证任一失败，则最终状态必须改报 FAIL。
 - 已知限制：本步骤只修复事件写入边界，不扩展真实音频或 DEV-03.01 功能。
 - 提交主题：`DEV-02.02: confine immutable event writes`
+
+## DEV-03.01
+
+- 序列号：`DEV-03.01`
+- 名称：音频设备枚举、硬件档案与只读预检
+- `work_type`：read-only audio inventory, hardware provenance and non-streaming preflight
+- 状态：`PASSED`
+- 开始时间：`2026-08-16T17:27:52+01:00`
+- 结束时间：`2026-08-16T17:45:07+01:00`
+- 基线提交：`3e075956727fcbfe2c0b57588cbef6ee34440136`
+- 用户确认硬件事实：TX 为 MOONDROP CHU II/竹 2（10 mm 动圈、3.5 mm 立体声单端、无独立功放）；RX/接口为 Dayton Audio iMM-6C（USB-C、CM6542 ADC/DAC、自带耳机/线路输出）；用户报告输入输出共用接口；校准文件存在但未提供；无声学校准器；无电气回环。
+- 冻结状态：`hardware_ready=false`、`calibration_applied=false`、`absolute_spl_calibrated=false`、`electrical_loopback_available=false`；全双工、共享时钟、通道映射、延迟和设备绑定均未验证。
+- 官方来源：Dayton iMM-6C 产品页/Quick Reference Guide、MOONDROP 竹 2 产品页、python-sounddevice 官方文档及 PyPI 项目页；厂商规格仅作说明，不视为本实验实测。
+- 实际动作：完成本地/跟踪/GitHub 远端基线、工作区、origin 与项目指令预检；记录历史保护文件哈希；核对官方资料；原样归档提示词；增加 strict 音频领域模型、延迟 sounddevice 适配器、可注入协议/Fake、规范化、保守预检、canonical create-only persistence、四个 CLI 命令、硬件档案、实际 inventory/sidecar/preflight、三个生成 Schema、AudioConfig 引用、36 项测试及文档。生产适配器只使用版本、`query_hostapis`、`query_devices`、`check_input_settings`、`check_output_settings`。
+- 依赖及锁定版本：新增并锁定 sounddevice `0.5.5`，传递依赖 cffi `2.1.1`、pycparser `3.0`；实际 PortAudio `V19.7.0-devel, revision unknown`（数值 `1246976`）。未引入其他音频框架。
+- 实现结构和字段决定：`audio/models.py` 定义 HostApi/Device/Format/Inventory/Hardware/Preflight；`backend.py` 分离 protocol、生产 lazy adapter 和 Fake；`inventory.py` 严格规范化且分别检查 48 kHz float32 mono；`preflight.py` 仅产生 candidate 并固定所有 readiness/duplex/clock/channel/calibration 结论为 false；`persistence.py` 提供 create-only canonical JSON 与 sidecar。设备索引字段明确为单次快照索引。AudioConfig 正式模式仍 1+1，backend/device/candidate/channel 均未确认。
+- 实际硬件枚举：在软件测试通过后执行 `uv --cache-dir .uv-cache run acoustic-ladder audio-list`。成功枚举 MME（5）、Windows DirectSound（5）、Windows WASAPI（3）、Windows WDM-KS（11），共 24 个设备；默认输入索引 1、默认输出索引 3。名称中未出现可可靠识别的 iMM-6C/CM6542，输入候选为空；输出能力索引为 `2,3,4,7,8,9,10,11,13,14,16,17,21,23`，全部等待人工确认。完整名称/通道/latency 原值见 inventory 和报告；sounddevice 返回的部分中文名称包含 replacement characters，未猜测修复。
+- 单方向格式结果：48 kHz/float32/mono 共 24 项方向检查，21 PASS；索引 21 output、22 input、23 output 为 `PortAudioError: Invalid sample rate [PaErrorCode -9997]`。这些结果不构成全双工或共享时钟验证。
+- inventory/sidecar/preflight：隐私复核发现索引 21/22 的 Windows 蓝牙资源字符串带用户自定义友好名，增加绝对路径/蓝牙后缀确定性脱敏和 2 项回归后重新捕获；redaction 均记录为 warning。最终 `reference/audio/inventory/DEV-03.01_audio_inventory.json` SHA256 `8a68d714a86fa8228e17b7f751da8060c558f79f881fb55994e5130caf199de2`；sidecar 和 `audio-validate` PASS；preflight 为 `needs_operator_confirmation`、`hardware_ready=false`。
+- 新增/修改文件：修改 `.gitattributes`、README、`pyproject.toml`、`uv.lock`、AudioConfig/YAML/Schema 导出、CLI、implementation log；新增 `src/acoustic_ladder/audio/**`、`tests/dev03/**`、三个音频 Schema、`reference/audio/**`、`docs/architecture/audio-inventory.md`、DEV-03.01 prompt/report；配置说明同步更新。历史保护文件未修改。
+- 实际运行命令：
+  - `git rev-parse --show-toplevel; git branch --show-current; git rev-parse HEAD; git rev-parse origin/main; git remote -v; git status --short --branch; git log --oneline --decorate -5`
+  - `git ls-remote --heads https://github.com/haocheng26710/fingers.git main`（沙箱网络失败后经批准成功）
+  - `rg --files -g 'AGENTS.md' -g 'CLAUDE.md' -g 'CONTEXT.md' -g 'docs/adr/**' ...`
+  - `Get-FileHash -Algorithm SHA256 -LiteralPath <protected files>`
+  - `Copy-Item -LiteralPath '<attachment>/pasted-text.txt' -Destination docs/prompts/DEV-03.01.md`
+  - `uv lock; uv sync`（失败，见下）；`uv --cache-dir .uv-cache lock --python 3.12`; `uv --cache-dir .uv-cache sync --all-groups --frozen`
+  - `uv --cache-dir .uv-cache run acoustic-ladder export-schemas --output-dir schemas`
+  - 多次 `uv --cache-dir .uv-cache run ruff format ...`、`ruff check ...`、`mypy ...` 和目标 pytest，用于红绿修正
+  - `uv --cache-dir .uv-cache run pytest tests/unit tests/integration -q`
+  - `uv --cache-dir .uv-cache run pytest tests/dev02/test_config.py tests/dev02/test_domain_schema_cli.py tests/dev02/test_storage.py tests/dev02/test_synthetic.py -q`
+  - `uv --cache-dir .uv-cache run pytest tests/dev02/test_event_boundaries.py -q`
+  - `uv --cache-dir .uv-cache run pytest tests/dev03 -q`; `uv --cache-dir .uv-cache run pytest -q`
+  - `uv --cache-dir .uv-cache run ruff format --check .`; `ruff check .`; `mypy`; `acoustic-ladder export-schemas --output-dir schemas --check`; `git diff --check`
+  - skip/xfail/noqa/type-ignore `rg` 扫描；Python AST 禁止音频调用扫描
+  - `uv --cache-dir .uv-cache run acoustic-ladder audio-list`（首次失败后修正重跑成功）
+  - `uv --cache-dir .uv-cache run acoustic-ladder audio-inventory --output reference/audio/inventory/DEV-03.01_audio_inventory.json --sidecar reference/audio/inventory/DEV-03.01_audio_inventory.sha256`
+  - `uv --cache-dir .uv-cache run acoustic-ladder audio-preflight --inventory ... --inventory-sidecar ... --hardware-setup reference/audio/hardware_setup.provisional.json --output reference/audio/inventory/DEV-03.01_preflight_report.json`
+  - `uv --cache-dir .uv-cache run acoustic-ladder audio-validate --inventory ... --inventory-sidecar ... --preflight ...`
+  - workspace-local 临时目录中的 synthetic session → run → validate-session → validate-run 烟雾；解析确认目标仍在工作区后删除，`SMOKE_CLEANUP_PASS`
+  - `git diff --exit-code 3e075956... -- <protected files>`；保护文件 SHA256 复核
+- 测试和静态检查：DEV-01 `43 passed in 0.61s`；DEV-02.01 `66 passed in 1.39s`；DEV-02.02 `23 passed in 1.86s`；DEV-03.01 新增 `36 passed in 0.33s`；完整 `168 passed in 3.67s`。format `66 files already formatted`；Ruff PASS；strict mypy `Success: no issues found in 48 source files`；11 Schema PASS；diff whitespace PASS；抑制扫描和禁止音频调用 AST 扫描均无匹配。
+- 初次失败及修正：默认 uv 用户缓存无法初始化；工作区缓存下首次 lock/sync 因沙箱网络失败，经批准重试成功。早期 Ruff/mypy 发现 import 顺序、泛型/Literal 类型问题，均无 suppression 修正。首次 DEV-03 测试为 `31 passed, 2 failed`，原因是 strict Python 路径拒绝 JSON datetime 字符串，改用 Pydantic JSON 验证后通过。首次实际 `audio-list` 在索引 21 的不支持采样率处中止，原因是将格式不支持的 PortAudioError 错判为基础设施失败；新增回归并改为 `supported=false` 记录，重新完成全量软件门禁后实际枚举/捕获成功。
+- 受保护文件回归：基线 diff 无变化；ZIP/manifest 仍为 `1bf3cc17a46cac8552b8eb80d543cec5880afef7f8c716fd8f029636899d688b` / `bd69f27305681e6552e61d402571300c2eea340a6d7878dc2b93531c8b6608b0`；其余 12 项哈希与基线一致，详见完成报告。implementation log 的历史前缀未改写，本区块是文件末尾追加内容。
+- 未执行项目及原因：无要求的验收检查遗漏。播放、录音、任何流打开、ESS/测试噪声、设备/系统音量修改、ASIO/独占模式、延迟/漂移/SPL/回环测量、校准文件读取、DSP、协议执行、CAD/manifest 修改及 DEV-03.02+ 按范围明确禁止，均未执行。
+- Git 结果：本文档冻结时尚未提交/推送，不能在提交内自引用最终 SHA。仅在所有最终门禁再次通过后提交并推送；实际结果以 Git 历史和最终回复为准，若失败则最终状态必须改报 FAIL。
+- 已知限制：枚举名称未明确识别 iMM-6C/CM6542；host API、输入/输出设备索引及通道均需用户确认。设备索引仅为单次快照索引。本步骤不能证明输入输出为同一索引/物理时钟、同步全双工、延迟稳定、通道映射、麦克风文件校准、绝对 SPL 或实验就绪。
+- 提交主题：`DEV-03.01: add audio inventory and read-only preflight`
