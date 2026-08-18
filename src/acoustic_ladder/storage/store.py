@@ -34,6 +34,7 @@ from acoustic_ladder.storage.io import (
 if TYPE_CHECKING:
     from acoustic_ladder.audio.ess_processing_models import ProcessingRecord
     from acoustic_ladder.audio.provisional_qc_models import QcRecord
+    from acoustic_ladder.audio.repeatability_models import RepeatabilityRecord
 
 SESSION_DIRECTORIES = (
     "manifest",
@@ -398,6 +399,84 @@ class ImmutableSessionStore:
             return final
         except FileExistsError as exc:
             raise StorageError(f"QC publication is already in progress: {qc_id}") from exc
+        finally:
+            if descriptor is not None:
+                os.close(descriptor)
+                lock.unlink(missing_ok=True)
+            if not published and staging is not None and staging.exists():
+                shutil.rmtree(staging)
+
+    def create_synthetic_repeatability(
+        self,
+        *,
+        session_id: str,
+        reassembly_id: str,
+        repeat_set_id: str,
+        artifact_payloads: dict[str, bytes],
+        metadata: dict[str, object],
+        record: RepeatabilityRecord,
+    ) -> Path:
+        """Create-only publish a session-level synthetic repeatability envelope."""
+
+        safe_identifier(reassembly_id, "reassembly_id")
+        safe_identifier(repeat_set_id, "repeat_set_id")
+        session_record = self.validate_session(DataOrigin.SYNTHETIC, session_id)
+        if reassembly_id not in session_record.reassembly_ids:
+            raise StorageError("repeatability reassembly is not declared by the session")
+        if (
+            record.session_id != session_id
+            or record.reassembly_id != reassembly_id
+            or record.repeat_set_id != repeat_set_id
+            or record.data_origin != "synthetic"
+        ):
+            raise StorageError("repeatability record identity does not match selected path")
+        required_payloads = {
+            "repeatability_metrics.json",
+            "repeatability_metrics.sha256",
+            "repeatability_receipt.json",
+            "repeatability_receipt.sha256",
+        }
+        if set(artifact_payloads) != required_payloads:
+            raise StorageError("repeatability artifact payload set is not exact")
+        session = self.session_path(DataOrigin.SYNTHETIC, session_id)
+        qc_root = (session / "qc").resolve()
+        if not qc_root.is_relative_to(session.resolve()):
+            raise StorageError("QC root escapes the synthetic session")
+        repeat_sets_root = (qc_root / "repeat_sets").resolve()
+        parent = (repeat_sets_root / f"reassembly_{reassembly_id}").resolve()
+        if not parent.is_relative_to(repeat_sets_root):
+            raise StorageError("repeatability parent escapes the synthetic session")
+        parent.mkdir(parents=True, exist_ok=True)
+        final = (parent / f"repeat_set_{repeat_set_id}").resolve()
+        if final.parent != parent or not final.is_relative_to(repeat_sets_root):
+            raise StorageError("repeatability path escapes the synthetic session")
+        if final.exists():
+            raise StorageError(
+                f"repeatability set already exists: ({reassembly_id}, {repeat_set_id})"
+            )
+        lock = parent / f".{repeat_set_id}.publish.lock"
+        descriptor: int | None = None
+        staging: Path | None = None
+        published = False
+        try:
+            descriptor = os.open(lock, os.O_CREAT | os.O_EXCL | os.O_WRONLY)
+            if final.exists():
+                raise StorageError(
+                    f"repeatability set already exists: ({reassembly_id}, {repeat_set_id})"
+                )
+            staging = Path(tempfile.mkdtemp(prefix=f".{repeat_set_id}.staging-", dir=parent))
+            for relative, payload in artifact_payloads.items():
+                atomic_write_bytes(confined_path(staging, relative), payload)
+            atomic_write_json(staging / "repeatability_metadata.json", metadata)
+            atomic_write_json(staging / "repeatability_record.json", record.model_dump(mode="json"))
+            atomic_write_bytes(staging / "REPEATABILITY_COMPLETE", b"complete\n")
+            os.rename(staging, final)
+            published = True
+            return final
+        except FileExistsError as exc:
+            raise StorageError(
+                f"repeatability publication is already in progress: {repeat_set_id}"
+            ) from exc
         finally:
             if descriptor is not None:
                 os.close(descriptor)

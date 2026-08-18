@@ -1,0 +1,516 @@
+{
+  "$defs": {
+    "RepeatabilityMemberEvidence": {
+      "additionalProperties": false,
+      "properties": {
+        "identity": {
+          "$ref": "#/$defs/RepeatabilityMemberIdentity"
+        },
+        "latency_samples": {
+          "minimum": 0,
+          "title": "Latency Samples",
+          "type": "integer"
+        },
+        "measurement_order": {
+          "minimum": 0,
+          "title": "Measurement Order",
+          "type": "integer"
+        }
+      },
+      "required": [
+        "identity",
+        "measurement_order",
+        "latency_samples"
+      ],
+      "title": "RepeatabilityMemberEvidence",
+      "type": "object"
+    },
+    "RepeatabilityMemberIdentity": {
+      "additionalProperties": false,
+      "properties": {
+        "processing_id": {
+          "pattern": "^[A-Za-z0-9_.-]+$",
+          "title": "Processing Id",
+          "type": "string"
+        },
+        "qc_id": {
+          "pattern": "^[A-Za-z0-9_.-]+$",
+          "title": "Qc Id",
+          "type": "string"
+        },
+        "source_run_id": {
+          "pattern": "^[A-Za-z0-9_.-]+$",
+          "title": "Source Run Id",
+          "type": "string"
+        }
+      },
+      "required": [
+        "source_run_id",
+        "processing_id",
+        "qc_id"
+      ],
+      "title": "RepeatabilityMemberIdentity",
+      "type": "object"
+    },
+    "RepeatabilityPairMetrics": {
+      "additionalProperties": false,
+      "properties": {
+        "analysis_band_bin_count": {
+          "exclusiveMinimum": 0,
+          "title": "Analysis Band Bin Count",
+          "type": "integer"
+        },
+        "captured_input_correlation": {
+          "anyOf": [
+            {
+              "maximum": 1,
+              "minimum": -1,
+              "type": "number"
+            },
+            {
+              "type": "null"
+            }
+          ],
+          "default": null,
+          "title": "Captured Input Correlation"
+        },
+        "captured_input_correlation_status": {
+          "enum": [
+            "computed",
+            "zero_left_norm",
+            "zero_right_norm",
+            "zero_both_norm"
+          ],
+          "title": "Captured Input Correlation Status",
+          "type": "string"
+        },
+        "complex_transfer_relative_l2": {
+          "anyOf": [
+            {
+              "minimum": 0,
+              "type": "number"
+            },
+            {
+              "type": "null"
+            }
+          ],
+          "default": null,
+          "title": "Complex Transfer Relative L2"
+        },
+        "complex_transfer_relative_l2_status": {
+          "enum": [
+            "computed",
+            "zero_symmetric_norm"
+          ],
+          "title": "Complex Transfer Relative L2 Status",
+          "type": "string"
+        },
+        "ir_correlation": {
+          "anyOf": [
+            {
+              "maximum": 1,
+              "minimum": -1,
+              "type": "number"
+            },
+            {
+              "type": "null"
+            }
+          ],
+          "default": null,
+          "title": "Ir Correlation"
+        },
+        "ir_correlation_status": {
+          "enum": [
+            "computed",
+            "zero_left_norm",
+            "zero_right_norm",
+            "zero_both_norm"
+          ],
+          "title": "Ir Correlation Status",
+          "type": "string"
+        },
+        "ir_symmetric_nrmse": {
+          "anyOf": [
+            {
+              "minimum": 0,
+              "type": "number"
+            },
+            {
+              "type": "null"
+            }
+          ],
+          "default": null,
+          "title": "Ir Symmetric Nrmse"
+        },
+        "ir_symmetric_nrmse_status": {
+          "enum": [
+            "computed",
+            "zero_symmetric_norm"
+          ],
+          "title": "Ir Symmetric Nrmse Status",
+          "type": "string"
+        },
+        "joint_phase_valid_bin_count": {
+          "minimum": 0,
+          "title": "Joint Phase Valid Bin Count",
+          "type": "integer"
+        },
+        "joint_phase_valid_fraction": {
+          "maximum": 1,
+          "minimum": 0,
+          "title": "Joint Phase Valid Fraction",
+          "type": "number"
+        },
+        "latency_absolute_delta_samples": {
+          "minimum": 0,
+          "title": "Latency Absolute Delta Samples",
+          "type": "integer"
+        },
+        "latency_delta_samples": {
+          "title": "Latency Delta Samples",
+          "type": "integer"
+        },
+        "left_measurement_order": {
+          "minimum": 0,
+          "title": "Left Measurement Order",
+          "type": "integer"
+        },
+        "left_member": {
+          "$ref": "#/$defs/RepeatabilityMemberIdentity"
+        },
+        "magnitude_rmse_db": {
+          "minimum": 0,
+          "title": "Magnitude Rmse Db",
+          "type": "number"
+        },
+        "phase_rms_rad": {
+          "anyOf": [
+            {
+              "minimum": 0,
+              "type": "number"
+            },
+            {
+              "type": "null"
+            }
+          ],
+          "default": null,
+          "title": "Phase Rms Rad"
+        },
+        "phase_rms_status": {
+          "enum": [
+            "computed",
+            "no_joint_phase_valid_bins"
+          ],
+          "title": "Phase Rms Status",
+          "type": "string"
+        },
+        "right_measurement_order": {
+          "minimum": 0,
+          "title": "Right Measurement Order",
+          "type": "integer"
+        },
+        "right_member": {
+          "$ref": "#/$defs/RepeatabilityMemberIdentity"
+        }
+      },
+      "required": [
+        "left_member",
+        "right_member",
+        "left_measurement_order",
+        "right_measurement_order",
+        "captured_input_correlation_status",
+        "latency_delta_samples",
+        "latency_absolute_delta_samples",
+        "ir_correlation_status",
+        "ir_symmetric_nrmse_status",
+        "complex_transfer_relative_l2_status",
+        "magnitude_rmse_db",
+        "analysis_band_bin_count",
+        "joint_phase_valid_bin_count",
+        "joint_phase_valid_fraction",
+        "phase_rms_status"
+      ],
+      "title": "RepeatabilityPairMetrics",
+      "type": "object"
+    }
+  },
+  "additionalProperties": false,
+  "properties": {
+    "all_required_numeric_values_finite": {
+      "const": true,
+      "title": "All Required Numeric Values Finite",
+      "type": "boolean"
+    },
+    "captured_input_correlation_defined_count": {
+      "minimum": 0,
+      "title": "Captured Input Correlation Defined Count",
+      "type": "integer"
+    },
+    "captured_input_correlation_mean": {
+      "anyOf": [
+        {
+          "maximum": 1,
+          "minimum": -1,
+          "type": "number"
+        },
+        {
+          "type": "null"
+        }
+      ],
+      "default": null,
+      "title": "Captured Input Correlation Mean"
+    },
+    "captured_input_correlation_min": {
+      "anyOf": [
+        {
+          "maximum": 1,
+          "minimum": -1,
+          "type": "number"
+        },
+        {
+          "type": "null"
+        }
+      ],
+      "default": null,
+      "title": "Captured Input Correlation Min"
+    },
+    "complex_transfer_relative_l2_defined_count": {
+      "minimum": 0,
+      "title": "Complex Transfer Relative L2 Defined Count",
+      "type": "integer"
+    },
+    "complex_transfer_relative_l2_max": {
+      "anyOf": [
+        {
+          "minimum": 0,
+          "type": "number"
+        },
+        {
+          "type": "null"
+        }
+      ],
+      "default": null,
+      "title": "Complex Transfer Relative L2 Max"
+    },
+    "complex_transfer_relative_l2_mean": {
+      "anyOf": [
+        {
+          "minimum": 0,
+          "type": "number"
+        },
+        {
+          "type": "null"
+        }
+      ],
+      "default": null,
+      "title": "Complex Transfer Relative L2 Mean"
+    },
+    "ir_correlation_defined_count": {
+      "minimum": 0,
+      "title": "Ir Correlation Defined Count",
+      "type": "integer"
+    },
+    "ir_correlation_mean": {
+      "anyOf": [
+        {
+          "maximum": 1,
+          "minimum": -1,
+          "type": "number"
+        },
+        {
+          "type": "null"
+        }
+      ],
+      "default": null,
+      "title": "Ir Correlation Mean"
+    },
+    "ir_correlation_min": {
+      "anyOf": [
+        {
+          "maximum": 1,
+          "minimum": -1,
+          "type": "number"
+        },
+        {
+          "type": "null"
+        }
+      ],
+      "default": null,
+      "title": "Ir Correlation Min"
+    },
+    "ir_symmetric_nrmse_defined_count": {
+      "minimum": 0,
+      "title": "Ir Symmetric Nrmse Defined Count",
+      "type": "integer"
+    },
+    "ir_symmetric_nrmse_max": {
+      "anyOf": [
+        {
+          "minimum": 0,
+          "type": "number"
+        },
+        {
+          "type": "null"
+        }
+      ],
+      "default": null,
+      "title": "Ir Symmetric Nrmse Max"
+    },
+    "ir_symmetric_nrmse_mean": {
+      "anyOf": [
+        {
+          "minimum": 0,
+          "type": "number"
+        },
+        {
+          "type": "null"
+        }
+      ],
+      "default": null,
+      "title": "Ir Symmetric Nrmse Mean"
+    },
+    "latency_max_samples": {
+      "minimum": 0,
+      "title": "Latency Max Samples",
+      "type": "integer"
+    },
+    "latency_min_samples": {
+      "minimum": 0,
+      "title": "Latency Min Samples",
+      "type": "integer"
+    },
+    "latency_span_samples": {
+      "minimum": 0,
+      "title": "Latency Span Samples",
+      "type": "integer"
+    },
+    "magnitude_rmse_db_defined_count": {
+      "minimum": 0,
+      "title": "Magnitude Rmse Db Defined Count",
+      "type": "integer"
+    },
+    "magnitude_rmse_db_max": {
+      "minimum": 0,
+      "title": "Magnitude Rmse Db Max",
+      "type": "number"
+    },
+    "magnitude_rmse_db_mean": {
+      "minimum": 0,
+      "title": "Magnitude Rmse Db Mean",
+      "type": "number"
+    },
+    "measurement_order_max": {
+      "minimum": 0,
+      "title": "Measurement Order Max",
+      "type": "integer"
+    },
+    "measurement_order_min": {
+      "minimum": 0,
+      "title": "Measurement Order Min",
+      "type": "integer"
+    },
+    "member_count": {
+      "minimum": 2,
+      "title": "Member Count",
+      "type": "integer"
+    },
+    "members": {
+      "items": {
+        "$ref": "#/$defs/RepeatabilityMemberEvidence"
+      },
+      "title": "Members",
+      "type": "array"
+    },
+    "pair_count": {
+      "exclusiveMinimum": 0,
+      "title": "Pair Count",
+      "type": "integer"
+    },
+    "pairs": {
+      "items": {
+        "$ref": "#/$defs/RepeatabilityPairMetrics"
+      },
+      "title": "Pairs",
+      "type": "array"
+    },
+    "pairwise_maximum_absolute_latency_delta_samples": {
+      "minimum": 0,
+      "title": "Pairwise Maximum Absolute Latency Delta Samples",
+      "type": "integer"
+    },
+    "phase_rms_rad_defined_count": {
+      "minimum": 0,
+      "title": "Phase Rms Rad Defined Count",
+      "type": "integer"
+    },
+    "phase_rms_rad_max": {
+      "anyOf": [
+        {
+          "minimum": 0,
+          "type": "number"
+        },
+        {
+          "type": "null"
+        }
+      ],
+      "default": null,
+      "title": "Phase Rms Rad Max"
+    },
+    "phase_rms_rad_mean": {
+      "anyOf": [
+        {
+          "minimum": 0,
+          "type": "number"
+        },
+        {
+          "type": "null"
+        }
+      ],
+      "default": null,
+      "title": "Phase Rms Rad Mean"
+    },
+    "phase_valid_fraction_mean": {
+      "maximum": 1,
+      "minimum": 0,
+      "title": "Phase Valid Fraction Mean",
+      "type": "number"
+    },
+    "phase_valid_fraction_min": {
+      "maximum": 1,
+      "minimum": 0,
+      "title": "Phase Valid Fraction Min",
+      "type": "number"
+    },
+    "schema_version": {
+      "const": "1.0.0",
+      "title": "Schema Version",
+      "type": "string"
+    }
+  },
+  "required": [
+    "schema_version",
+    "members",
+    "pairs",
+    "member_count",
+    "pair_count",
+    "measurement_order_min",
+    "measurement_order_max",
+    "latency_min_samples",
+    "latency_max_samples",
+    "latency_span_samples",
+    "pairwise_maximum_absolute_latency_delta_samples",
+    "captured_input_correlation_defined_count",
+    "ir_correlation_defined_count",
+    "ir_symmetric_nrmse_defined_count",
+    "complex_transfer_relative_l2_defined_count",
+    "magnitude_rmse_db_defined_count",
+    "magnitude_rmse_db_mean",
+    "magnitude_rmse_db_max",
+    "phase_rms_rad_defined_count",
+    "phase_valid_fraction_min",
+    "phase_valid_fraction_mean",
+    "all_required_numeric_values_finite"
+  ],
+  "title": "ProvisionalRepeatabilityMetrics",
+  "type": "object"
+}

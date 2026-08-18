@@ -42,6 +42,11 @@ from acoustic_ladder.audio.provisional_qc_persistence import (
     publish_provisional_qc,
     validate_provisional_qc,
 )
+from acoustic_ladder.audio.repeatability_models import RepeatabilityMemberIdentity
+from acoustic_ladder.audio.repeatability_persistence import (
+    publish_provisional_repeatability,
+    validate_provisional_repeatability,
+)
 from acoustic_ladder.audio.summary import render_inventory_summary
 from acoustic_ladder.audio.virtual_capture_models import load_virtual_capture_scenario
 from acoustic_ladder.audio.virtual_capture_persistence import (
@@ -73,6 +78,20 @@ from acoustic_ladder.synthetic.generator import generate_synthetic_arrays, valid
 
 def _now() -> datetime:
     return datetime.now(UTC)
+
+
+def _repeatability_member(value: str) -> RepeatabilityMemberIdentity:
+    parts = value.split(":")
+    if len(parts) != 3 or any(not part for part in parts):
+        raise argparse.ArgumentTypeError(
+            "repeatability member must be SOURCE_RUN_ID:PROCESSING_ID:QC_ID"
+        )
+    try:
+        return RepeatabilityMemberIdentity(
+            source_run_id=parts[0], processing_id=parts[1], qc_id=parts[2]
+        )
+    except ValidationError as exc:
+        raise argparse.ArgumentTypeError(f"invalid repeatability member: {exc}") from exc
 
 
 def _add_bundle_arguments(parser: argparse.ArgumentParser) -> None:
@@ -306,6 +325,17 @@ def _parser() -> argparse.ArgumentParser:
         qc.add_argument("--qc-id", required=True)
         qc.add_argument("--scenario", required=True)
         qc.add_argument("--ess-artifact-root", required=True)
+    for command_name in ("repeatability-compute", "repeatability-validate"):
+        repeatability = commands.add_parser(command_name)
+        _add_bundle_arguments(repeatability)
+        repeatability.add_argument("--synthetic-root", required=True)
+        repeatability.add_argument("--session-id", required=True)
+        repeatability.add_argument("--repeat-set-id", required=True)
+        repeatability.add_argument(
+            "--member", action="append", type=_repeatability_member, required=True
+        )
+        repeatability.add_argument("--scenario", required=True)
+        repeatability.add_argument("--ess-artifact-root", required=True)
     return parser
 
 
@@ -642,6 +672,65 @@ def main(argv: list[str] | None = None) -> None:
         print("SYNTHETIC_ONLY")
         print("PROVISIONAL_METRICS_ONLY")
         print("THRESHOLDS_NOT_APPLIED")
+        print("NO_HARDWARE_AUDIO_IO_PERFORMED")
+        print("NOT_AN_EXPERIMENTAL_RESULT")
+        return
+    if args.command in {"repeatability-compute", "repeatability-validate"}:
+        project_root = Path(args.project_root).resolve()
+        loaded_bundle = _load_bundle(args)
+        scenario_path = Path(args.scenario)
+        if not scenario_path.is_absolute():
+            scenario_path = project_root / scenario_path
+        loaded_scenario = load_virtual_capture_scenario(scenario_path, project_root=project_root)
+        arguments = {
+            "store": _synthetic_store(args.synthetic_root),
+            "bundle": loaded_bundle,
+            "scenario": loaded_scenario,
+            "ess_artifact_root": args.ess_artifact_root,
+            "session_id": args.session_id,
+            "repeat_set_id": args.repeat_set_id,
+            "members": args.member,
+        }
+        if args.command == "repeatability-compute":
+            repeatability = publish_provisional_repeatability(**arguments, now=_now)
+            label = "PASS provisional repeatability"
+        else:
+            repeatability = validate_provisional_repeatability(**arguments)
+            label = "PASS provisional repeatability validation"
+        repeat_metrics = repeatability.metrics
+        repeat_receipt = repeatability.receipt
+        print(
+            f"{label}: repeat_set_id={repeat_receipt.repeat_set_id} "
+            f"reassembly_id={repeat_receipt.reassembly_id} "
+            f"member_count={repeat_metrics.member_count} "
+            f"pair_count={repeat_metrics.pair_count} "
+            f"measurement_order={repeat_metrics.measurement_order_min}:"
+            f"{repeat_metrics.measurement_order_max} "
+            f"latency_span_samples={repeat_metrics.latency_span_samples} "
+            f"ir_correlation_min={repeat_metrics.ir_correlation_min} "
+            f"ir_correlation_mean={repeat_metrics.ir_correlation_mean} "
+            f"complex_transfer_relative_l2_mean="
+            f"{repeat_metrics.complex_transfer_relative_l2_mean} "
+            f"complex_transfer_relative_l2_max="
+            f"{repeat_metrics.complex_transfer_relative_l2_max} "
+            f"magnitude_rmse_db_mean={repeat_metrics.magnitude_rmse_db_mean} "
+            f"magnitude_rmse_db_max={repeat_metrics.magnitude_rmse_db_max} "
+            f"phase_rms_defined_count={repeat_metrics.phase_rms_rad_defined_count} "
+            f"phase_rms_mean={repeat_metrics.phase_rms_rad_mean} "
+            f"phase_rms_max={repeat_metrics.phase_rms_rad_max} "
+            f"metrics_sha256={repeatability.metrics_sha256} "
+            f"receipt_sha256={repeatability.receipt_sha256}"
+        )
+        print(f"evaluation_status={repeat_receipt.evaluation_status}")
+        print(f"decision_status={repeat_receipt.decision_status}")
+        print(f"safety_marker={repeat_receipt.safety_marker}")
+        print("SYNTHETIC_ONLY")
+        print("PROVISIONAL_REPEATABILITY_METRICS_ONLY")
+        print("REPEATABILITY_NOT_EVALUATED")
+        print("THRESHOLDS_NOT_APPLIED")
+        print("BASELINE_NOT_ASSIGNED")
+        print("BASELINE_SELECTION_DEFERRED_UNTIL_PROTOCOL_BINDING")
+        print("NO_BASELINE_DIFFERENCE_COMPUTED")
         print("NO_HARDWARE_AUDIO_IO_PERFORMED")
         print("NOT_AN_EXPERIMENTAL_RESULT")
         return

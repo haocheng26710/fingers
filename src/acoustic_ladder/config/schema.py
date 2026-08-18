@@ -20,6 +20,10 @@ from acoustic_ladder.audio.provisional_qc_models import (
     ProvisionalQcMetrics,
     ProvisionalQcReceipt,
 )
+from acoustic_ladder.audio.repeatability_models import (
+    ProvisionalRepeatabilityMetrics,
+    ProvisionalRepeatabilityReceipt,
+)
 from acoustic_ladder.audio.virtual_capture_models import (
     VirtualCaptureReceipt,
     VirtualCaptureScenario,
@@ -73,12 +77,17 @@ PROVISIONAL_QC_SCHEMA_MODELS: dict[str, type[BaseModel]] = {
     "provisional_qc_metrics.schema.json": ProvisionalQcMetrics,
     "provisional_qc_receipt.schema.json": ProvisionalQcReceipt,
 }
+REPEATABILITY_SCHEMA_MODELS: dict[str, type[BaseModel]] = {
+    "provisional_repeatability_metrics.schema.json": ProvisionalRepeatabilityMetrics,
+    "provisional_repeatability_receipt.schema.json": ProvisionalRepeatabilityReceipt,
+}
 ALL_GENERATED_SCHEMA_MODELS = (
     GENERATED_SCHEMA_MODELS
     | ESS_SCHEMA_MODELS
     | VIRTUAL_CAPTURE_SCHEMA_MODELS
     | ESS_PROCESSING_SCHEMA_MODELS
     | PROVISIONAL_QC_SCHEMA_MODELS
+    | REPEATABILITY_SCHEMA_MODELS
 )
 
 

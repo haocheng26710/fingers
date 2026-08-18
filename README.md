@@ -1,6 +1,6 @@
 # Acoustic Ladder
 
-本仓库当前实现到 `DEV-04.02`：除模型包、配置、不可变存储、synthetic 接口数据和只读音频清单外，现提供严格的离线 ESS 开发夹具、确定性虚拟全双工采集、离线 ESS processing，以及只陈述软件证据的 provisional QC 指标。QC 不应用阈值、不产生 pass/fail 判决、不声明硬件或实验就绪，也不增加真实硬件接入或正式实验功能。
+本仓库当前实现到 `DEV-04.03`：除模型包、配置、不可变存储、synthetic 接口数据和只读音频清单外，现提供严格的离线 ESS 开发夹具、确定性虚拟全双工采集、离线 ESS processing、provisional QC，以及同一 reassembly 连续 synthetic captures 的 provisional repeatability 指标。当前没有 protocol condition/BLK baseline 绑定、baseline difference、阈值、pass/fail 或 drift 判决，也不声明硬件或实验就绪，不增加真实硬件接入或正式实验功能。
 
 当前状态固定为：
 
@@ -171,6 +171,19 @@ CLI 成功输出 `SYNTHETIC_ONLY`、`NO_HARDWARE_AUDIO_IO_PERFORMED` 和 `NOT_AN
 不可变结果位于 `qc/run_<source_run_id>/processing_<processing_id>/qc_<qc_id>/`，严格包含 metrics/receipt 及各自 SHA256 sidecar、固定 metadata、outer record 和 `QC_COMPLETE` 七个文件。`qc_created` event 绑定 `(source_run_id, processing_id, qc_id)`、record/metrics/receipt hashes 与创建时间；同一 QC ID 可在不同 processing 复合身份下重用，完全重复的复合身份被拒绝。`qc-validate` 只读地重验 processing、重算所有指标并逐字节核对 envelope 与 event。
 
 指标包括 waveform peak/RMS/clip、pre-silence SNR proxy、processing latency/correlation、IR 主次峰比、reference deconvolution off-peak residual 和 analysis-band 谱除法覆盖。固定状态为 `provisional_metrics_only` / `not_evaluated` / `THRESHOLDS_NOT_APPLIED`；零 pre-silence RMS 产生带原因的 null，而不是 Infinity。这些值不是 SPL、安全阈值、正式声学 SNR、硬件质量判决或实验结果。详细契约见 `docs/architecture/provisional-qc.md`。
+
+## DEV-04.03 provisional repeatability
+
+`repeatability-compute` 与 `repeatability-validate` 只接受 synthetic session、repeat-set ID 和可重复的 `--member SOURCE_RUN:PROCESSING:QC`。它们逐成员重放 capture、processing 和 QC，从 capture receipt 派生 reassembly/measurement order，再从已验证 WAV/NPZ 计算全部唯一 pair。调用者不能提供 measurement order、reassembly、waveform/array、任意 WAV/NPZ、预计算 metrics、condition/BLK/baseline、truth、threshold/decision、real root 或硬件/校准参数。
+
+例如，在同一 session 已依次建立 `capture001` 和 `capture002`（measurement order 0、1）及各自的 `processing001` / `qc001` 后：
+
+```powershell
+uv --cache-dir .uv-cache run acoustic-ladder repeatability-compute @bundle --synthetic-root $syntheticRoot --session-id virtual001 --repeat-set-id repeatset001 --member capture002:processing001:qc001 --member capture001:processing001:qc001 --scenario tests/fixtures/audio/virtual_duplex_development.yaml --ess-artifact-root (Join-Path $essRoot 'source_ess')
+uv --cache-dir .uv-cache run acoustic-ladder repeatability-validate @bundle --synthetic-root $syntheticRoot --session-id virtual001 --repeat-set-id repeatset001 --member capture001:processing001:qc001 --member capture002:processing001:qc001 --scenario tests/fixtures/audio/virtual_duplex_development.yaml --ess-artifact-root (Join-Path $essRoot 'source_ess')
+```
+
+结果严格位于 `qc/repeat_sets/reassembly_<reassembly_id>/repeat_set_<repeat_set_id>/` 的七文件 create-only envelope。固定状态为 provisional/not-evaluated/no-baseline/no-threshold；成功输出的 `PASS` 仅表示软件命令和完整性验证通过。当前没有 protocol condition binding、baseline difference、漂移判决、硬件/校准/SPL 或实验结论。事件只提供内部完整性与审计绑定，不是数字签名、外部 witness 或可信时间戳。详细契约见 `docs/architecture/repeatability.md`。
 
 详细契约见 `docs/architecture/`；数据根目录政策见 `data/README.md`。
 
