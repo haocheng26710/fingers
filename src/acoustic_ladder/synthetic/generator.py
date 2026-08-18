@@ -4,7 +4,6 @@ from __future__ import annotations
 
 import io
 import math
-import zipfile
 from dataclasses import dataclass
 
 import numpy as np
@@ -13,6 +12,7 @@ from numpy.typing import NDArray
 from acoustic_ladder.config.models import SyntheticConfig, manifest_nodes
 from acoustic_ladder.domain.models import ArtifactRef, NodeState
 from acoustic_ladder.storage.io import sha256_bytes
+from acoustic_ladder.storage.npz import deterministic_npz_bytes
 
 FloatArray = NDArray[np.float32] | NDArray[np.float64]
 
@@ -59,21 +59,6 @@ def manifest_round_trip_delays_s(
         node_id: 2.0 * position_mm / 1000.0 / speed_of_sound_m_s
         for node_id, position_mm in manifest_nodes(manifest).items()
     }
-
-
-def _deterministic_npz(arrays: dict[str, FloatArray]) -> bytes:
-    """Write canonical NPZ bytes with sorted names and fixed ZIP timestamps."""
-
-    output = io.BytesIO()
-    with zipfile.ZipFile(output, mode="w", compression=zipfile.ZIP_STORED) as archive:
-        for name in sorted(arrays):
-            npy = io.BytesIO()
-            np.save(npy, arrays[name], allow_pickle=False)
-            info = zipfile.ZipInfo(f"{name}.npy", date_time=(1980, 1, 1, 0, 0, 0))
-            info.compress_type = zipfile.ZIP_STORED
-            info.external_attr = 0o600 << 16
-            archive.writestr(info, npy.getvalue())
-    return output.getvalue()
 
 
 def generate_synthetic_arrays(
@@ -153,7 +138,7 @@ def generate_synthetic_arrays(
     }
     if any(not np.isfinite(array).all() for array in arrays.values()):
         raise SyntheticGenerationError("synthetic arrays contain non-finite values")
-    npz_bytes = _deterministic_npz(arrays)
+    npz_bytes = deterministic_npz_bytes(arrays)
     metadata: dict[str, object] = {
         "marker": "NOT_EXPERIMENTAL_RESULT",
         "data_origin": "synthetic",

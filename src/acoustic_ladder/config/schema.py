@@ -7,6 +7,7 @@ from pathlib import Path
 
 from pydantic import BaseModel
 
+from acoustic_ladder.audio.ess_processing_models import EssProcessingReceipt
 from acoustic_ladder.audio.excitation_models import EssArtifactMetadata, EssSignalSpec
 from acoustic_ladder.audio.models import (
     AudioInventoryCaptureContext,
@@ -61,8 +62,14 @@ VIRTUAL_CAPTURE_SCHEMA_MODELS: dict[str, type[BaseModel]] = {
     "virtual_capture_scenario.schema.json": VirtualCaptureScenario,
     "virtual_capture_receipt.schema.json": VirtualCaptureReceipt,
 }
+ESS_PROCESSING_SCHEMA_MODELS: dict[str, type[BaseModel]] = {
+    "ess_processing_receipt.schema.json": EssProcessingReceipt,
+}
 ALL_GENERATED_SCHEMA_MODELS = (
-    GENERATED_SCHEMA_MODELS | ESS_SCHEMA_MODELS | VIRTUAL_CAPTURE_SCHEMA_MODELS
+    GENERATED_SCHEMA_MODELS
+    | ESS_SCHEMA_MODELS
+    | VIRTUAL_CAPTURE_SCHEMA_MODELS
+    | ESS_PROCESSING_SCHEMA_MODELS
 )
 
 

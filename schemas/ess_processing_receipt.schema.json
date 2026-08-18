@@ -1,0 +1,606 @@
+{
+  "$defs": {
+    "ConfigLayer": {
+      "enum": [
+        "device_manifest",
+        "audio_config",
+        "protocol_config",
+        "analysis_config",
+        "synthetic_config"
+      ],
+      "type": "string"
+    },
+    "ConfigSnapshot": {
+      "additionalProperties": false,
+      "properties": {
+        "layer": {
+          "$ref": "#/$defs/ConfigLayer"
+        },
+        "normalized_sha256": {
+          "title": "Normalized Sha256",
+          "type": "string"
+        },
+        "original_relative_path": {
+          "minLength": 1,
+          "title": "Original Relative Path",
+          "type": "string"
+        },
+        "original_sha256": {
+          "title": "Original Sha256",
+          "type": "string"
+        },
+        "validation_status": {
+          "const": "valid",
+          "title": "Validation Status",
+          "type": "string"
+        }
+      },
+      "required": [
+        "layer",
+        "original_relative_path",
+        "original_sha256",
+        "normalized_sha256",
+        "validation_status"
+      ],
+      "title": "ConfigSnapshot",
+      "type": "object"
+    },
+    "ProcessingArrayDescriptor": {
+      "additionalProperties": false,
+      "properties": {
+        "dtype": {
+          "enum": [
+            "float64",
+            "int64",
+            "bool"
+          ],
+          "title": "Dtype",
+          "type": "string"
+        },
+        "name": {
+          "pattern": "^[A-Za-z0-9_]+$",
+          "title": "Name",
+          "type": "string"
+        },
+        "raw_sha256": {
+          "pattern": "^[0-9a-f]{64}$",
+          "title": "Raw Sha256",
+          "type": "string"
+        },
+        "shape": {
+          "items": {
+            "type": "integer"
+          },
+          "title": "Shape",
+          "type": "array"
+        }
+      },
+      "required": [
+        "name",
+        "dtype",
+        "shape",
+        "raw_sha256"
+      ],
+      "title": "ProcessingArrayDescriptor",
+      "type": "object"
+    }
+  },
+  "additionalProperties": false,
+  "properties": {
+    "absolute_spl_calibrated": {
+      "const": false,
+      "title": "Absolute Spl Calibrated",
+      "type": "boolean"
+    },
+    "algorithm_id": {
+      "const": "offline_ess_deconvolution_transfer",
+      "title": "Algorithm Id",
+      "type": "string"
+    },
+    "algorithm_version": {
+      "const": "1.0.0",
+      "title": "Algorithm Version",
+      "type": "string"
+    },
+    "alignment_method": {
+      "const": "zero_fill_no_circular_wrap",
+      "title": "Alignment Method",
+      "type": "string"
+    },
+    "analysis_band_lower_hz": {
+      "exclusiveMinimum": 0,
+      "title": "Analysis Band Lower Hz",
+      "type": "number"
+    },
+    "analysis_band_upper_hz": {
+      "exclusiveMinimum": 0,
+      "title": "Analysis Band Upper Hz",
+      "type": "number"
+    },
+    "analysis_config_normalized_sha256": {
+      "pattern": "^[0-9a-f]{64}$",
+      "title": "Analysis Config Normalized Sha256",
+      "type": "string"
+    },
+    "analysis_config_raw_sha256": {
+      "pattern": "^[0-9a-f]{64}$",
+      "title": "Analysis Config Raw Sha256",
+      "type": "string"
+    },
+    "analysis_config_reference": {
+      "title": "Analysis Config Reference",
+      "type": "string"
+    },
+    "array_descriptors": {
+      "additionalProperties": {
+        "$ref": "#/$defs/ProcessingArrayDescriptor"
+      },
+      "title": "Array Descriptors",
+      "type": "object"
+    },
+    "bundle_content_sha256": {
+      "pattern": "^[0-9a-f]{64}$",
+      "title": "Bundle Content Sha256",
+      "type": "string"
+    },
+    "calibration_applied": {
+      "const": false,
+      "title": "Calibration Applied",
+      "type": "boolean"
+    },
+    "calibration_file_verified": {
+      "const": false,
+      "title": "Calibration File Verified",
+      "type": "boolean"
+    },
+    "candidate_lag_max": {
+      "minimum": 0,
+      "title": "Candidate Lag Max",
+      "type": "integer"
+    },
+    "candidate_lag_min": {
+      "const": 0,
+      "title": "Candidate Lag Min",
+      "type": "integer"
+    },
+    "channel_mapping_verified": {
+      "const": false,
+      "title": "Channel Mapping Verified",
+      "type": "boolean"
+    },
+    "config_snapshots": {
+      "additionalProperties": {
+        "$ref": "#/$defs/ConfigSnapshot"
+      },
+      "title": "Config Snapshots",
+      "type": "object"
+    },
+    "convolution_method": {
+      "const": "full_linear_rfft_power_of_two",
+      "title": "Convolution Method",
+      "type": "string"
+    },
+    "create_only": {
+      "const": true,
+      "title": "Create Only",
+      "type": "boolean"
+    },
+    "data_origin": {
+      "const": "synthetic",
+      "title": "Data Origin",
+      "type": "string"
+    },
+    "db_floor_strategy": {
+      "const": "numpy_float64_tiny_before_log10",
+      "title": "Db Floor Strategy",
+      "type": "string"
+    },
+    "deconvolution_fft_length": {
+      "exclusiveMinimum": 0,
+      "title": "Deconvolution Fft Length",
+      "type": "integer"
+    },
+    "deconvolution_time_origin": {
+      "const": "reference_deconvolution_unique_absolute_peak",
+      "title": "Deconvolution Time Origin",
+      "type": "string"
+    },
+    "device_manifest_sha256": {
+      "pattern": "^[0-9a-f]{64}$",
+      "title": "Device Manifest Sha256",
+      "type": "string"
+    },
+    "electrical_loopback_available": {
+      "const": false,
+      "title": "Electrical Loopback Available",
+      "type": "boolean"
+    },
+    "estimated_latency_samples": {
+      "minimum": 0,
+      "title": "Estimated Latency Samples",
+      "type": "integer"
+    },
+    "estimated_latency_seconds": {
+      "minimum": 0,
+      "title": "Estimated Latency Seconds",
+      "type": "number"
+    },
+    "experimental_result": {
+      "const": false,
+      "title": "Experimental Result",
+      "type": "boolean"
+    },
+    "formal_eligible": {
+      "const": false,
+      "title": "Formal Eligible",
+      "type": "boolean"
+    },
+    "frequency_bin_count": {
+      "exclusiveMinimum": 0,
+      "title": "Frequency Bin Count",
+      "type": "integer"
+    },
+    "full_duplex_verified": {
+      "const": false,
+      "title": "Full Duplex Verified",
+      "type": "boolean"
+    },
+    "hardware_io_performed": {
+      "const": false,
+      "title": "Hardware Io Performed",
+      "type": "boolean"
+    },
+    "hardware_ready": {
+      "const": false,
+      "title": "Hardware Ready",
+      "type": "boolean"
+    },
+    "immutable": {
+      "const": true,
+      "title": "Immutable",
+      "type": "boolean"
+    },
+    "input_after_pre_sample_count": {
+      "exclusiveMinimum": 0,
+      "title": "Input After Pre Sample Count",
+      "type": "integer"
+    },
+    "input_deconvolution_sample_count": {
+      "exclusiveMinimum": 0,
+      "title": "Input Deconvolution Sample Count",
+      "type": "integer"
+    },
+    "inverse_fft_length": {
+      "exclusiveMinimum": 0,
+      "title": "Inverse Fft Length",
+      "type": "integer"
+    },
+    "inverse_filter_formula": {
+      "const": "s[N-1-n]*exp(-ln(f_end/f_start)*n/N)",
+      "title": "Inverse Filter Formula",
+      "type": "string"
+    },
+    "inverse_filter_sample_count": {
+      "exclusiveMinimum": 0,
+      "title": "Inverse Filter Sample Count",
+      "type": "integer"
+    },
+    "inverse_formula_id": {
+      "const": "farina_exponential_sweep_amplitude_compensation",
+      "title": "Inverse Formula Id",
+      "type": "string"
+    },
+    "inverse_normalization_factor": {
+      "title": "Inverse Normalization Factor",
+      "type": "number"
+    },
+    "inverse_post_normalization_peak": {
+      "exclusiveMinimum": 0,
+      "title": "Inverse Post Normalization Peak",
+      "type": "number"
+    },
+    "inverse_pre_normalization_peak": {
+      "exclusiveMinimum": 0,
+      "title": "Inverse Pre Normalization Peak",
+      "type": "number"
+    },
+    "ir_dominant_peak_index": {
+      "minimum": 0,
+      "title": "Ir Dominant Peak Index",
+      "type": "integer"
+    },
+    "ir_dominant_peak_value": {
+      "title": "Ir Dominant Peak Value",
+      "type": "number"
+    },
+    "ir_raw_definition": {
+      "const": "input_deconvolution_from_reference_peak",
+      "title": "Ir Raw Definition",
+      "type": "string"
+    },
+    "ir_sample_count": {
+      "exclusiveMinimum": 0,
+      "title": "Ir Sample Count",
+      "type": "integer"
+    },
+    "lag_convention": {
+      "const": "positive_input_lags_output",
+      "title": "Lag Convention",
+      "type": "string"
+    },
+    "latency_method": {
+      "const": "normalized_full_sweep_matched_correlation",
+      "title": "Latency Method",
+      "type": "string"
+    },
+    "matched_correlation_absolute": {
+      "maximum": 1,
+      "minimum": 0,
+      "title": "Matched Correlation Absolute",
+      "type": "number"
+    },
+    "matched_correlation_signed": {
+      "maximum": 1,
+      "minimum": -1,
+      "title": "Matched Correlation Signed",
+      "type": "number"
+    },
+    "output_after_pre_sample_count": {
+      "exclusiveMinimum": 0,
+      "title": "Output After Pre Sample Count",
+      "type": "integer"
+    },
+    "phase_unwrap_axis": {
+      "const": "frequency_last_axis",
+      "title": "Phase Unwrap Axis",
+      "type": "string"
+    },
+    "playback_performed": {
+      "const": false,
+      "title": "Playback Performed",
+      "type": "boolean"
+    },
+    "post_silence_sample_count": {
+      "minimum": 0,
+      "title": "Post Silence Sample Count",
+      "type": "integer"
+    },
+    "pre_silence_sample_count": {
+      "minimum": 0,
+      "title": "Pre Silence Sample Count",
+      "type": "integer"
+    },
+    "processing_arrays_npz_sha256": {
+      "pattern": "^[0-9a-f]{64}$",
+      "title": "Processing Arrays Npz Sha256",
+      "type": "string"
+    },
+    "processing_id": {
+      "pattern": "^[A-Za-z0-9_.-]+$",
+      "title": "Processing Id",
+      "type": "string"
+    },
+    "recording_performed": {
+      "const": false,
+      "title": "Recording Performed",
+      "type": "boolean"
+    },
+    "reference_deconvolution_sample_count": {
+      "exclusiveMinimum": 0,
+      "title": "Reference Deconvolution Sample Count",
+      "type": "integer"
+    },
+    "reference_peak_index": {
+      "minimum": 0,
+      "title": "Reference Peak Index",
+      "type": "integer"
+    },
+    "run_mode": {
+      "const": "development",
+      "title": "Run Mode",
+      "type": "string"
+    },
+    "safety_marker": {
+      "const": "SYNTHETIC_OFFLINE_ESS_PROCESSING_NOT_AN_EXPERIMENTAL_RESULT",
+      "title": "Safety Marker",
+      "type": "string"
+    },
+    "sample_rate_hz": {
+      "exclusiveMinimum": 0,
+      "title": "Sample Rate Hz",
+      "type": "integer"
+    },
+    "schema_version": {
+      "const": "1.0.0",
+      "title": "Schema Version",
+      "type": "string"
+    },
+    "session_id": {
+      "pattern": "^[A-Za-z0-9_.-]+$",
+      "title": "Session Id",
+      "type": "string"
+    },
+    "shared_clock_verified": {
+      "const": false,
+      "title": "Shared Clock Verified",
+      "type": "boolean"
+    },
+    "smoothing_enabled": {
+      "const": false,
+      "title": "Smoothing Enabled",
+      "type": "boolean"
+    },
+    "source_capture_receipt_sha256": {
+      "pattern": "^[0-9a-f]{64}$",
+      "title": "Source Capture Receipt Sha256",
+      "type": "string"
+    },
+    "source_capture_scenario_normalized_sha256": {
+      "pattern": "^[0-9a-f]{64}$",
+      "title": "Source Capture Scenario Normalized Sha256",
+      "type": "string"
+    },
+    "source_capture_scenario_raw_sha256": {
+      "pattern": "^[0-9a-f]{64}$",
+      "title": "Source Capture Scenario Raw Sha256",
+      "type": "string"
+    },
+    "source_capture_scenario_reference": {
+      "title": "Source Capture Scenario Reference",
+      "type": "string"
+    },
+    "source_ess_artifact_id": {
+      "title": "Source Ess Artifact Id",
+      "type": "string"
+    },
+    "source_ess_metadata_sha256": {
+      "pattern": "^[0-9a-f]{64}$",
+      "title": "Source Ess Metadata Sha256",
+      "type": "string"
+    },
+    "source_ess_raw_float32_sha256": {
+      "pattern": "^[0-9a-f]{64}$",
+      "title": "Source Ess Raw Float32 Sha256",
+      "type": "string"
+    },
+    "source_ess_wav_sha256": {
+      "pattern": "^[0-9a-f]{64}$",
+      "title": "Source Ess Wav Sha256",
+      "type": "string"
+    },
+    "source_input_raw_float32_sha256": {
+      "pattern": "^[0-9a-f]{64}$",
+      "title": "Source Input Raw Float32 Sha256",
+      "type": "string"
+    },
+    "source_input_sample_count": {
+      "exclusiveMinimum": 0,
+      "title": "Source Input Sample Count",
+      "type": "integer"
+    },
+    "source_input_wav_sha256": {
+      "pattern": "^[0-9a-f]{64}$",
+      "title": "Source Input Wav Sha256",
+      "type": "string"
+    },
+    "source_output_raw_float32_sha256": {
+      "pattern": "^[0-9a-f]{64}$",
+      "title": "Source Output Raw Float32 Sha256",
+      "type": "string"
+    },
+    "source_output_sample_count": {
+      "exclusiveMinimum": 0,
+      "title": "Source Output Sample Count",
+      "type": "integer"
+    },
+    "source_output_wav_sha256": {
+      "pattern": "^[0-9a-f]{64}$",
+      "title": "Source Output Wav Sha256",
+      "type": "string"
+    },
+    "source_run_id": {
+      "pattern": "^[A-Za-z0-9_.-]+$",
+      "title": "Source Run Id",
+      "type": "string"
+    },
+    "sweep_sample_count": {
+      "exclusiveMinimum": 1,
+      "title": "Sweep Sample Count",
+      "type": "integer"
+    },
+    "transfer_fft_length": {
+      "exclusiveMinimum": 0,
+      "title": "Transfer Fft Length",
+      "type": "integer"
+    }
+  },
+  "required": [
+    "schema_version",
+    "processing_id",
+    "source_run_id",
+    "session_id",
+    "data_origin",
+    "run_mode",
+    "source_capture_receipt_sha256",
+    "source_output_wav_sha256",
+    "source_input_wav_sha256",
+    "source_output_raw_float32_sha256",
+    "source_input_raw_float32_sha256",
+    "source_capture_scenario_reference",
+    "source_capture_scenario_raw_sha256",
+    "source_capture_scenario_normalized_sha256",
+    "source_ess_artifact_id",
+    "source_ess_metadata_sha256",
+    "source_ess_wav_sha256",
+    "source_ess_raw_float32_sha256",
+    "bundle_content_sha256",
+    "device_manifest_sha256",
+    "config_snapshots",
+    "analysis_config_reference",
+    "analysis_config_raw_sha256",
+    "analysis_config_normalized_sha256",
+    "algorithm_id",
+    "algorithm_version",
+    "inverse_formula_id",
+    "inverse_filter_formula",
+    "convolution_method",
+    "latency_method",
+    "lag_convention",
+    "alignment_method",
+    "deconvolution_time_origin",
+    "ir_raw_definition",
+    "phase_unwrap_axis",
+    "sample_rate_hz",
+    "sweep_sample_count",
+    "pre_silence_sample_count",
+    "post_silence_sample_count",
+    "source_output_sample_count",
+    "source_input_sample_count",
+    "output_after_pre_sample_count",
+    "input_after_pre_sample_count",
+    "inverse_filter_sample_count",
+    "reference_deconvolution_sample_count",
+    "input_deconvolution_sample_count",
+    "ir_sample_count",
+    "inverse_fft_length",
+    "deconvolution_fft_length",
+    "transfer_fft_length",
+    "frequency_bin_count",
+    "reference_peak_index",
+    "inverse_pre_normalization_peak",
+    "inverse_normalization_factor",
+    "inverse_post_normalization_peak",
+    "estimated_latency_samples",
+    "estimated_latency_seconds",
+    "matched_correlation_signed",
+    "matched_correlation_absolute",
+    "candidate_lag_min",
+    "candidate_lag_max",
+    "ir_dominant_peak_index",
+    "ir_dominant_peak_value",
+    "analysis_band_lower_hz",
+    "analysis_band_upper_hz",
+    "smoothing_enabled",
+    "db_floor_strategy",
+    "array_descriptors",
+    "processing_arrays_npz_sha256",
+    "create_only",
+    "immutable",
+    "hardware_io_performed",
+    "playback_performed",
+    "recording_performed",
+    "hardware_ready",
+    "full_duplex_verified",
+    "shared_clock_verified",
+    "channel_mapping_verified",
+    "calibration_file_verified",
+    "calibration_applied",
+    "absolute_spl_calibrated",
+    "electrical_loopback_available",
+    "formal_eligible",
+    "experimental_result",
+    "safety_marker"
+  ],
+  "title": "EssProcessingReceipt",
+  "type": "object"
+}

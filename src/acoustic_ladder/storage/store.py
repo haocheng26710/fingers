@@ -9,6 +9,7 @@ import shutil
 import tempfile
 from dataclasses import dataclass
 from pathlib import Path
+from typing import TYPE_CHECKING
 
 from pydantic import ValidationError
 
@@ -29,6 +30,9 @@ from acoustic_ladder.storage.io import (
     safe_identifier,
     sha256_bytes,
 )
+
+if TYPE_CHECKING:
+    from acoustic_ladder.audio.ess_processing_models import ProcessingRecord
 
 SESSION_DIRECTORIES = (
     "manifest",
@@ -231,6 +235,65 @@ class ImmutableSessionStore:
         if record.data_origin is not DataOrigin.SYNTHETIC:
             raise StorageError("synthetic writer refuses non-synthetic run records")
         return self.create_run(record, artifact_payloads, metadata)
+
+    def create_synthetic_processing(
+        self,
+        *,
+        session_id: str,
+        source_run_id: str,
+        processing_id: str,
+        artifact_payloads: dict[str, bytes],
+        metadata: dict[str, object],
+        record: ProcessingRecord,
+    ) -> Path:
+        """Create-only publish one processing child under a verified synthetic run."""
+
+        safe_identifier(processing_id, "processing_id")
+        self.validate_run(DataOrigin.SYNTHETIC, session_id, source_run_id)
+        if (
+            record.session_id != session_id
+            or record.source_run_id != source_run_id
+            or record.processing_id != processing_id
+        ):
+            raise StorageError("processing record identity does not match selected path")
+        session = self.session_path(DataOrigin.SYNTHETIC, session_id)
+        processed_root = (session / "processed").resolve()
+        if not processed_root.is_relative_to(session.resolve()):
+            raise StorageError("processed root escapes the synthetic session")
+        parent = processed_root / f"run_{source_run_id}"
+        parent.mkdir(exist_ok=True)
+        final = (parent / f"processing_{processing_id}").resolve()
+        if final.parent != parent.resolve() or not final.is_relative_to(processed_root):
+            raise StorageError("processing path escapes the synthetic session")
+        if final.exists():
+            raise StorageError(f"processing already exists: {processing_id}")
+        lock = parent / f".{processing_id}.publish.lock"
+        descriptor: int | None = None
+        staging: Path | None = None
+        published = False
+        try:
+            descriptor = os.open(lock, os.O_CREAT | os.O_EXCL | os.O_WRONLY)
+            if final.exists():
+                raise StorageError(f"processing already exists: {processing_id}")
+            staging = Path(tempfile.mkdtemp(prefix=f".{processing_id}.staging-", dir=parent))
+            for relative, payload in artifact_payloads.items():
+                atomic_write_bytes(confined_path(staging, relative), payload)
+            atomic_write_json(staging / "processing_metadata.json", metadata)
+            atomic_write_json(staging / "processing_record.json", record.model_dump(mode="json"))
+            atomic_write_bytes(staging / "PROCESSING_COMPLETE", b"complete\n")
+            os.rename(staging, final)
+            published = True
+            return final
+        except FileExistsError as exc:
+            raise StorageError(
+                f"processing publication is already in progress: {processing_id}"
+            ) from exc
+        finally:
+            if descriptor is not None:
+                os.close(descriptor)
+                lock.unlink(missing_ok=True)
+            if not published and staging is not None and staging.exists():
+                shutil.rmtree(staging)
 
     def append_event(
         self,

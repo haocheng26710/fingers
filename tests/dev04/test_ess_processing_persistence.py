@@ -1,0 +1,491 @@
+from __future__ import annotations
+
+import hashlib
+import inspect
+import io
+import json
+from concurrent.futures import ThreadPoolExecutor
+from pathlib import Path
+
+import numpy as np
+import pytest
+from pydantic import ValidationError
+
+from acoustic_ladder import cli
+from acoustic_ladder.audio.ess_processing_models import (
+    ProcessingArrayDescriptor,
+    PublishedEssProcessing,
+)
+from acoustic_ladder.audio.ess_processing_persistence import (
+    PROCESSING_FILE_NAMES,
+    EssProcessingPersistenceError,
+    publish_ess_processing,
+    validate_ess_processing,
+)
+from acoustic_ladder.audio.virtual_capture_models import (
+    LoadedVirtualCaptureScenario,
+    load_virtual_capture_scenario,
+)
+from acoustic_ladder.audio.virtual_capture_persistence import (
+    PublishedVirtualCapture,
+    publish_virtual_capture,
+)
+from acoustic_ladder.config.bundle import LoadedBundle
+from acoustic_ladder.domain.models import DataOrigin
+from acoustic_ladder.storage.io import StorageError, atomic_write_bytes
+from acoustic_ladder.storage.npz import deterministic_npz_bytes, load_deterministic_npz
+from acoustic_ladder.storage.store import ImmutableSessionStore
+from tests.dev03.test_virtual_capture import (
+    FIXED_TIME,
+    PROJECT_ROOT,
+    SCENARIO_PATH,
+    _capture_setup,
+)
+
+
+def test_deterministic_npz_sorts_names_and_has_fixed_bytes() -> None:
+    arrays = {
+        "zeta": np.array([1.0, 2.0], dtype=np.float64),
+        "alpha": np.array([True, False], dtype=np.bool_),
+    }
+    first = deterministic_npz_bytes(arrays)
+    second = deterministic_npz_bytes(dict(reversed(list(arrays.items()))))
+    assert first == second
+    assert hashlib.sha256(first).hexdigest() == hashlib.sha256(second).hexdigest()
+    loaded = load_deterministic_npz(first)
+    assert list(loaded) == ["alpha", "zeta"]
+    assert np.array_equal(loaded["zeta"], arrays["zeta"])
+
+
+def test_deterministic_npz_rejects_object_arrays() -> None:
+    with pytest.raises(ValueError, match="object"):
+        deterministic_npz_bytes({"unsafe": np.array([object()], dtype=object)})
+
+
+def test_npz_loader_rejects_noncanonical_archive() -> None:
+    buffer = io.BytesIO()
+    np.savez(buffer, values=np.ones(2, dtype=np.float64))
+    with pytest.raises(ValueError, match="canonical"):
+        load_deterministic_npz(buffer.getvalue())
+
+
+def test_processing_array_descriptor_is_strict_and_hash_bound() -> None:
+    descriptor = ProcessingArrayDescriptor(
+        name="ir_raw",
+        dtype="float64",
+        shape=(1, 1, 64),
+        raw_sha256="0" * 64,
+    )
+    assert descriptor.shape == (1, 1, 64)
+    with pytest.raises(ValidationError):
+        ProcessingArrayDescriptor.model_validate(
+            {**descriptor.model_dump(), "shape": [1, -1], "unexpected": True}
+        )
+
+
+CaptureSetup = tuple[
+    ImmutableSessionStore,
+    LoadedBundle,
+    LoadedVirtualCaptureScenario,
+    Path,
+    Path,
+    PublishedVirtualCapture,
+]
+ProcessingSetup = tuple[
+    ImmutableSessionStore,
+    LoadedBundle,
+    LoadedVirtualCaptureScenario,
+    Path,
+    Path,
+    PublishedVirtualCapture,
+    PublishedEssProcessing,
+]
+
+
+def _published_capture(tmp_path: Path) -> CaptureSetup:
+    store, bundle, ess_root, real_root = _capture_setup(tmp_path)
+    scenario = load_virtual_capture_scenario(SCENARIO_PATH, project_root=PROJECT_ROOT)
+    capture = publish_virtual_capture(
+        store=store,
+        bundle=bundle,
+        scenario=scenario,
+        ess_artifact_root=ess_root,
+        session_id="capture-session",
+        reassembly_id="assembly-1",
+        run_id="capture-1",
+        measurement_order=0,
+        now=lambda: FIXED_TIME,
+    )
+    return store, bundle, scenario, ess_root, real_root, capture
+
+
+def _publish_processing(tmp_path: Path, processing_id: str = "processing-1") -> ProcessingSetup:
+    store, bundle, scenario, ess_root, real_root, capture = _published_capture(tmp_path)
+    processing = publish_ess_processing(
+        store=store,
+        bundle=bundle,
+        scenario=scenario,
+        ess_artifact_root=ess_root,
+        session_id="capture-session",
+        source_run_id="capture-1",
+        processing_id=processing_id,
+        now=lambda: FIXED_TIME,
+    )
+    return store, bundle, scenario, ess_root, real_root, capture, processing
+
+
+def test_processing_publisher_api_has_no_truth_waveform_or_real_root_parameters() -> None:
+    parameters = inspect.signature(publish_ess_processing).parameters
+    assert set(parameters) == {
+        "store",
+        "bundle",
+        "scenario",
+        "ess_artifact_root",
+        "session_id",
+        "source_run_id",
+        "processing_id",
+        "now",
+    }
+    assert not {
+        "expected_latency",
+        "expected_gain",
+        "integer_latency_samples",
+        "linear_gain",
+        "output_samples",
+        "input_samples",
+        "real_root",
+    }.intersection(parameters)
+
+
+def test_processing_publication_creates_exact_completed_file_set(tmp_path: Path) -> None:
+    *_, processing = _publish_processing(tmp_path)
+    assert {entry.name for entry in processing.processing_path.iterdir()} == (PROCESSING_FILE_NAMES)
+    assert (processing.processing_path / "PROCESSING_COMPLETE").read_bytes() == b"complete\n"
+
+
+def test_nominal_publication_recovers_waveform_latency_and_gain(tmp_path: Path) -> None:
+    *_, processing = _publish_processing(tmp_path)
+    arrays = load_deterministic_npz(
+        (processing.processing_path / "processing_arrays.npz").read_bytes()
+    )
+    assert processing.receipt.estimated_latency_samples == 37
+    assert processing.receipt.ir_dominant_peak_index == 37
+    assert arrays["ir_raw"][0, 0, 37] == pytest.approx(0.5, abs=1e-6)
+    assert arrays["ir_aligned"][0, 0, 0] == pytest.approx(0.5, abs=1e-6)
+
+
+def test_processing_validator_replays_semantics_read_only(tmp_path: Path) -> None:
+    store, bundle, scenario, ess_root, _, _, published = _publish_processing(tmp_path)
+    before = {path.name: path.read_bytes() for path in published.processing_path.iterdir()}
+    validated = validate_ess_processing(
+        store=store,
+        bundle=bundle,
+        scenario=scenario,
+        ess_artifact_root=ess_root,
+        session_id="capture-session",
+        source_run_id="capture-1",
+        processing_id="processing-1",
+    )
+    assert validated.receipt == published.receipt
+    assert {path.name: path.read_bytes() for path in published.processing_path.iterdir()} == before
+
+
+def test_processing_publication_never_creates_real_root(tmp_path: Path) -> None:
+    *_, real_root, _, _ = _publish_processing(tmp_path)
+    assert not real_root.exists()
+
+
+def test_processing_publication_is_create_only_and_preserves_bytes(tmp_path: Path) -> None:
+    store, bundle, scenario, ess_root, _, _, first = _publish_processing(tmp_path)
+    before = {path.name: path.read_bytes() for path in first.processing_path.iterdir()}
+    with pytest.raises(EssProcessingPersistenceError, match="published=true"):
+        publish_ess_processing(
+            store=store,
+            bundle=bundle,
+            scenario=scenario,
+            ess_artifact_root=ess_root,
+            session_id="capture-session",
+            source_run_id="capture-1",
+            processing_id="processing-1",
+            now=lambda: FIXED_TIME,
+        )
+    assert {path.name: path.read_bytes() for path in first.processing_path.iterdir()} == before
+
+
+@pytest.mark.parametrize("processing_id", ["", ".", "..", "../escape", "a/b", "a\\b"])
+def test_unsafe_processing_id_is_rejected_without_target(
+    tmp_path: Path, processing_id: str
+) -> None:
+    store, bundle, scenario, ess_root, _, _ = _published_capture(tmp_path)
+    with pytest.raises(EssProcessingPersistenceError):
+        publish_ess_processing(
+            store=store,
+            bundle=bundle,
+            scenario=scenario,
+            ess_artifact_root=ess_root,
+            session_id="capture-session",
+            source_run_id="capture-1",
+            processing_id=processing_id,
+            now=lambda: FIXED_TIME,
+        )
+    processed = store.session_path(DataOrigin.SYNTHETIC, "capture-session") / "processed"
+    assert not list(processed.rglob("processing_*"))
+
+
+def test_processing_receipt_contains_no_scenario_truth_fields(tmp_path: Path) -> None:
+    *_, processing = _publish_processing(tmp_path)
+    receipt = json.loads((processing.processing_path / "processing_receipt.json").read_bytes())
+    assert "integer_latency_samples" not in receipt
+    assert "linear_gain" not in receipt
+    assert "expected_latency" not in receipt
+    assert "expected_gain" not in receipt
+
+
+def test_processing_receipt_closes_source_timing_latency_and_safety_audit(
+    tmp_path: Path,
+) -> None:
+    *_, capture, processing = _publish_processing(tmp_path)
+    receipt = processing.receipt
+    assert receipt.source_output_wav_sha256 == capture.receipt.output_wav_sha256
+    assert receipt.source_input_wav_sha256 == capture.receipt.input_wav_sha256
+    assert receipt.source_output_raw_float32_sha256 == (capture.receipt.output_raw_float32_sha256)
+    assert receipt.source_input_raw_float32_sha256 == (capture.receipt.input_raw_float32_sha256)
+    assert receipt.candidate_lag_min == 0
+    assert receipt.candidate_lag_max == 544
+    assert receipt.lag_convention == "positive_input_lags_output"
+    assert receipt.deconvolution_time_origin == ("reference_deconvolution_unique_absolute_peak")
+    assert receipt.ir_raw_definition == "input_deconvolution_from_reference_peak"
+    assert receipt.phase_unwrap_axis == "frequency_last_axis"
+    assert receipt.matched_correlation_absolute == pytest.approx(1.0)
+    assert receipt.estimated_latency_seconds == pytest.approx(37 / 48000)
+    assert receipt.deconvolution_fft_length == 32768
+    assert receipt.hardware_ready is False
+    assert receipt.full_duplex_verified is False
+    assert receipt.shared_clock_verified is False
+    assert receipt.channel_mapping_verified is False
+    assert receipt.calibration_file_verified is False
+    assert receipt.calibration_applied is False
+    assert receipt.absolute_spl_calibrated is False
+    assert receipt.electrical_loopback_available is False
+
+
+def _rewrite_sidecar(path: Path, sidecar: Path) -> None:
+    digest = hashlib.sha256(path.read_bytes()).hexdigest()
+    sidecar.write_text(f"{digest}  {path.name}\n", encoding="ascii", newline="\n")
+
+
+def test_receipt_descriptors_cover_and_hash_every_npz_array(tmp_path: Path) -> None:
+    *_, processing = _publish_processing(tmp_path)
+    arrays = load_deterministic_npz(
+        (processing.processing_path / "processing_arrays.npz").read_bytes()
+    )
+    assert set(processing.receipt.array_descriptors) == set(arrays)
+    assert len(arrays) == 21
+    for name, array in arrays.items():
+        descriptor = processing.receipt.array_descriptors[name]
+        assert descriptor.shape == array.shape
+        assert descriptor.dtype == str(array.dtype)
+        assert descriptor.raw_sha256 == hashlib.sha256(array.tobytes(order="C")).hexdigest()
+
+
+def test_processing_payloads_are_byte_deterministic_across_roots(tmp_path: Path) -> None:
+    first = _publish_processing(tmp_path / "first")[-1]
+    second = _publish_processing(tmp_path / "second")[-1]
+    for name in {
+        "processing_arrays.npz",
+        "processing_arrays.npz.sha256",
+        "processing_receipt.json",
+        "processing_receipt.sha256",
+        "processing_metadata.json",
+    }:
+        assert (first.processing_path / name).read_bytes() == (
+            second.processing_path / name
+        ).read_bytes()
+
+
+@pytest.mark.parametrize("tamper", ["arrays", "receipt", "metadata", "record", "extra"])
+def test_validator_rejects_processing_tamper_read_only(tmp_path: Path, tamper: str) -> None:
+    store, bundle, scenario, ess_root, _, _, processing = _publish_processing(tmp_path)
+    root = processing.processing_path
+    if tamper == "arrays":
+        path = root / "processing_arrays.npz"
+        payload = bytearray(path.read_bytes())
+        payload[-1] ^= 1
+        path.write_bytes(payload)
+        _rewrite_sidecar(path, root / "processing_arrays.npz.sha256")
+    elif tamper == "receipt":
+        path = root / "processing_receipt.json"
+        value = json.loads(path.read_bytes())
+        value["estimated_latency_samples"] += 1
+        path.write_bytes(
+            (json.dumps(value, ensure_ascii=False, sort_keys=True, indent=2) + "\n").encode()
+        )
+        _rewrite_sidecar(path, root / "processing_receipt.sha256")
+    elif tamper == "metadata":
+        path = root / "processing_metadata.json"
+        value = json.loads(path.read_bytes())
+        value["hardware_io_performed"] = True
+        path.write_bytes(
+            (json.dumps(value, ensure_ascii=False, sort_keys=True, indent=2) + "\n").encode()
+        )
+    elif tamper == "record":
+        path = root / "processing_record.json"
+        value = json.loads(path.read_bytes())
+        value["result_marker"] = "tampered"
+        path.write_bytes(
+            (json.dumps(value, ensure_ascii=False, sort_keys=True, indent=2) + "\n").encode()
+        )
+    else:
+        path = root / "extra.bin"
+        path.write_bytes(b"extra")
+    tampered = path.read_bytes()
+    with pytest.raises((EssProcessingPersistenceError, ValidationError, ValueError)):
+        validate_ess_processing(
+            store=store,
+            bundle=bundle,
+            scenario=scenario,
+            ess_artifact_root=ess_root,
+            session_id="capture-session",
+            source_run_id="capture-1",
+            processing_id="processing-1",
+        )
+    assert path.read_bytes() == tampered
+
+
+def test_processing_cli_complete_workflow_has_required_markers(
+    tmp_path: Path, capsys: pytest.CaptureFixture[str]
+) -> None:
+    store, _, _, ess_root, _, _ = _published_capture(tmp_path)
+    synthetic_root = store.roots.synthetic
+    bundle_args = [
+        "--project-root",
+        str(PROJECT_ROOT),
+        "--audio",
+        "tests/fixtures/audio/ess_offline_development.yaml",
+        "--protocol",
+        "config/protocols/stage4_four_node_states.yaml",
+        "--synthetic-root",
+        str(synthetic_root),
+        "--session-id",
+        "capture-session",
+        "--source-run-id",
+        "capture-1",
+        "--processing-id",
+        "cli-processing",
+        "--scenario",
+        "tests/fixtures/audio/virtual_duplex_development.yaml",
+        "--ess-artifact-root",
+        str(ess_root),
+    ]
+    cli.main(["process-simulated-capture", *bundle_args])
+    generated = capsys.readouterr().out
+    cli.main(["validate-simulated-processing", *bundle_args])
+    validated = capsys.readouterr().out
+    for output in (generated, validated):
+        assert "SYNTHETIC_ONLY" in output
+        assert "OFFLINE_PROCESSING_ONLY" in output
+        assert "NO_HARDWARE_AUDIO_IO_PERFORMED" in output
+        assert "NOT_AN_EXPERIMENTAL_RESULT" in output
+        assert "latency_samples=37" in output
+        assert "ir_peak_index=37" in output
+
+
+@pytest.mark.parametrize(
+    "forbidden", ["--real-root", "--expected-latency", "--expected-gain", "--device"]
+)
+def test_processing_cli_rejects_forbidden_authority_options(forbidden: str) -> None:
+    with pytest.raises(SystemExit):
+        cli._parser().parse_args(
+            [
+                "process-simulated-capture",
+                "--protocol",
+                "config/protocols/stage4_four_node_states.yaml",
+                "--synthetic-root",
+                "synthetic",
+                "--session-id",
+                "session",
+                "--source-run-id",
+                "capture",
+                "--processing-id",
+                "processing",
+                "--scenario",
+                "scenario.yaml",
+                "--ess-artifact-root",
+                "ess",
+                forbidden,
+                "1",
+            ]
+        )
+
+
+def test_concurrent_processing_publication_has_at_most_one_success(tmp_path: Path) -> None:
+    store, bundle, scenario, ess_root, _, _ = _published_capture(tmp_path)
+
+    def publish() -> object:
+        return publish_ess_processing(
+            store=store,
+            bundle=bundle,
+            scenario=scenario,
+            ess_artifact_root=ess_root,
+            session_id="capture-session",
+            source_run_id="capture-1",
+            processing_id="concurrent",
+            now=lambda: FIXED_TIME,
+        )
+
+    with ThreadPoolExecutor(max_workers=2) as executor:
+        futures = [executor.submit(publish) for _ in range(2)]
+    successes = [future.result() for future in futures if future.exception() is None]
+    failures = [future.exception() for future in futures if future.exception() is not None]
+    assert len(successes) == 1
+    assert len(failures) == 1
+    root = store.session_path(DataOrigin.SYNTHETIC, "capture-session") / "processed"
+    assert len(list(root.rglob("PROCESSING_COMPLETE"))) == 1
+    assert not list(root.rglob("*.publish.lock"))
+    assert not list(root.rglob("*.staging-*"))
+
+
+def test_processing_staging_failure_cleans_owned_residue(
+    tmp_path: Path, monkeypatch: pytest.MonkeyPatch
+) -> None:
+    store, bundle, scenario, ess_root, _, _ = _published_capture(tmp_path)
+
+    def fail_receipt(path: str | Path, payload: bytes) -> None:
+        if Path(path).name == "processing_receipt.json":
+            raise OSError("injected processing staging failure")
+        atomic_write_bytes(path, payload)
+
+    monkeypatch.setattr("acoustic_ladder.storage.store.atomic_write_bytes", fail_receipt)
+    with pytest.raises(EssProcessingPersistenceError, match="published=false"):
+        publish_ess_processing(
+            store=store,
+            bundle=bundle,
+            scenario=scenario,
+            ess_artifact_root=ess_root,
+            session_id="capture-session",
+            source_run_id="capture-1",
+            processing_id="failure",
+            now=lambda: FIXED_TIME,
+        )
+    root = store.session_path(DataOrigin.SYNTHETIC, "capture-session") / "processed"
+    assert not list(root.rglob("processing_failure"))
+    assert not list(root.rglob("*.publish.lock"))
+    assert not list(root.rglob("*.staging-*"))
+
+
+def test_missing_source_run_completion_is_rejected_without_processing(tmp_path: Path) -> None:
+    store, bundle, scenario, ess_root, _, capture = _published_capture(tmp_path)
+    (capture.run_path / "RUN_COMPLETE").unlink()
+    with pytest.raises(StorageError, match="missing or incomplete"):
+        publish_ess_processing(
+            store=store,
+            bundle=bundle,
+            scenario=scenario,
+            ess_artifact_root=ess_root,
+            session_id="capture-session",
+            source_run_id="capture-1",
+            processing_id="must-not-publish",
+            now=lambda: FIXED_TIME,
+        )
+    processed = store.session_path(DataOrigin.SYNTHETIC, "capture-session") / "processed"
+    assert not list(processed.rglob("processing_must-not-publish"))

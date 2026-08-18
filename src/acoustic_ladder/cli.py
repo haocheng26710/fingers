@@ -13,6 +13,10 @@ from pydantic import ValidationError
 from acoustic_ladder import __version__
 from acoustic_ladder.audio.backend import SoundDeviceInventoryBackend
 from acoustic_ladder.audio.context_validation import validate_audio_context_bundle
+from acoustic_ladder.audio.ess_processing_persistence import (
+    publish_ess_processing,
+    validate_ess_processing,
+)
 from acoustic_ladder.audio.excitation_persistence import (
     SAFETY_MARKER,
     publish_offline_ess_artifact,
@@ -278,6 +282,16 @@ def _parser() -> argparse.ArgumentParser:
     validate_capture.add_argument("--run-id", required=True)
     validate_capture.add_argument("--scenario", required=True)
     validate_capture.add_argument("--ess-artifact-root", required=True)
+
+    for command_name in ("process-simulated-capture", "validate-simulated-processing"):
+        processing = commands.add_parser(command_name)
+        _add_bundle_arguments(processing)
+        processing.add_argument("--synthetic-root", required=True)
+        processing.add_argument("--session-id", required=True)
+        processing.add_argument("--source-run-id", required=True)
+        processing.add_argument("--processing-id", required=True)
+        processing.add_argument("--scenario", required=True)
+        processing.add_argument("--ess-artifact-root", required=True)
     return parser
 
 
@@ -522,6 +536,48 @@ def main(argv: list[str] | None = None) -> None:
             f"final_state={receipt.final_state}"
         )
         print("SYNTHETIC_ONLY")
+        print("NO_HARDWARE_AUDIO_IO_PERFORMED")
+        print("NOT_AN_EXPERIMENTAL_RESULT")
+        return
+    if args.command in {"process-simulated-capture", "validate-simulated-processing"}:
+        project_root = Path(args.project_root).resolve()
+        loaded_bundle = _load_bundle(args)
+        scenario_path = Path(args.scenario)
+        if not scenario_path.is_absolute():
+            scenario_path = project_root / scenario_path
+        loaded_scenario = load_virtual_capture_scenario(scenario_path, project_root=project_root)
+        processing_store = _synthetic_store(args.synthetic_root)
+        arguments = {
+            "store": processing_store,
+            "bundle": loaded_bundle,
+            "scenario": loaded_scenario,
+            "ess_artifact_root": args.ess_artifact_root,
+            "session_id": args.session_id,
+            "source_run_id": args.source_run_id,
+            "processing_id": args.processing_id,
+        }
+        if args.command == "process-simulated-capture":
+            processed = publish_ess_processing(**arguments, now=_now)
+            label = "PASS simulated offline processing"
+        else:
+            processed = validate_ess_processing(**arguments)
+            label = "PASS simulated processing validation"
+        processing_receipt = processed.receipt
+        print(
+            f"{label}: processing_id={processing_receipt.processing_id} "
+            f"source_run_id={processing_receipt.source_run_id} "
+            f"latency_samples={processing_receipt.estimated_latency_samples} "
+            f"correlation={processing_receipt.matched_correlation_signed} "
+            f"ir_peak_index={processing_receipt.ir_dominant_peak_index} "
+            f"ir_peak_value={processing_receipt.ir_dominant_peak_value} "
+            f"arrays_sha256={processed.arrays_sha256} "
+            f"receipt_sha256={processed.receipt_sha256} "
+            f"sample_rate_hz={processing_receipt.sample_rate_hz} "
+            f"fft_length={processing_receipt.transfer_fft_length} "
+            f"frequency_bin_count={processing_receipt.frequency_bin_count}"
+        )
+        print("SYNTHETIC_ONLY")
+        print("OFFLINE_PROCESSING_ONLY")
         print("NO_HARDWARE_AUDIO_IO_PERFORMED")
         print("NOT_AN_EXPERIMENTAL_RESULT")
         return

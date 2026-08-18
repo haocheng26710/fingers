@@ -492,8 +492,8 @@ def test_cli_offline_workflow_never_requests_audio_backend(
     assert "PASS offline ESS" in output
 
 
-def test_schema_export_now_contains_exactly_seventeen_models() -> None:
-    assert len(ALL_GENERATED_SCHEMA_MODELS) == 17
+def test_schema_export_contains_all_active_models() -> None:
+    assert len(ALL_GENERATED_SCHEMA_MODELS) == 18
     check_schemas(REPO_ROOT / "schemas")
 
 
