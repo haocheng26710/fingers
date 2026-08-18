@@ -1,6 +1,6 @@
 # Synthetic offline ESS processing contract
 
-DEV-04.01/DEV-04.01R process only an already completed, semantically replay-validated DEV-03.04 virtual capture. It is a development software fixture, not a formal experiment, acoustic measurement, hardware timing observation, calibration result, or playback/recording action. Every receipt fixes `data_origin=synthetic`, `run_mode=development`, `formal_eligible=false`, `experimental_result=false`, `hardware_io_performed=false`, and `SYNTHETIC_OFFLINE_ESS_PROCESSING_NOT_AN_EXPERIMENTAL_RESULT`.
+DEV-04.01/DEV-04.01R/DEV-04.01R2 process only an already completed, semantically replay-validated DEV-03.04 virtual capture. It is a development software fixture, not a formal experiment, acoustic measurement, hardware timing observation, calibration result, or playback/recording action. Every receipt fixes `data_origin=synthetic`, `run_mode=development`, `formal_eligible=false`, `experimental_result=false`, `hardware_io_performed=false`, and `SYNTHETIC_OFFLINE_ESS_PROCESSING_NOT_AN_EXPERIMENTAL_RESULT`.
 
 ## Authority boundary
 
@@ -24,6 +24,8 @@ Full reference and input deconvolutions are preserved with sample/second axes re
 
 Raw and aligned transfer functions use a common power-of-two `rfft` length. Raw transfer is the complex spectral ratio of input-after-pre-silence to output-after-pre-silence. Aligned transfer uses the same denominator and a captured input advanced by measured latency with zero fill. Spectral division is performed only where the reference spectrum exceeds the float64 roundoff threshold `max(abs(reference_spectrum)) * eps * reference_sample_count`; other bins are zero, and the configured analysis band must retain the ESS energy needed by its oracle. This ratio makes an identity capture unity magnitude and zero phase instead of retaining the finite ESS inverse's sidelobe response. It does not alter the inverse, full deconvolutions, raw IR, or aligned IR.
 
+The processing receipt schema and processing algorithm versions are both `1.1.0`. Strict required literals identify the estimator as `complex_spectral_ratio`, spell out the raw and zero-fill-aligned `rfft(input)/rfft(output)` definitions, record the exact float64 threshold formula, and state that bins at or below that threshold are zero. These are processing-receipt versions only: the ESS excitation algorithm and processing event/record schemas remain `1.0.0`.
+
 The archive stores real/imaginary transfer components, linear/dB magnitudes, wrapped/unwrapped radians, frequency, and the inclusive AnalysisConfig band mask. dB uses `max(magnitude, np.finfo(np.float64).tiny)` before `20*log10`; no smoothing is applied.
 
 ## Deterministic arrays and immutable publication
@@ -38,7 +40,7 @@ After the seven-file directory is published, the publisher appends one root-conf
 
 `validate_ess_processing` first revalidates the source virtual capture, then requires the exact processing file set, exact byte-canonical sidecars, canonical JSON, and exact `PROCESSING_COMPLETE == b"complete\n"`. It rereads source WAV/ESS/config facts, recomputes all mathematics and all 21 arrays, rebuilds descriptors, NPZ bytes, receipt and metadata, and compares them byte-for-byte.
 
-The validator also requires exactly one matching `processing_created` event while allowing valid events for other processing identities. It strictly validates canonical JSON, filename/JSON sequence, event/session/origin identity, payload fields, record hash, receipt hash and event time. The independently stored event time supplies the expected `ProcessingRecord.created_at`; the record is not allowed to validate its own time. Missing, duplicate, malformed, noncanonical or mismatched events are rejected. Legacy DEV-04.01 processing without this event must be regenerated. Validation never repairs, rewrites or removes a failed artifact.
+The validator also requires exactly one `processing_created` event matching the session-local composite identity `(source_run_id, processing_id)`. The same processing ID may therefore occur under different source runs, while duplicate events for the same composite identity remain invalid. It strictly validates canonical JSON, filename/JSON sequence, event/session/origin identity, payload fields, record hash, receipt hash and event time. The independently stored event time supplies the expected `ProcessingRecord.created_at`; the record is not allowed to validate its own time. Missing, duplicate, malformed, noncanonical or mismatched events are rejected. Legacy DEV-04.01 processing without this event, and receipts before schema/algorithm `1.1.0`, must be regenerated. Validation never repairs, rewrites or removes a failed artifact.
 
 This event provides project-internal integrity and audit binding only. Because the event and processing files have no digital signature, external append-only witness, trusted timestamp or external read-only log, coordinated modification of all bound files by a malicious actor is outside the claim. This contract is not cryptographic authenticity or cryptographic immutability.
 

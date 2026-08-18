@@ -98,7 +98,7 @@
       "type": "string"
     },
     "algorithm_version": {
-      "const": "1.0.0",
+      "const": "1.1.0",
       "title": "Algorithm Version",
       "type": "string"
     },
@@ -411,7 +411,7 @@
       "type": "integer"
     },
     "schema_version": {
-      "const": "1.0.0",
+      "const": "1.1.0",
       "title": "Schema Version",
       "type": "string"
     },
@@ -503,15 +503,40 @@
       "title": "Source Run Id",
       "type": "string"
     },
+    "spectral_division_below_threshold_policy": {
+      "const": "zero_where_reference_at_or_below_threshold",
+      "title": "Spectral Division Below Threshold Policy",
+      "type": "string"
+    },
+    "spectral_division_threshold_formula": {
+      "const": "max_abs_reference_spectrum*float64_epsilon*reference_sample_count",
+      "title": "Spectral Division Threshold Formula",
+      "type": "string"
+    },
     "sweep_sample_count": {
       "exclusiveMinimum": 1,
       "title": "Sweep Sample Count",
       "type": "integer"
     },
+    "transfer_aligned_definition": {
+      "const": "rfft(zero_fill_advance(input_after_pre,estimated_latency_samples))/rfft(output_after_pre)",
+      "title": "Transfer Aligned Definition",
+      "type": "string"
+    },
+    "transfer_estimator_id": {
+      "const": "complex_spectral_ratio",
+      "title": "Transfer Estimator Id",
+      "type": "string"
+    },
     "transfer_fft_length": {
       "exclusiveMinimum": 0,
       "title": "Transfer Fft Length",
       "type": "integer"
+    },
+    "transfer_raw_definition": {
+      "const": "rfft(input_after_pre)/rfft(output_after_pre)",
+      "title": "Transfer Raw Definition",
+      "type": "string"
     }
   },
   "required": [
@@ -547,6 +572,11 @@
     "latency_method",
     "lag_convention",
     "alignment_method",
+    "transfer_estimator_id",
+    "transfer_raw_definition",
+    "transfer_aligned_definition",
+    "spectral_division_threshold_formula",
+    "spectral_division_below_threshold_policy",
     "deconvolution_time_origin",
     "ir_raw_definition",
     "phase_unwrap_axis",

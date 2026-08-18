@@ -5,6 +5,7 @@ import inspect
 import io
 import json
 from concurrent.futures import ThreadPoolExecutor
+from datetime import timedelta
 from pathlib import Path
 
 import numpy as np
@@ -13,6 +14,7 @@ from pydantic import ValidationError
 
 from acoustic_ladder import cli
 from acoustic_ladder.audio.ess_processing_models import (
+    EssProcessingReceipt,
     ProcessingArrayDescriptor,
     ProcessingRecord,
     PublishedEssProcessing,
@@ -23,6 +25,7 @@ from acoustic_ladder.audio.ess_processing_persistence import (
     publish_ess_processing,
     validate_ess_processing,
 )
+from acoustic_ladder.audio.excitation_persistence import publish_offline_ess_artifact
 from acoustic_ladder.audio.virtual_capture_models import (
     LoadedVirtualCaptureScenario,
     load_virtual_capture_scenario,
@@ -32,15 +35,21 @@ from acoustic_ladder.audio.virtual_capture_persistence import (
     publish_virtual_capture,
 )
 from acoustic_ladder.config.bundle import LoadedBundle, canonical_json_bytes
-from acoustic_ladder.domain.models import DataOrigin
+from acoustic_ladder.domain.models import (
+    DataOrigin,
+    ReassemblyRecord,
+    RunMode,
+    SessionRecord,
+)
 from acoustic_ladder.storage.io import StorageError, atomic_write_bytes
 from acoustic_ladder.storage.npz import deterministic_npz_bytes, load_deterministic_npz
-from acoustic_ladder.storage.store import ImmutableSessionStore
+from acoustic_ladder.storage.store import DataRoots, ImmutableSessionStore
 from tests.dev03.test_virtual_capture import (
     FIXED_TIME,
     PROJECT_ROOT,
     SCENARIO_PATH,
     _capture_setup,
+    _development_bundle,
 )
 
 
@@ -140,6 +149,60 @@ def _publish_processing(tmp_path: Path, processing_id: str = "processing-1") -> 
         now=lambda: FIXED_TIME,
     )
     return store, bundle, scenario, ess_root, real_root, capture, processing
+
+
+def _fixed_identity_processing(tmp_path: Path) -> PublishedEssProcessing:
+    store = ImmutableSessionStore(
+        DataRoots(synthetic=tmp_path / "synthetic", real=tmp_path / "real")
+    )
+    bundle = _development_bundle()
+    session = SessionRecord(
+        session_id="dev0401r2",
+        session_schema_version="1.0.0",
+        created_at=FIXED_TIME,
+        data_origin=DataOrigin.SYNTHETIC,
+        run_mode=RunMode.DEVELOPMENT,
+        operator=None,
+        device_manifest_reference="manifest/device_manifest.provisional.json",
+        config_bundle_reference="protocol/config_bundle.json",
+        reassembly_ids=["assembly001"],
+        run_ids=[],
+        immutable_status="immutable",
+        notes="DEV-04.01R2 deterministic golden",
+    )
+    reassembly = ReassemblyRecord(
+        reassembly_id="assembly001",
+        session_id=session.session_id,
+        sequence_index=0,
+        created_at=FIXED_TIME,
+        assembly_description="DEV-04.01R2 deterministic golden",
+        operator_confirmation=False,
+        related_run_ids=[],
+    )
+    store.create_synthetic_session(session, [reassembly], bundle)
+    ess = publish_offline_ess_artifact(tmp_path / "ess", "source_ess", bundle.configs["audio"])
+    scenario = load_virtual_capture_scenario(SCENARIO_PATH, project_root=PROJECT_ROOT)
+    publish_virtual_capture(
+        store=store,
+        bundle=bundle,
+        scenario=scenario,
+        ess_artifact_root=ess.artifact_root,
+        session_id="dev0401r2",
+        reassembly_id="assembly001",
+        run_id="capture001",
+        measurement_order=0,
+        now=lambda: FIXED_TIME,
+    )
+    return publish_ess_processing(
+        store=store,
+        bundle=bundle,
+        scenario=scenario,
+        ess_artifact_root=ess.artifact_root,
+        session_id="dev0401r2",
+        source_run_id="capture001",
+        processing_id="processing001",
+        now=lambda: FIXED_TIME,
+    )
 
 
 def test_processing_publisher_api_has_no_truth_waveform_or_real_root_parameters() -> None:
@@ -261,6 +324,81 @@ def test_two_processing_events_are_distinguished_by_identity(tmp_path: Path) -> 
         assert validated.processing_path == published.processing_path
 
 
+def test_dev0401r2_same_processing_id_on_two_source_runs_uses_composite_event_identity(
+    tmp_path: Path,
+) -> None:
+    store, bundle, scenario, ess_root, _, first_capture = _published_capture(tmp_path)
+    second_capture = publish_virtual_capture(
+        store=store,
+        bundle=bundle,
+        scenario=scenario,
+        ess_artifact_root=ess_root,
+        session_id="capture-session",
+        reassembly_id="assembly-1",
+        run_id="capture-2",
+        measurement_order=1,
+        now=lambda: FIXED_TIME + timedelta(seconds=1),
+    )
+    first = publish_ess_processing(
+        store=store,
+        bundle=bundle,
+        scenario=scenario,
+        ess_artifact_root=ess_root,
+        session_id="capture-session",
+        source_run_id="capture-1",
+        processing_id="processing-1",
+        now=lambda: FIXED_TIME,
+    )
+    second = publish_ess_processing(
+        store=store,
+        bundle=bundle,
+        scenario=scenario,
+        ess_artifact_root=ess_root,
+        session_id="capture-session",
+        source_run_id="capture-2",
+        processing_id="processing-1",
+        now=lambda: FIXED_TIME + timedelta(seconds=1),
+    )
+
+    assert first_capture.receipt.measurement_order == 0
+    assert second_capture.receipt.measurement_order == 1
+    assert first.processing_path != second.processing_path
+    assert first.processing_path.is_dir()
+    assert second.processing_path.is_dir()
+    events = [json.loads(path.read_bytes()) for path in _processing_event_files(store)]
+    assert {(event["source_run_id"], event["processing_id"]) for event in events} == {
+        ("capture-1", "processing-1"),
+        ("capture-2", "processing-1"),
+    }
+    for source_run_id, published in (("capture-1", first), ("capture-2", second)):
+        event = next(event for event in events if event["source_run_id"] == source_run_id)
+        record_path = published.processing_path / "processing_record.json"
+        record = json.loads(record_path.read_bytes())
+        assert event["created_at"] == record["created_at"]
+        assert (
+            event["processing_record_sha256"]
+            == hashlib.sha256(record_path.read_bytes()).hexdigest()
+        )
+        assert event["processing_receipt_sha256"] == published.receipt_sha256
+
+    failures: list[str] = []
+    for source_run_id, published in (("capture-1", first), ("capture-2", second)):
+        try:
+            validated = validate_ess_processing(
+                store=store,
+                bundle=bundle,
+                scenario=scenario,
+                ess_artifact_root=ess_root,
+                session_id="capture-session",
+                source_run_id=source_run_id,
+                processing_id="processing-1",
+            )
+            assert validated.processing_path == published.processing_path
+        except EssProcessingPersistenceError as exc:
+            failures.append(f"{source_run_id}: {exc}")
+    assert failures == []
+
+
 def test_nominal_publication_recovers_waveform_latency_and_gain(tmp_path: Path) -> None:
     *_, processing = _publish_processing(tmp_path)
     arrays = load_deterministic_npz(
@@ -365,6 +503,99 @@ def test_processing_receipt_closes_source_timing_latency_and_safety_audit(
     assert receipt.calibration_applied is False
     assert receipt.absolute_spl_calibrated is False
     assert receipt.electrical_loopback_available is False
+
+
+def test_dev0401r2_processing_receipt_versions_and_transfer_semantics_are_explicit(
+    tmp_path: Path,
+) -> None:
+    *_, processing = _publish_processing(tmp_path)
+    receipt = processing.receipt.model_dump(mode="json")
+    assert receipt["schema_version"] == "1.1.0"
+    assert receipt["algorithm_version"] == "1.1.0"
+    assert receipt["transfer_estimator_id"] == "complex_spectral_ratio"
+    assert receipt["transfer_raw_definition"] == ("rfft(input_after_pre)/rfft(output_after_pre)")
+    assert receipt["transfer_aligned_definition"] == (
+        "rfft(zero_fill_advance(input_after_pre,estimated_latency_samples))/rfft(output_after_pre)"
+    )
+    assert receipt["spectral_division_threshold_formula"] == (
+        "max_abs_reference_spectrum*float64_epsilon*reference_sample_count"
+    )
+    assert receipt["spectral_division_below_threshold_policy"] == (
+        "zero_where_reference_at_or_below_threshold"
+    )
+
+
+def test_dev0401r2_processing_receipt_requires_every_transfer_provenance_field(
+    tmp_path: Path,
+) -> None:
+    *_, processing = _publish_processing(tmp_path)
+    payload = processing.receipt.model_dump(mode="python")
+    fields = {
+        "transfer_estimator_id",
+        "transfer_raw_definition",
+        "transfer_aligned_definition",
+        "spectral_division_threshold_formula",
+        "spectral_division_below_threshold_policy",
+    }
+    for field in fields:
+        incomplete = dict(payload)
+        del incomplete[field]
+        with pytest.raises(ValidationError):
+            EssProcessingReceipt.model_validate(incomplete)
+
+
+@pytest.mark.parametrize(
+    ("field", "value"),
+    [
+        ("schema_version", "1.0.0"),
+        ("algorithm_version", "1.0.0"),
+        ("transfer_estimator_id", "spectral_ratio"),
+        ("transfer_raw_definition", "rfft(output_after_pre)/rfft(input_after_pre)"),
+        ("transfer_aligned_definition", "circular_shift_then_ratio"),
+        ("spectral_division_threshold_formula", "absolute_epsilon"),
+        ("spectral_division_below_threshold_policy", "nan_below_threshold"),
+    ],
+)
+def test_dev0401r2_processing_receipt_rejects_old_versions_and_wrong_transfer_literals(
+    tmp_path: Path, field: str, value: str
+) -> None:
+    *_, processing = _publish_processing(tmp_path)
+    payload = processing.receipt.model_dump(mode="python")
+    payload[field] = value
+    with pytest.raises(ValidationError):
+        EssProcessingReceipt.model_validate(payload)
+
+
+def test_dev0401r2_processing_receipt_rejects_extra_fields(tmp_path: Path) -> None:
+    *_, processing = _publish_processing(tmp_path)
+    payload = processing.receipt.model_dump(mode="python")
+    payload["transfer_implementation_note"] = "unversioned"
+    with pytest.raises(ValidationError):
+        EssProcessingReceipt.model_validate(payload)
+
+
+def test_dev0401r2_validator_rejects_old_algorithm_receipt_with_recomputed_sidecar_read_only(
+    tmp_path: Path,
+) -> None:
+    store, bundle, scenario, ess_root, _, _, processing = _publish_processing(tmp_path)
+    receipt_path = processing.processing_path / "processing_receipt.json"
+    receipt = json.loads(receipt_path.read_bytes())
+    receipt["schema_version"] = "1.0.0"
+    receipt["algorithm_version"] = "1.0.0"
+    receipt_path.write_bytes(canonical_json_bytes(receipt))
+    _rewrite_sidecar(receipt_path, processing.processing_path / "processing_receipt.sha256")
+    attacked = _session_file_bytes(store)
+    with pytest.raises(EssProcessingPersistenceError):
+        validate_ess_processing(
+            store=store,
+            bundle=bundle,
+            scenario=scenario,
+            ess_artifact_root=ess_root,
+            session_id="capture-session",
+            source_run_id="capture-1",
+            processing_id="processing-1",
+        )
+    assert _session_file_bytes(store) == attacked
 
 
 def _rewrite_sidecar(path: Path, sidecar: Path) -> None:
@@ -662,6 +893,31 @@ def test_processing_payloads_are_byte_deterministic_across_roots(tmp_path: Path)
         assert (first.processing_path / name).read_bytes() == (
             second.processing_path / name
         ).read_bytes()
+
+
+def test_dev0401r2_fixed_identity_processing_golden_hashes(tmp_path: Path) -> None:
+    processing = _fixed_identity_processing(tmp_path)
+    expected = {
+        "processing_arrays.npz": (
+            "e15435561f404813a46b9558197b76e5ed6e1746fed394225fd1758a3dc4fa89"
+        ),
+        "processing_arrays.npz.sha256": (
+            "f9867a44d0573cd60ce2a42c7a8f279210e1a6c1cf18bcf6c87f5d0d958ba902"
+        ),
+        "processing_receipt.json": (
+            "25616c6e2d42413243eb8e14cd099d01e69e736c29ffcce5cdd413e97841ad5f"
+        ),
+        "processing_receipt.sha256": (
+            "38ef680d07fbc88ca7f2d59bba10866439fe2db80b95b34bcea7eec202830e63"
+        ),
+        "processing_metadata.json": (
+            "daa1c08780c9381604f08be14a268bcb7a539844622096de588c5c020c2a04cb"
+        ),
+    }
+    assert {
+        name: hashlib.sha256((processing.processing_path / name).read_bytes()).hexdigest()
+        for name in expected
+    } == expected
 
 
 @pytest.mark.parametrize("tamper", ["arrays", "receipt", "metadata", "record", "extra"])

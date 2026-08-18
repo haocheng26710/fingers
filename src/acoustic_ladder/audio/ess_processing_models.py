@@ -37,7 +37,7 @@ class ProcessingArrayDescriptor(EssProcessingModel):
 
 
 class EssProcessingReceipt(EssProcessingModel):
-    schema_version: Literal["1.0.0"]
+    schema_version: Literal["1.1.0"]
     processing_id: str = Field(pattern=r"^[A-Za-z0-9_.-]+$")
     source_run_id: str = Field(pattern=r"^[A-Za-z0-9_.-]+$")
     session_id: str = Field(pattern=r"^[A-Za-z0-9_.-]+$")
@@ -62,13 +62,22 @@ class EssProcessingReceipt(EssProcessingModel):
     analysis_config_raw_sha256: str = Field(pattern=SHA256_PATTERN)
     analysis_config_normalized_sha256: str = Field(pattern=SHA256_PATTERN)
     algorithm_id: Literal["offline_ess_deconvolution_transfer"]
-    algorithm_version: Literal["1.0.0"]
+    algorithm_version: Literal["1.1.0"]
     inverse_formula_id: Literal["farina_exponential_sweep_amplitude_compensation"]
     inverse_filter_formula: Literal["s[N-1-n]*exp(-ln(f_end/f_start)*n/N)"]
     convolution_method: Literal["full_linear_rfft_power_of_two"]
     latency_method: Literal["normalized_full_sweep_matched_correlation"]
     lag_convention: Literal["positive_input_lags_output"]
     alignment_method: Literal["zero_fill_no_circular_wrap"]
+    transfer_estimator_id: Literal["complex_spectral_ratio"]
+    transfer_raw_definition: Literal["rfft(input_after_pre)/rfft(output_after_pre)"]
+    transfer_aligned_definition: Literal[
+        "rfft(zero_fill_advance(input_after_pre,estimated_latency_samples))/rfft(output_after_pre)"
+    ]
+    spectral_division_threshold_formula: Literal[
+        "max_abs_reference_spectrum*float64_epsilon*reference_sample_count"
+    ]
+    spectral_division_below_threshold_policy: Literal["zero_where_reference_at_or_below_threshold"]
     deconvolution_time_origin: Literal["reference_deconvolution_unique_absolute_peak"]
     ir_raw_definition: Literal["input_deconvolution_from_reference_peak"]
     phase_unwrap_axis: Literal["frequency_last_axis"]

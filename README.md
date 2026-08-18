@@ -1,6 +1,6 @@
 # Acoustic Ladder
 
-本仓库当前实现到 `DEV-04.01R`：除模型包、配置、不可变存储、synthetic 接口数据和只读音频清单外，现提供严格的离线 ESS 开发夹具、确定性虚拟全双工采集，以及从已验证 synthetic capture 波形重算延迟、IR 和复传递函数的离线处理内核。DEV-04.01R 加固处理 sidecar/完成标记的规范字节、用 session event 绑定 processing record，并补齐独立数学 oracle；它不增加真实硬件接入或正式实验功能。
+本仓库当前实现到 `DEV-04.01R2`：除模型包、配置、不可变存储、synthetic 接口数据和只读音频清单外，现提供严格的离线 ESS 开发夹具、确定性虚拟全双工采集，以及从已验证 synthetic capture 波形重算延迟、IR 和复传递函数的离线处理内核。DEV-04.01R2 以 `(source_run_id, processing_id)` 区分 session 中的 processing event，并将 processing receipt schema/算法版本升级为 `1.1.0`，显式锁定 transfer 谱比与近零分母策略；它不增加真实硬件接入或正式实验功能。
 
 当前状态固定为：
 
@@ -160,7 +160,7 @@ CLI 成功输出 `SYNTHETIC_ONLY`、`NO_HARDWARE_AUDIO_IO_PERFORMED` 和 `NOT_AN
 
 `process-simulated-capture` 首先调用 capture 语义重放验证，再从已验证的 output-reference/input WAV、ESS metadata 和当前 AnalysisConfig 派生全部输入。调用者不能传 waveform、预期 latency/gain、预计算 IR/hash/receipt、real root 或设备参数。处理使用 float64、指数补偿逆滤波、完整线性 FFT 卷积、全 sweep 归一化相关延迟、零填充非循环对齐，以及 captured/reference 频谱比得到的 raw/aligned `rfft` 复传递函数；AnalysisConfig 的 500–8000 Hz 只形成 mask，不执行 smoothing。
 
-不可变结果位于 `processed/run_<source_run_id>/processing_<processing_id>/`，包含确定性 NPZ、strict receipt、固定 synthetic metadata、outer processing record、SHA256 sidecar 和 `PROCESSING_COMPLETE`。成功发布后还会追加唯一的 `processing_created` session event，绑定 record/receipt hashes 和时间；事件失败会报告 `published=true`，不会删除已发布目录。`validate-simulated-processing` 只读地重新验证 source capture、重做全部数学并逐字节比较产物，同时要求 sidecar/完成标记精确规范且事件绑定一致。该事件只提供项目内部完整性与审计关联，不是数字签名或可信时间戳。名义夹具得到的 37 samples 和约 0.5 是从波形恢复的 development fixture oracle，不是处理 API 输入，也不是声学实测值。详细契约见 `docs/architecture/ess-processing.md`。
+不可变结果位于 `processed/run_<source_run_id>/processing_<processing_id>/`，包含确定性 NPZ、strict receipt、固定 synthetic metadata、outer processing record、SHA256 sidecar 和 `PROCESSING_COMPLETE`。成功发布后还会追加 `processing_created` session event，绑定 record/receipt hashes 和时间；验证器以 `(source_run_id, processing_id)` 复合身份要求恰好一条匹配，因此不同 source run 可合法重用 processing ID，同一复合身份的重复事件仍被拒绝。Processing receipt 的 schema 和 algorithm 版本均为 `1.1.0`，并用严格字面量记录 raw/aligned 复谱比、分母阈值公式及低阈值置零策略。事件失败会报告 `published=true`，不会删除已发布目录。`validate-simulated-processing` 只读地重新验证 source capture、重做全部数学并逐字节比较产物。该事件只提供项目内部完整性与审计关联，不是数字签名或可信时间戳。名义夹具得到的 37 samples 和约 0.5 是从波形恢复的 development fixture oracle，不是处理 API 输入，也不是声学实测值。详细契约见 `docs/architecture/ess-processing.md`。
 
 详细契约见 `docs/architecture/`；数据根目录政策见 `data/README.md`。
 

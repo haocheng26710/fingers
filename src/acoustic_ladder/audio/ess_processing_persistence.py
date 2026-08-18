@@ -195,7 +195,7 @@ def _receipt(
     timing = ess_receipt.metadata.timing
     arrays = result.arrays
     return EssProcessingReceipt(
-        schema_version="1.0.0",
+        schema_version="1.1.0",
         processing_id=processing_id,
         source_run_id=source_run_id,
         session_id=session_id,
@@ -220,13 +220,23 @@ def _receipt(
         analysis_config_raw_sha256=raw_hash,
         analysis_config_normalized_sha256=normalized_hash,
         algorithm_id="offline_ess_deconvolution_transfer",
-        algorithm_version="1.0.0",
+        algorithm_version="1.1.0",
         inverse_formula_id="farina_exponential_sweep_amplitude_compensation",
         inverse_filter_formula="s[N-1-n]*exp(-ln(f_end/f_start)*n/N)",
         convolution_method="full_linear_rfft_power_of_two",
         latency_method="normalized_full_sweep_matched_correlation",
         lag_convention="positive_input_lags_output",
         alignment_method="zero_fill_no_circular_wrap",
+        transfer_estimator_id="complex_spectral_ratio",
+        transfer_raw_definition="rfft(input_after_pre)/rfft(output_after_pre)",
+        transfer_aligned_definition=(
+            "rfft(zero_fill_advance(input_after_pre,estimated_latency_samples))"
+            "/rfft(output_after_pre)"
+        ),
+        spectral_division_threshold_formula=(
+            "max_abs_reference_spectrum*float64_epsilon*reference_sample_count"
+        ),
+        spectral_division_below_threshold_policy=("zero_where_reference_at_or_below_threshold"),
         deconvolution_time_origin="reference_deconvolution_unique_absolute_peak",
         ir_raw_definition="input_deconvolution_from_reference_peak",
         phase_unwrap_axis="frequency_last_axis",
@@ -430,7 +440,7 @@ def _validated_processing_event(
             raise EssProcessingPersistenceError(
                 f"invalid {PROCESSING_EVENT_NAME} event filename sequence", published=True
             )
-        if event.processing_id == processing_id:
+        if event.source_run_id == source_run_id and event.processing_id == processing_id:
             matching.append(event)
     if len(matching) != 1:
         raise EssProcessingPersistenceError(
