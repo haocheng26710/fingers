@@ -1,6 +1,6 @@
 # Acoustic Ladder
 
-本仓库当前实现到 `DEV-04.01R2`：除模型包、配置、不可变存储、synthetic 接口数据和只读音频清单外，现提供严格的离线 ESS 开发夹具、确定性虚拟全双工采集，以及从已验证 synthetic capture 波形重算延迟、IR 和复传递函数的离线处理内核。DEV-04.01R2 以 `(source_run_id, processing_id)` 区分 session 中的 processing event，并将 processing receipt schema/算法版本升级为 `1.1.0`，显式锁定 transfer 谱比与近零分母策略；它不增加真实硬件接入或正式实验功能。
+本仓库当前实现到 `DEV-04.02`：除模型包、配置、不可变存储、synthetic 接口数据和只读音频清单外，现提供严格的离线 ESS 开发夹具、确定性虚拟全双工采集、离线 ESS processing，以及只陈述软件证据的 provisional QC 指标。QC 不应用阈值、不产生 pass/fail 判决、不声明硬件或实验就绪，也不增加真实硬件接入或正式实验功能。
 
 当前状态固定为：
 
@@ -150,6 +150,8 @@ uv --cache-dir .uv-cache run acoustic-ladder simulate-duplex-capture @bundle --s
 uv --cache-dir .uv-cache run acoustic-ladder validate-simulated-capture @bundle --synthetic-root $syntheticRoot --session-id virtual001 --run-id capture001 --scenario tests/fixtures/audio/virtual_duplex_development.yaml --ess-artifact-root (Join-Path $essRoot 'source_ess')
 uv --cache-dir .uv-cache run acoustic-ladder process-simulated-capture @bundle --synthetic-root $syntheticRoot --session-id virtual001 --source-run-id capture001 --processing-id processing001 --scenario tests/fixtures/audio/virtual_duplex_development.yaml --ess-artifact-root (Join-Path $essRoot 'source_ess')
 uv --cache-dir .uv-cache run acoustic-ladder validate-simulated-processing @bundle --synthetic-root $syntheticRoot --session-id virtual001 --source-run-id capture001 --processing-id processing001 --scenario tests/fixtures/audio/virtual_duplex_development.yaml --ess-artifact-root (Join-Path $essRoot 'source_ess')
+uv --cache-dir .uv-cache run acoustic-ladder qc-compute @bundle --synthetic-root $syntheticRoot --session-id virtual001 --source-run-id capture001 --processing-id processing001 --qc-id qc001 --scenario tests/fixtures/audio/virtual_duplex_development.yaml --ess-artifact-root (Join-Path $essRoot 'source_ess')
+uv --cache-dir .uv-cache run acoustic-ladder qc-validate @bundle --synthetic-root $syntheticRoot --session-id virtual001 --source-run-id capture001 --processing-id processing001 --qc-id qc001 --scenario tests/fixtures/audio/virtual_duplex_development.yaml --ess-artifact-root (Join-Path $essRoot 'source_ess')
 ```
 
 正常夹具把 12960 个 ESS samples 加 64 个精确零 tail，以 256-frame blocks 真实推进 51 次，最后一块 224 frames；虚拟输入严格为 `y[k] = 0.5 * x[k-37]`，越界为零。成功 run 包含 output reference、simulated input、源 ESS metadata、strict capture receipt 及各自 sidecar；receipt 明确记录与 run 一致的非负 `measurement_order`。publisher 和 validator 都会重新读取同一 project-relative 场景来源，并逐项核对当前原始字节、解析模型与规范化结果，因此加载后被修改、删除、移动或伪造的场景会被拒绝。validator 还重新生成 ESS、重放所有 blocks、比较数组与 canonical WAV、重建 trace/receipt，精确核对 synthetic metadata、完整 run envelope，以及 session 中保存的 manifest sidecar 和配置来源。
@@ -161,6 +163,14 @@ CLI 成功输出 `SYNTHETIC_ONLY`、`NO_HARDWARE_AUDIO_IO_PERFORMED` 和 `NOT_AN
 `process-simulated-capture` 首先调用 capture 语义重放验证，再从已验证的 output-reference/input WAV、ESS metadata 和当前 AnalysisConfig 派生全部输入。调用者不能传 waveform、预期 latency/gain、预计算 IR/hash/receipt、real root 或设备参数。处理使用 float64、指数补偿逆滤波、完整线性 FFT 卷积、全 sweep 归一化相关延迟、零填充非循环对齐，以及 captured/reference 频谱比得到的 raw/aligned `rfft` 复传递函数；AnalysisConfig 的 500–8000 Hz 只形成 mask，不执行 smoothing。
 
 不可变结果位于 `processed/run_<source_run_id>/processing_<processing_id>/`，包含确定性 NPZ、strict receipt、固定 synthetic metadata、outer processing record、SHA256 sidecar 和 `PROCESSING_COMPLETE`。成功发布后还会追加 `processing_created` session event，绑定 record/receipt hashes 和时间；验证器以 `(source_run_id, processing_id)` 复合身份要求恰好一条匹配，因此不同 source run 可合法重用 processing ID，同一复合身份的重复事件仍被拒绝。Processing receipt 的 schema 和 algorithm 版本均为 `1.1.0`，并用严格字面量记录 raw/aligned 复谱比、分母阈值公式及低阈值置零策略。事件失败会报告 `published=true`，不会删除已发布目录。`validate-simulated-processing` 只读地重新验证 source capture、重做全部数学并逐字节比较产物。该事件只提供项目内部完整性与审计关联，不是数字签名或可信时间戳。名义夹具得到的 37 samples 和约 0.5 是从波形恢复的 development fixture oracle，不是处理 API 输入，也不是声学实测值。详细契约见 `docs/architecture/ess-processing.md`。
+
+## DEV-04.02 provisional 离线 QC
+
+`qc-compute` 首先完整调用 `validate_ess_processing`，再从已验证的 capture WAV、processing NPZ/receipt 和 AnalysisConfig 计算 float64 指标。公开 publisher 只接受 bundle、scenario、ESS 根和四个身份，不接受任意 WAV/NPZ 路径、waveform/array、预计算 metrics、scenario truth、阈值、判决、real root 或设备参数。AnalysisConfig 的 `qc_threshold` 必须为 null。
+
+不可变结果位于 `qc/run_<source_run_id>/processing_<processing_id>/qc_<qc_id>/`，严格包含 metrics/receipt 及各自 SHA256 sidecar、固定 metadata、outer record 和 `QC_COMPLETE` 七个文件。`qc_created` event 绑定 `(source_run_id, processing_id, qc_id)`、record/metrics/receipt hashes 与创建时间；同一 QC ID 可在不同 processing 复合身份下重用，完全重复的复合身份被拒绝。`qc-validate` 只读地重验 processing、重算所有指标并逐字节核对 envelope 与 event。
+
+指标包括 waveform peak/RMS/clip、pre-silence SNR proxy、processing latency/correlation、IR 主次峰比、reference deconvolution off-peak residual 和 analysis-band 谱除法覆盖。固定状态为 `provisional_metrics_only` / `not_evaluated` / `THRESHOLDS_NOT_APPLIED`；零 pre-silence RMS 产生带原因的 null，而不是 Infinity。这些值不是 SPL、安全阈值、正式声学 SNR、硬件质量判决或实验结果。详细契约见 `docs/architecture/provisional-qc.md`。
 
 详细契约见 `docs/architecture/`；数据根目录政策见 `data/README.md`。
 

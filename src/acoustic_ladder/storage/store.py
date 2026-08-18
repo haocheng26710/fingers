@@ -33,6 +33,7 @@ from acoustic_ladder.storage.io import (
 
 if TYPE_CHECKING:
     from acoustic_ladder.audio.ess_processing_models import ProcessingRecord
+    from acoustic_ladder.audio.provisional_qc_models import QcRecord
 
 SESSION_DIRECTORIES = (
     "manifest",
@@ -332,6 +333,77 @@ class ImmutableSessionStore:
             },
         )
         return path
+
+    def create_synthetic_qc(
+        self,
+        *,
+        session_id: str,
+        source_run_id: str,
+        processing_id: str,
+        qc_id: str,
+        artifact_payloads: dict[str, bytes],
+        metadata: dict[str, object],
+        record: QcRecord,
+    ) -> Path:
+        """Create-only publish one QC child under a verified synthetic processing."""
+
+        safe_identifier(source_run_id, "source_run_id")
+        safe_identifier(processing_id, "processing_id")
+        safe_identifier(qc_id, "qc_id")
+        self.validate_run(DataOrigin.SYNTHETIC, session_id, source_run_id)
+        if (
+            record.session_id != session_id
+            or record.source_run_id != source_run_id
+            or record.processing_id != processing_id
+            or record.qc_id != qc_id
+        ):
+            raise StorageError("QC record identity does not match selected path")
+        session = self.session_path(DataOrigin.SYNTHETIC, session_id)
+        processing = (
+            session / "processed" / f"run_{source_run_id}" / f"processing_{processing_id}"
+        ).resolve()
+        if (
+            not processing.is_relative_to(session.resolve())
+            or not (processing / "PROCESSING_COMPLETE").is_file()
+        ):
+            raise StorageError("source processing is missing or incomplete")
+        qc_root = (session / "qc").resolve()
+        if not qc_root.is_relative_to(session.resolve()):
+            raise StorageError("QC root escapes the synthetic session")
+        parent = (qc_root / f"run_{source_run_id}" / f"processing_{processing_id}").resolve()
+        if not parent.is_relative_to(qc_root):
+            raise StorageError("QC parent escapes the synthetic session")
+        parent.mkdir(parents=True, exist_ok=True)
+        final = (parent / f"qc_{qc_id}").resolve()
+        if final.parent != parent or not final.is_relative_to(qc_root):
+            raise StorageError("QC path escapes the synthetic session")
+        if final.exists():
+            raise StorageError(f"QC already exists: {qc_id}")
+        lock = parent / f".{qc_id}.publish.lock"
+        descriptor: int | None = None
+        staging: Path | None = None
+        published = False
+        try:
+            descriptor = os.open(lock, os.O_CREAT | os.O_EXCL | os.O_WRONLY)
+            if final.exists():
+                raise StorageError(f"QC already exists: {qc_id}")
+            staging = Path(tempfile.mkdtemp(prefix=f".{qc_id}.staging-", dir=parent))
+            for relative, payload in artifact_payloads.items():
+                atomic_write_bytes(confined_path(staging, relative), payload)
+            atomic_write_json(staging / "qc_metadata.json", metadata)
+            atomic_write_json(staging / "qc_record.json", record.model_dump(mode="json"))
+            atomic_write_bytes(staging / "QC_COMPLETE", b"complete\n")
+            os.rename(staging, final)
+            published = True
+            return final
+        except FileExistsError as exc:
+            raise StorageError(f"QC publication is already in progress: {qc_id}") from exc
+        finally:
+            if descriptor is not None:
+                os.close(descriptor)
+                lock.unlink(missing_ok=True)
+            if not published and staging is not None and staging.exists():
+                shutil.rmtree(staging)
 
     def _validated_completed_session(self, origin: DataOrigin, session_id: str) -> Path:
         session = self.session_path(origin, session_id)

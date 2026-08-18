@@ -38,6 +38,10 @@ from acoustic_ladder.audio.preflight import (
     build_contextual_preflight_report,
     build_preflight_report,
 )
+from acoustic_ladder.audio.provisional_qc_persistence import (
+    publish_provisional_qc,
+    validate_provisional_qc,
+)
 from acoustic_ladder.audio.summary import render_inventory_summary
 from acoustic_ladder.audio.virtual_capture_models import load_virtual_capture_scenario
 from acoustic_ladder.audio.virtual_capture_persistence import (
@@ -292,6 +296,16 @@ def _parser() -> argparse.ArgumentParser:
         processing.add_argument("--processing-id", required=True)
         processing.add_argument("--scenario", required=True)
         processing.add_argument("--ess-artifact-root", required=True)
+    for command_name in ("qc-compute", "qc-validate"):
+        qc = commands.add_parser(command_name)
+        _add_bundle_arguments(qc)
+        qc.add_argument("--synthetic-root", required=True)
+        qc.add_argument("--session-id", required=True)
+        qc.add_argument("--source-run-id", required=True)
+        qc.add_argument("--processing-id", required=True)
+        qc.add_argument("--qc-id", required=True)
+        qc.add_argument("--scenario", required=True)
+        qc.add_argument("--ess-artifact-root", required=True)
     return parser
 
 
@@ -578,6 +592,56 @@ def main(argv: list[str] | None = None) -> None:
         )
         print("SYNTHETIC_ONLY")
         print("OFFLINE_PROCESSING_ONLY")
+        print("NO_HARDWARE_AUDIO_IO_PERFORMED")
+        print("NOT_AN_EXPERIMENTAL_RESULT")
+        return
+    if args.command in {"qc-compute", "qc-validate"}:
+        project_root = Path(args.project_root).resolve()
+        loaded_bundle = _load_bundle(args)
+        scenario_path = Path(args.scenario)
+        if not scenario_path.is_absolute():
+            scenario_path = project_root / scenario_path
+        loaded_scenario = load_virtual_capture_scenario(scenario_path, project_root=project_root)
+        arguments = {
+            "store": _synthetic_store(args.synthetic_root),
+            "bundle": loaded_bundle,
+            "scenario": loaded_scenario,
+            "ess_artifact_root": args.ess_artifact_root,
+            "session_id": args.session_id,
+            "source_run_id": args.source_run_id,
+            "processing_id": args.processing_id,
+            "qc_id": args.qc_id,
+        }
+        if args.command == "qc-compute":
+            qc = publish_provisional_qc(**arguments, now=_now)
+            label = "PASS provisional offline QC"
+        else:
+            qc = validate_provisional_qc(**arguments)
+            label = "PASS provisional QC validation"
+        metrics = qc.metrics
+        qc_receipt = qc.receipt
+        print(
+            f"{label}: qc_id={qc_receipt.qc_id} processing_id={qc_receipt.processing_id} "
+            f"source_run_id={qc_receipt.source_run_id} "
+            f"qc_path={qc.qc_path} "
+            f"latency_samples={metrics.estimated_latency_samples} "
+            f"correlation={metrics.matched_correlation_signed} "
+            f"input_snr_proxy_db={metrics.input_pre_silence_snr_proxy_db} "
+            f"input_snr_proxy_status={metrics.input_pre_silence_snr_proxy_status} "
+            f"ir_peak_ratio={metrics.ir_peak_to_second_peak_ratio} "
+            f"spectral_valid_fraction={metrics.spectral_division_valid_fraction_in_band} "
+            f"metrics_sha256={qc.metrics_sha256} receipt_sha256={qc.receipt_sha256}"
+        )
+        print(f"metric_computation_status={qc_receipt.metric_computation_status}")
+        print(f"evaluation_status={qc_receipt.evaluation_status}")
+        print(f"qc_decision={qc_receipt.decision_status}")
+        print("thresholds_applied=false")
+        print("formal_eligible=false")
+        print("experimental_result=false")
+        print(f"safety_marker={qc_receipt.safety_marker}")
+        print("SYNTHETIC_ONLY")
+        print("PROVISIONAL_METRICS_ONLY")
+        print("THRESHOLDS_NOT_APPLIED")
         print("NO_HARDWARE_AUDIO_IO_PERFORMED")
         print("NOT_AN_EXPERIMENTAL_RESULT")
         return

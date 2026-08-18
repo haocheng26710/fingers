@@ -1,0 +1,300 @@
+{
+  "additionalProperties": false,
+  "properties": {
+    "absolute_spl_calibrated": {
+      "const": false,
+      "title": "Absolute Spl Calibrated",
+      "type": "boolean"
+    },
+    "analysis_config_normalized_sha256": {
+      "pattern": "^[0-9a-f]{64}$",
+      "title": "Analysis Config Normalized Sha256",
+      "type": "string"
+    },
+    "analysis_config_raw_sha256": {
+      "pattern": "^[0-9a-f]{64}$",
+      "title": "Analysis Config Raw Sha256",
+      "type": "string"
+    },
+    "analysis_config_reference": {
+      "title": "Analysis Config Reference",
+      "type": "string"
+    },
+    "bundle_content_sha256": {
+      "pattern": "^[0-9a-f]{64}$",
+      "title": "Bundle Content Sha256",
+      "type": "string"
+    },
+    "calibration_applied": {
+      "const": false,
+      "title": "Calibration Applied",
+      "type": "boolean"
+    },
+    "calibration_file_verified": {
+      "const": false,
+      "title": "Calibration File Verified",
+      "type": "boolean"
+    },
+    "channel_mapping_verified": {
+      "const": false,
+      "title": "Channel Mapping Verified",
+      "type": "boolean"
+    },
+    "create_only": {
+      "const": true,
+      "title": "Create Only",
+      "type": "boolean"
+    },
+    "data_origin": {
+      "const": "synthetic",
+      "title": "Data Origin",
+      "type": "string"
+    },
+    "decision_status": {
+      "const": "not_evaluated",
+      "title": "Decision Status",
+      "type": "string"
+    },
+    "device_manifest_sha256": {
+      "pattern": "^[0-9a-f]{64}$",
+      "title": "Device Manifest Sha256",
+      "type": "string"
+    },
+    "electrical_loopback_available": {
+      "const": false,
+      "title": "Electrical Loopback Available",
+      "type": "boolean"
+    },
+    "evaluation_status": {
+      "const": "provisional_metrics_only",
+      "title": "Evaluation Status",
+      "type": "string"
+    },
+    "experimental_result": {
+      "const": false,
+      "title": "Experimental Result",
+      "type": "boolean"
+    },
+    "formal_eligible": {
+      "const": false,
+      "title": "Formal Eligible",
+      "type": "boolean"
+    },
+    "full_duplex_verified": {
+      "const": false,
+      "title": "Full Duplex Verified",
+      "type": "boolean"
+    },
+    "hardware_io_performed": {
+      "const": false,
+      "title": "Hardware Io Performed",
+      "type": "boolean"
+    },
+    "hardware_ready": {
+      "const": false,
+      "title": "Hardware Ready",
+      "type": "boolean"
+    },
+    "immutable": {
+      "const": true,
+      "title": "Immutable",
+      "type": "boolean"
+    },
+    "ir_concentration_formula_id": {
+      "const": "dominant_abs_over_second_largest_abs",
+      "title": "Ir Concentration Formula Id",
+      "type": "string"
+    },
+    "latency_evidence_source": {
+      "const": "validated_processing_receipt",
+      "title": "Latency Evidence Source",
+      "type": "string"
+    },
+    "metric_computation_status": {
+      "const": "complete",
+      "title": "Metric Computation Status",
+      "type": "string"
+    },
+    "playback_performed": {
+      "const": false,
+      "title": "Playback Performed",
+      "type": "boolean"
+    },
+    "processing_id": {
+      "pattern": "^[A-Za-z0-9_.-]+$",
+      "title": "Processing Id",
+      "type": "string"
+    },
+    "qc_algorithm_id": {
+      "const": "provisional_offline_qc_metrics",
+      "title": "Qc Algorithm Id",
+      "type": "string"
+    },
+    "qc_algorithm_version": {
+      "const": "1.0.0",
+      "title": "Qc Algorithm Version",
+      "type": "string"
+    },
+    "qc_id": {
+      "pattern": "^[A-Za-z0-9_.-]+$",
+      "title": "Qc Id",
+      "type": "string"
+    },
+    "qc_metrics_sha256": {
+      "pattern": "^[0-9a-f]{64}$",
+      "title": "Qc Metrics Sha256",
+      "type": "string"
+    },
+    "qc_threshold": {
+      "title": "Qc Threshold",
+      "type": "null"
+    },
+    "recording_performed": {
+      "const": false,
+      "title": "Recording Performed",
+      "type": "boolean"
+    },
+    "reference_residual_formula_id": {
+      "const": "reference_peak_abs_over_off_peak_rms",
+      "title": "Reference Residual Formula Id",
+      "type": "string"
+    },
+    "run_mode": {
+      "const": "development",
+      "title": "Run Mode",
+      "type": "string"
+    },
+    "safety_marker": {
+      "const": "SYNTHETIC_PROVISIONAL_QC_METRICS_NOT_AN_EXPERIMENTAL_RESULT",
+      "title": "Safety Marker",
+      "type": "string"
+    },
+    "schema_version": {
+      "const": "1.0.0",
+      "title": "Schema Version",
+      "type": "string"
+    },
+    "session_id": {
+      "pattern": "^[A-Za-z0-9_.-]+$",
+      "title": "Session Id",
+      "type": "string"
+    },
+    "shared_clock_verified": {
+      "const": false,
+      "title": "Shared Clock Verified",
+      "type": "boolean"
+    },
+    "snr_proxy_formula_id": {
+      "const": "20_log10_input_active_rms_over_pre_silence_rms",
+      "title": "Snr Proxy Formula Id",
+      "type": "string"
+    },
+    "source_capture_receipt_sha256": {
+      "pattern": "^[0-9a-f]{64}$",
+      "title": "Source Capture Receipt Sha256",
+      "type": "string"
+    },
+    "source_processing_algorithm_id": {
+      "const": "offline_ess_deconvolution_transfer",
+      "title": "Source Processing Algorithm Id",
+      "type": "string"
+    },
+    "source_processing_algorithm_version": {
+      "const": "1.1.0",
+      "title": "Source Processing Algorithm Version",
+      "type": "string"
+    },
+    "source_processing_arrays_sha256": {
+      "pattern": "^[0-9a-f]{64}$",
+      "title": "Source Processing Arrays Sha256",
+      "type": "string"
+    },
+    "source_processing_receipt_sha256": {
+      "pattern": "^[0-9a-f]{64}$",
+      "title": "Source Processing Receipt Sha256",
+      "type": "string"
+    },
+    "source_processing_schema_version": {
+      "const": "1.1.0",
+      "title": "Source Processing Schema Version",
+      "type": "string"
+    },
+    "source_run_id": {
+      "pattern": "^[A-Za-z0-9_.-]+$",
+      "title": "Source Run Id",
+      "type": "string"
+    },
+    "spectral_coverage_formula_id": {
+      "const": "rfft_reference_above_max_abs_times_float64_epsilon_times_reference_count",
+      "title": "Spectral Coverage Formula Id",
+      "type": "string"
+    },
+    "threshold_source": {
+      "title": "Threshold Source",
+      "type": "null"
+    },
+    "thresholds_applied": {
+      "const": false,
+      "title": "Thresholds Applied",
+      "type": "boolean"
+    },
+    "waveform_metric_formula_id": {
+      "const": "float64_peak_rms_active_pre_and_abs_ge_one_clip",
+      "title": "Waveform Metric Formula Id",
+      "type": "string"
+    }
+  },
+  "required": [
+    "schema_version",
+    "session_id",
+    "source_run_id",
+    "processing_id",
+    "qc_id",
+    "data_origin",
+    "run_mode",
+    "source_capture_receipt_sha256",
+    "source_processing_receipt_sha256",
+    "source_processing_arrays_sha256",
+    "source_processing_schema_version",
+    "source_processing_algorithm_id",
+    "source_processing_algorithm_version",
+    "bundle_content_sha256",
+    "device_manifest_sha256",
+    "analysis_config_reference",
+    "analysis_config_raw_sha256",
+    "analysis_config_normalized_sha256",
+    "qc_metrics_sha256",
+    "qc_algorithm_id",
+    "qc_algorithm_version",
+    "waveform_metric_formula_id",
+    "snr_proxy_formula_id",
+    "latency_evidence_source",
+    "ir_concentration_formula_id",
+    "reference_residual_formula_id",
+    "spectral_coverage_formula_id",
+    "metric_computation_status",
+    "evaluation_status",
+    "decision_status",
+    "thresholds_applied",
+    "qc_threshold",
+    "threshold_source",
+    "create_only",
+    "immutable",
+    "hardware_io_performed",
+    "playback_performed",
+    "recording_performed",
+    "hardware_ready",
+    "full_duplex_verified",
+    "shared_clock_verified",
+    "channel_mapping_verified",
+    "calibration_file_verified",
+    "calibration_applied",
+    "absolute_spl_calibrated",
+    "electrical_loopback_available",
+    "formal_eligible",
+    "experimental_result",
+    "safety_marker"
+  ],
+  "title": "ProvisionalQcReceipt",
+  "type": "object"
+}

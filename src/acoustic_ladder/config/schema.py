@@ -16,6 +16,10 @@ from acoustic_ladder.audio.models import (
     ContextualAudioPreflightReport,
     HardwareSetupRecord,
 )
+from acoustic_ladder.audio.provisional_qc_models import (
+    ProvisionalQcMetrics,
+    ProvisionalQcReceipt,
+)
 from acoustic_ladder.audio.virtual_capture_models import (
     VirtualCaptureReceipt,
     VirtualCaptureScenario,
@@ -65,11 +69,16 @@ VIRTUAL_CAPTURE_SCHEMA_MODELS: dict[str, type[BaseModel]] = {
 ESS_PROCESSING_SCHEMA_MODELS: dict[str, type[BaseModel]] = {
     "ess_processing_receipt.schema.json": EssProcessingReceipt,
 }
+PROVISIONAL_QC_SCHEMA_MODELS: dict[str, type[BaseModel]] = {
+    "provisional_qc_metrics.schema.json": ProvisionalQcMetrics,
+    "provisional_qc_receipt.schema.json": ProvisionalQcReceipt,
+}
 ALL_GENERATED_SCHEMA_MODELS = (
     GENERATED_SCHEMA_MODELS
     | ESS_SCHEMA_MODELS
     | VIRTUAL_CAPTURE_SCHEMA_MODELS
     | ESS_PROCESSING_SCHEMA_MODELS
+    | PROVISIONAL_QC_SCHEMA_MODELS
 )
 
 
