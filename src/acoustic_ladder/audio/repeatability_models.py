@@ -274,8 +274,23 @@ class RepeatabilityMemberProvenance(RepeatabilityModel):
     qc_receipt_sha256: str = Field(pattern=SHA256_PATTERN)
 
 
-class ProvisionalRepeatabilityReceipt(RepeatabilityModel):
-    schema_version: Literal["1.0.0"]
+class RepeatabilityStateFields(RepeatabilityModel):
+    decision_status: Literal["not_evaluated"]
+    repeatability_decision: Literal["not_evaluated"]
+    thresholds_applied: Literal[False]
+    repeatability_threshold: None
+    threshold_source: None
+    baseline_assigned: Literal[False]
+    baseline_role: Literal["not_assigned"]
+    baseline_selection_status: Literal["deferred_until_protocol_binding"]
+    baseline_difference_computed: Literal[False]
+    protocol_condition_binding_performed: Literal[False]
+    drift_evaluated: Literal[False]
+    drift_decision: Literal["not_evaluated"]
+
+
+class ProvisionalRepeatabilityReceipt(RepeatabilityStateFields):
+    schema_version: Literal["1.1.0"]
     session_id: str = Field(pattern=SAFE_IDENTIFIER_PATTERN)
     reassembly_id: str = Field(pattern=SAFE_IDENTIFIER_PATTERN)
     repeat_set_id: str = Field(pattern=SAFE_IDENTIFIER_PATTERN)
@@ -315,7 +330,7 @@ class ProvisionalRepeatabilityReceipt(RepeatabilityModel):
     analysis_band_mask_sha256: str = Field(pattern=SHA256_PATTERN)
     repeatability_metrics_sha256: str = Field(pattern=SHA256_PATTERN)
     repeatability_algorithm_id: Literal["provisional_continuous_repeatability_metrics"]
-    repeatability_algorithm_version: Literal["1.0.0"]
+    repeatability_algorithm_version: Literal["1.1.0"]
     pair_enumeration_formula_id: Literal["all_unique_unordered_pairs_in_measurement_order"]
     captured_input_correlation_formula_id: Literal[
         "normalized_dot_after_pre_silence_without_epsilon"
@@ -330,15 +345,6 @@ class ProvisionalRepeatabilityReceipt(RepeatabilityModel):
     phase_rms_formula_id: Literal["joint_nonzero_angle_h_i_times_conjugate_h_j_rms_without_unwrap"]
     metric_computation_status: Literal["complete"]
     evaluation_status: Literal["provisional_repeatability_metrics_only"]
-    decision_status: Literal["not_evaluated"]
-    thresholds_applied: Literal[False]
-    repeatability_threshold: None
-    threshold_source: None
-    baseline_assigned: Literal[False]
-    baseline_role: None
-    baseline_difference_computed: Literal[False]
-    protocol_condition_binding_performed: Literal[False]
-    drift_evaluated: Literal[False]
     create_only: Literal[True]
     immutable: Literal[True]
     hardware_io_performed: Literal[False]
@@ -386,8 +392,8 @@ class ProvisionalRepeatabilityReceipt(RepeatabilityModel):
         return self
 
 
-class RepeatabilityRecord(RepeatabilityModel):
-    schema_version: Literal["1.0.0"]
+class RepeatabilityRecord(RepeatabilityStateFields):
+    schema_version: Literal["1.1.0"]
     session_id: str = Field(pattern=SAFE_IDENTIFIER_PATTERN)
     reassembly_id: str = Field(pattern=SAFE_IDENTIFIER_PATTERN)
     repeat_set_id: str = Field(pattern=SAFE_IDENTIFIER_PATTERN)
@@ -399,8 +405,6 @@ class RepeatabilityRecord(RepeatabilityModel):
     data_origin: Literal["synthetic"]
     run_mode: Literal["development"]
     evaluation_status: Literal["provisional_repeatability_metrics_only"]
-    decision_status: Literal["not_evaluated"]
-    baseline_assigned: Literal[False]
     formal_eligible: Literal[False]
     experimental_result: Literal[False]
     result_marker: Literal["NOT_AN_EXPERIMENTAL_RESULT"]

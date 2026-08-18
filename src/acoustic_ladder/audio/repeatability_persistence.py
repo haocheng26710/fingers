@@ -7,6 +7,7 @@ from collections.abc import Callable, Sequence
 from dataclasses import dataclass
 from datetime import datetime
 from pathlib import Path
+from typing import Literal, TypedDict
 
 import numpy as np
 from pydantic import ValidationError
@@ -46,6 +47,7 @@ from acoustic_ladder.audio.virtual_capture_persistence import (
     validate_virtual_capture,
 )
 from acoustic_ladder.config.bundle import LoadedBundle, canonical_json_bytes
+from acoustic_ladder.config.models import AnalysisConfig
 from acoustic_ladder.domain.models import DataOrigin
 from acoustic_ladder.storage.io import StorageError, safe_identifier, sha256_bytes
 from acoustic_ladder.storage.npz import load_deterministic_npz
@@ -100,6 +102,70 @@ def _identifier(value: str, label: str) -> None:
 
 def _sidecar(digest: str, filename: str) -> bytes:
     return f"{digest}  {filename}\n".encode("ascii")
+
+
+class _StatePayload(TypedDict):
+    decision_status: Literal["not_evaluated"]
+    repeatability_decision: Literal["not_evaluated"]
+    thresholds_applied: Literal[False]
+    repeatability_threshold: None
+    threshold_source: None
+    baseline_assigned: Literal[False]
+    baseline_role: Literal["not_assigned"]
+    baseline_selection_status: Literal["deferred_until_protocol_binding"]
+    baseline_difference_computed: Literal[False]
+    protocol_condition_binding_performed: Literal[False]
+    drift_evaluated: Literal[False]
+    drift_decision: Literal["not_evaluated"]
+
+
+def _state() -> _StatePayload:
+    return {
+        "decision_status": "not_evaluated",
+        "repeatability_decision": "not_evaluated",
+        "thresholds_applied": False,
+        "repeatability_threshold": None,
+        "threshold_source": None,
+        "baseline_assigned": False,
+        "baseline_role": "not_assigned",
+        "baseline_selection_status": "deferred_until_protocol_binding",
+        "baseline_difference_computed": False,
+        "protocol_condition_binding_performed": False,
+        "drift_evaluated": False,
+        "drift_decision": "not_evaluated",
+    }
+
+
+def _analysis_gate(bundle: LoadedBundle) -> AnalysisConfig:
+    loaded = bundle.configs.get("analysis")
+    if loaded is None or not isinstance(loaded.model, AnalysisConfig):
+        raise RepeatabilityPersistenceError(
+            "repeatability requires an active AnalysisConfig", published=False
+        )
+    analysis = loaded.model
+    configured = {
+        "baseline_selection_rule": analysis.baseline_selection_rule,
+        "qc_threshold": analysis.decision_gates.qc_threshold,
+        "effect_threshold": analysis.decision_gates.effect_threshold,
+        "drift_threshold": analysis.decision_gates.drift_threshold,
+        "classification_pass_threshold": (analysis.decision_gates.classification_pass_threshold),
+    }
+    non_null = [name for name, value in configured.items() if value is not None]
+    if non_null:
+        raise RepeatabilityPersistenceError(
+            f"repeatability requires null AnalysisConfig fields: {non_null}",
+            published=False,
+        )
+    normalized = canonical_json_bytes(analysis.model_dump(mode="json"))
+    if (
+        normalized != loaded.normalized_bytes
+        or sha256_bytes(normalized) != loaded.snapshot.normalized_sha256
+    ):
+        raise RepeatabilityPersistenceError(
+            "active AnalysisConfig differs from its normalized provenance",
+            published=False,
+        )
+    return analysis
 
 
 def _member_list_bytes(members: Sequence[RepeatabilityMemberProvenance]) -> bytes:
@@ -245,6 +311,7 @@ def _compute(
     session_id: str,
     members: Sequence[RepeatabilityMemberIdentity],
 ) -> tuple[ProvisionalRepeatabilityMetrics, list[_LoadedMember]]:
+    _analysis_gate(bundle)
     _identifier(session_id, "session_id")
     if len(members) < 2:
         raise RepeatabilityPersistenceError(
@@ -291,7 +358,7 @@ def _receipt(
     mask = first.kernel.analysis_band_mask
     mask_bytes = np.ascontiguousarray(mask, dtype=np.bool_).tobytes(order="C")
     return ProvisionalRepeatabilityReceipt(
-        schema_version="1.0.0",
+        schema_version="1.1.0",
         session_id=session_id,
         reassembly_id=capture.reassembly_id,
         repeat_set_id=repeat_set_id,
@@ -331,7 +398,7 @@ def _receipt(
         analysis_band_mask_sha256=sha256_bytes(mask_bytes),
         repeatability_metrics_sha256=metrics_sha256,
         repeatability_algorithm_id="provisional_continuous_repeatability_metrics",
-        repeatability_algorithm_version="1.0.0",
+        repeatability_algorithm_version="1.1.0",
         pair_enumeration_formula_id="all_unique_unordered_pairs_in_measurement_order",
         captured_input_correlation_formula_id=("normalized_dot_after_pre_silence_without_epsilon"),
         latency_delta_formula_id="validated_processing_latency_j_minus_i",
@@ -344,15 +411,7 @@ def _receipt(
         phase_rms_formula_id=("joint_nonzero_angle_h_i_times_conjugate_h_j_rms_without_unwrap"),
         metric_computation_status="complete",
         evaluation_status="provisional_repeatability_metrics_only",
-        decision_status="not_evaluated",
-        thresholds_applied=False,
-        repeatability_threshold=None,
-        threshold_source=None,
-        baseline_assigned=False,
-        baseline_role=None,
-        baseline_difference_computed=False,
-        protocol_condition_binding_performed=False,
-        drift_evaluated=False,
+        **_state(),
         create_only=True,
         immutable=True,
         hardware_io_performed=False,
@@ -374,10 +433,8 @@ def _receipt(
 
 def _metadata(receipt: ProvisionalRepeatabilityReceipt, receipt_sha256: str) -> dict[str, object]:
     return {
-        "baseline_assigned": False,
-        "baseline_difference_computed": False,
+        **_state(),
         "data_origin": "synthetic",
-        "decision_status": "not_evaluated",
         "evaluation_status": "provisional_repeatability_metrics_only",
         "experimental_result": False,
         "formal_eligible": False,
@@ -390,7 +447,6 @@ def _metadata(receipt: ProvisionalRepeatabilityReceipt, receipt_sha256: str) -> 
         "repeatability_receipt_sha256": receipt_sha256,
         "run_mode": "development",
         "safety_marker": REPEATABILITY_SAFETY_MARKER,
-        "thresholds_applied": False,
     }
 
 
@@ -440,7 +496,7 @@ def publish_provisional_repeatability(
     receipt_digest = sha256_bytes(receipt_bytes)
     timestamp = now()
     record = RepeatabilityRecord(
-        schema_version="1.0.0",
+        schema_version="1.1.0",
         session_id=session_id,
         reassembly_id=receipt.reassembly_id,
         repeat_set_id=repeat_set_id,
@@ -452,8 +508,7 @@ def publish_provisional_repeatability(
         data_origin="synthetic",
         run_mode="development",
         evaluation_status="provisional_repeatability_metrics_only",
-        decision_status="not_evaluated",
-        baseline_assigned=False,
+        **_state(),
         formal_eligible=False,
         experimental_result=False,
         result_marker="NOT_AN_EXPERIMENTAL_RESULT",
@@ -641,7 +696,7 @@ def validate_provisional_repeatability(
             "repeatability receipt differs from replay", published=True
         )
     expected_record = RepeatabilityRecord(
-        schema_version="1.0.0",
+        schema_version="1.1.0",
         session_id=session_id,
         reassembly_id=reassembly_id,
         repeat_set_id=repeat_set_id,
@@ -653,8 +708,7 @@ def validate_provisional_repeatability(
         data_origin="synthetic",
         run_mode="development",
         evaluation_status="provisional_repeatability_metrics_only",
-        decision_status="not_evaluated",
-        baseline_assigned=False,
+        **_state(),
         formal_eligible=False,
         experimental_result=False,
         result_marker="NOT_AN_EXPERIMENTAL_RESULT",

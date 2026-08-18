@@ -723,6 +723,19 @@ def main(argv: list[str] | None = None) -> None:
         )
         print(f"evaluation_status={repeat_receipt.evaluation_status}")
         print(f"decision_status={repeat_receipt.decision_status}")
+        print(f"repeatability_decision={repeat_receipt.repeatability_decision}")
+        print(f"baseline_assigned={str(repeat_receipt.baseline_assigned).lower()}")
+        print(f"baseline_role={repeat_receipt.baseline_role}")
+        print(f"baseline_selection_status={repeat_receipt.baseline_selection_status}")
+        print(
+            "baseline_difference_computed="
+            f"{str(repeat_receipt.baseline_difference_computed).lower()}"
+        )
+        print(f"drift_evaluated={str(repeat_receipt.drift_evaluated).lower()}")
+        print(f"drift_decision={repeat_receipt.drift_decision}")
+        print(f"thresholds_applied={str(repeat_receipt.thresholds_applied).lower()}")
+        print(f"repeatability_threshold={json.dumps(repeat_receipt.repeatability_threshold)}")
+        print(f"threshold_source={json.dumps(repeat_receipt.threshold_source)}")
         print(f"safety_marker={repeat_receipt.safety_marker}")
         print("SYNTHETIC_ONLY")
         print("PROVISIONAL_REPEATABILITY_METRICS_ONLY")
@@ -731,6 +744,7 @@ def main(argv: list[str] | None = None) -> None:
         print("BASELINE_NOT_ASSIGNED")
         print("BASELINE_SELECTION_DEFERRED_UNTIL_PROTOCOL_BINDING")
         print("NO_BASELINE_DIFFERENCE_COMPUTED")
+        print("DRIFT_NOT_EVALUATED")
         print("NO_HARDWARE_AUDIO_IO_PERFORMED")
         print("NOT_AN_EXPERIMENTAL_RESULT")
         return

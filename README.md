@@ -1,6 +1,6 @@
 # Acoustic Ladder
 
-本仓库当前实现到 `DEV-04.03`：除模型包、配置、不可变存储、synthetic 接口数据和只读音频清单外，现提供严格的离线 ESS 开发夹具、确定性虚拟全双工采集、离线 ESS processing、provisional QC，以及同一 reassembly 连续 synthetic captures 的 provisional repeatability 指标。当前没有 protocol condition/BLK baseline 绑定、baseline difference、阈值、pass/fail 或 drift 判决，也不声明硬件或实验就绪，不增加真实硬件接入或正式实验功能。
+本仓库当前实现到 `DEV-04.03R`：除模型包、配置、不可变存储、synthetic 接口数据和只读音频清单外，现提供严格的离线 ESS 开发夹具、确定性虚拟全双工采集、离线 ESS processing、provisional QC，以及同一 reassembly 连续 synthetic captures 的 provisional repeatability 指标。当前没有 protocol condition/BLK baseline 绑定、baseline difference、阈值、pass/fail 或 drift 判决，也不声明硬件或实验就绪，不增加真实硬件接入或正式实验功能。
 
 当前状态固定为：
 
@@ -183,7 +183,7 @@ uv --cache-dir .uv-cache run acoustic-ladder repeatability-compute @bundle --syn
 uv --cache-dir .uv-cache run acoustic-ladder repeatability-validate @bundle --synthetic-root $syntheticRoot --session-id virtual001 --repeat-set-id repeatset001 --member capture001:processing001:qc001 --member capture002:processing001:qc001 --scenario tests/fixtures/audio/virtual_duplex_development.yaml --ess-artifact-root (Join-Path $essRoot 'source_ess')
 ```
 
-结果严格位于 `qc/repeat_sets/reassembly_<reassembly_id>/repeat_set_<repeat_set_id>/` 的七文件 create-only envelope。固定状态为 provisional/not-evaluated/no-baseline/no-threshold；成功输出的 `PASS` 仅表示软件命令和完整性验证通过。当前没有 protocol condition binding、baseline difference、漂移判决、硬件/校准/SPL 或实验结论。事件只提供内部完整性与审计绑定，不是数字签名、外部 witness 或可信时间戳。详细契约见 `docs/architecture/repeatability.md`。
+结果严格位于 `qc/repeat_sets/reassembly_<reassembly_id>/repeat_set_<repeat_set_id>/` 的七文件 create-only envelope。DEV-04.03R receipt、algorithm 与 record 为 `1.1.0`，并把 not-evaluated、baseline not assigned/deferred、drift not evaluated 和 threshold false/null 状态写入 receipt、record 与 metadata。CLI 的结构化状态从已发布或已验证 receipt 读取；成功输出的 `PASS` 仅表示软件命令和完整性验证通过。活动 AnalysisConfig 的 baseline selection rule 或任一 decision threshold 非 null 时，publisher 和 validator 都会在创建 repeatability parent/staging/lock 前拒绝；旧 `1.0.0` repeatability artifact 必须重新生成。当前没有 protocol condition binding、baseline difference、漂移判决、硬件/校准/SPL 或实验结论。事件只提供内部完整性与审计绑定，不是数字签名、外部 witness 或可信时间戳。详细契约见 `docs/architecture/repeatability.md`。
 
 详细契约见 `docs/architecture/`；数据根目录政策见 `data/README.md`。
 

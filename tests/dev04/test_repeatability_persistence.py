@@ -5,6 +5,7 @@ import inspect
 import json
 from collections.abc import Callable
 from concurrent.futures import ThreadPoolExecutor
+from dataclasses import replace
 from datetime import datetime, timedelta
 from pathlib import Path
 
@@ -16,6 +17,7 @@ from acoustic_ladder.audio.ess_processing_persistence import publish_ess_process
 from acoustic_ladder.audio.excitation_persistence import publish_offline_ess_artifact
 from acoustic_ladder.audio.provisional_qc_persistence import publish_provisional_qc
 from acoustic_ladder.audio.repeatability_models import (
+    ProvisionalRepeatabilityReceipt,
     PublishedProvisionalRepeatability,
     RepeatabilityMemberIdentity,
 )
@@ -32,6 +34,7 @@ from acoustic_ladder.audio.virtual_capture_models import (
 )
 from acoustic_ladder.audio.virtual_capture_persistence import publish_virtual_capture
 from acoustic_ladder.config.bundle import LoadedBundle, canonical_json_bytes
+from acoustic_ladder.config.models import AnalysisConfig
 from acoustic_ladder.domain.models import (
     DataOrigin,
     ReassemblyRecord,
@@ -262,6 +265,7 @@ def test_repeatability_cli_compute_then_validate_has_fixed_safety_output(
         "BASELINE_NOT_ASSIGNED",
         "BASELINE_SELECTION_DEFERRED_UNTIL_PROTOCOL_BINDING",
         "NO_BASELINE_DIFFERENCE_COMPUTED",
+        "DRIFT_NOT_EVALUATED",
         "NO_HARDWARE_AUDIO_IO_PERFORMED",
         "NOT_AN_EXPERIMENTAL_RESULT",
     )
@@ -366,6 +370,65 @@ def test_three_member_payloads_are_deterministic_across_independent_roots(
         assert (published[0].repeatability_path / name).read_bytes() == (
             published[1].repeatability_path / name
         ).read_bytes()
+    assert (
+        hashlib.sha256(
+            (published[0].repeatability_path / "repeatability_metrics.json").read_bytes()
+        ).hexdigest()
+        == "730872025244fb847b6ed9937865017b9563cb030865fb8bac193ea0cd2928b3"
+    )
+    assert (
+        hashlib.sha256(
+            (published[0].repeatability_path / "repeatability_metrics.sha256").read_bytes()
+        ).hexdigest()
+        == "2581bdb2b036e87035e5f0da5e45c93d173b4e75d84eb71b4279b6a76853a6c8"
+    )
+    assert (
+        hashlib.sha256(
+            (published[0].repeatability_path / "repeatability_receipt.json").read_bytes()
+        ).hexdigest()
+        == "916b67b54bc1f4ec59176ce57a6160d6de0c7a8c68c902a4597283d5f5a27f60"
+    )
+    assert (
+        hashlib.sha256(
+            (published[0].repeatability_path / "repeatability_receipt.sha256").read_bytes()
+        ).hexdigest()
+        == "99dda95fa7705b43bab13328b4491166b8aebe426433f421c02aee07a0444a98"
+    )
+    assert (
+        hashlib.sha256(
+            (published[0].repeatability_path / "repeatability_metadata.json").read_bytes()
+        ).hexdigest()
+        == "474e96ddf753bc07ac7189ed380173c6ecbd7af5a69a42600b7e1fc095aa3d6d"
+    )
+    receipt = published[0].receipt
+    assert receipt.schema_version == "1.1.0"
+    assert receipt.repeatability_algorithm_version == "1.1.0"
+    expected_state = {
+        "decision_status": "not_evaluated",
+        "repeatability_decision": "not_evaluated",
+        "thresholds_applied": False,
+        "repeatability_threshold": None,
+        "threshold_source": None,
+        "baseline_assigned": False,
+        "baseline_role": "not_assigned",
+        "baseline_selection_status": "deferred_until_protocol_binding",
+        "baseline_difference_computed": False,
+        "protocol_condition_binding_performed": False,
+        "drift_evaluated": False,
+        "drift_decision": "not_evaluated",
+    }
+    receipt_payload = receipt.model_dump(mode="json")
+    record = json.loads(
+        (published[0].repeatability_path / "repeatability_record.json").read_bytes()
+    )
+    metadata = json.loads(
+        (published[0].repeatability_path / "repeatability_metadata.json").read_bytes()
+    )
+    assert record["schema_version"] == "1.1.0"
+    for field, value in expected_state.items():
+        assert receipt_payload[field] == value
+        assert record[field] == value
+        assert metadata[field] == value
 
 
 def test_repeatability_validator_rejects_tampering_without_writeback(tmp_path: Path) -> None:
@@ -641,3 +704,386 @@ def test_same_repeat_set_id_is_scoped_by_derived_reassembly(tmp_path: Path) -> N
             members=identities,
         )
         assert validated.receipt.reassembly_id == reassembly_id
+
+
+def test_published_receipt_uses_explicit_not_assigned_baseline_role(tmp_path: Path) -> None:
+    store, bundle, scenario, ess_root, _ = _setup(tmp_path)
+    published = publish_provisional_repeatability(
+        store=store,
+        bundle=bundle,
+        scenario=scenario,
+        ess_artifact_root=ess_root,
+        session_id="capture-session",
+        repeat_set_id="state-contract",
+        members=_members(),
+        now=lambda: FIXED_TIME,
+    )
+
+    assert published.receipt.baseline_role == "not_assigned"
+
+
+def test_published_receipt_records_deferred_baseline_selection_status(tmp_path: Path) -> None:
+    store, bundle, scenario, ess_root, _ = _setup(tmp_path)
+    published = publish_provisional_repeatability(
+        store=store,
+        bundle=bundle,
+        scenario=scenario,
+        ess_artifact_root=ess_root,
+        session_id="capture-session",
+        repeat_set_id="base-state",
+        members=_members(),
+        now=lambda: FIXED_TIME,
+    )
+
+    assert published.receipt.baseline_selection_status == "deferred_until_protocol_binding"
+
+
+def test_published_receipt_records_explicit_drift_decision(tmp_path: Path) -> None:
+    store, bundle, scenario, ess_root, _ = _setup(tmp_path)
+    published = publish_provisional_repeatability(
+        store=store,
+        bundle=bundle,
+        scenario=scenario,
+        ess_artifact_root=ess_root,
+        session_id="capture-session",
+        repeat_set_id="drift-state",
+        members=_members(),
+        now=lambda: FIXED_TIME,
+    )
+
+    assert published.receipt.drift_decision == "not_evaluated"
+
+
+@pytest.mark.parametrize(
+    ("field", "value"),
+    [
+        ("baseline_selection_rule", "first_capture"),
+        ("qc_threshold", 0.1),
+        ("effect_threshold", 0.2),
+        ("drift_threshold", 0.5),
+        ("classification_pass_threshold", 0.9),
+    ],
+    ids=["baseline", "qc", "effect", "drift", "classification"],
+)
+def test_public_repeatability_paths_reject_configured_decision_authority_before_writing(
+    tmp_path: Path, field: str, value: str | float
+) -> None:
+    store, bundle, scenario, ess_root, real_root = _setup(tmp_path)
+    loaded = bundle.configs["analysis"]
+    assert isinstance(loaded.model, AnalysisConfig)
+    if field == "baseline_selection_rule":
+        modified_analysis = loaded.model.model_copy(update={"baseline_selection_rule": value})
+    else:
+        modified_analysis = loaded.model.model_copy(
+            update={"decision_gates": loaded.model.decision_gates.model_copy(update={field: value})}
+        )
+    modified_bundle = replace(
+        bundle,
+        configs={**bundle.configs, "analysis": replace(loaded, model=modified_analysis)},
+    )
+    session = store.session_path(DataOrigin.SYNTHETIC, "capture-session")
+    short_id = {
+        "baseline_selection_rule": "b",
+        "qc_threshold": "q",
+        "effect_threshold": "e",
+        "drift_threshold": "d",
+        "classification_pass_threshold": "c",
+    }[field]
+    valid_id = f"v-{short_id}"
+    publish_provisional_repeatability(
+        store=store,
+        bundle=bundle,
+        scenario=scenario,
+        ess_artifact_root=ess_root,
+        session_id="capture-session",
+        repeat_set_id=valid_id,
+        members=_members(),
+        now=lambda: FIXED_TIME,
+    )
+    target = session / "qc/repeat_sets/reassembly_assembly-1" / f"repeat_set_p-{short_id}"
+    events_before = len(list((session / "events").glob("*_repeatability_created.json")))
+    tree_before = _tree_sha256(session)
+
+    with pytest.raises(
+        RepeatabilityPersistenceError,
+        match=rf"{field}.*published=false",
+    ):
+        publish_provisional_repeatability(
+            store=store,
+            bundle=modified_bundle,
+            scenario=scenario,
+            ess_artifact_root=ess_root,
+            session_id="capture-session",
+            repeat_set_id=f"p-{short_id}",
+            members=_members(),
+            now=lambda: FIXED_TIME,
+        )
+    with pytest.raises(
+        RepeatabilityPersistenceError,
+        match=rf"{field}.*published=false",
+    ):
+        validate_provisional_repeatability(
+            store=store,
+            bundle=modified_bundle,
+            scenario=scenario,
+            ess_artifact_root=ess_root,
+            session_id="capture-session",
+            repeat_set_id=valid_id,
+            members=_members(),
+        )
+
+    assert not target.exists()
+    assert len(list((session / "events").glob("*_repeatability_created.json"))) == events_before
+    assert _tree_sha256(session) == tree_before
+    assert not real_root.exists()
+
+
+def test_publisher_rejects_analysis_model_that_differs_from_loaded_provenance(
+    tmp_path: Path,
+) -> None:
+    store, bundle, scenario, ess_root, real_root = _setup(tmp_path)
+    loaded = bundle.configs["analysis"]
+    assert isinstance(loaded.model, AnalysisConfig)
+    changed = loaded.model.model_copy(update={"notes": [*loaded.model.notes, "injected"]})
+    modified_bundle = replace(
+        bundle,
+        configs={**bundle.configs, "analysis": replace(loaded, model=changed)},
+    )
+    session = store.session_path(DataOrigin.SYNTHETIC, "capture-session")
+    target = session / "qc/repeat_sets/reassembly_assembly-1/repeat_set_hash-gate"
+    events_before = list((session / "events").glob("*_repeatability_created.json"))
+    tree_before = _tree_sha256(session)
+
+    with pytest.raises(
+        RepeatabilityPersistenceError,
+        match=r"normalized provenance.*published=false",
+    ):
+        publish_provisional_repeatability(
+            store=store,
+            bundle=modified_bundle,
+            scenario=scenario,
+            ess_artifact_root=ess_root,
+            session_id="capture-session",
+            repeat_set_id="hash-gate",
+            members=_members(),
+            now=lambda: FIXED_TIME,
+        )
+
+    assert not target.exists()
+    assert list((session / "events").glob("*_repeatability_created.json")) == events_before
+    assert _tree_sha256(session) == tree_before
+    assert not real_root.exists()
+
+
+def test_cli_prints_structured_state_from_published_receipt(
+    tmp_path: Path, capsys: pytest.CaptureFixture[str]
+) -> None:
+    store, _, _, ess_root, _ = _setup(tmp_path)
+    arguments = [
+        "--project-root",
+        str(PROJECT_ROOT),
+        "--audio",
+        "tests/fixtures/audio/ess_offline_development.yaml",
+        "--protocol",
+        "config/protocols/stage4_four_node_states.yaml",
+        "--synthetic-root",
+        str(store.roots.synthetic),
+        "--session-id",
+        "capture-session",
+        "--repeat-set-id",
+        "cli-state",
+        "--member",
+        "capture-2:processing-1:qc-1",
+        "--member",
+        "capture-1:processing-1:qc-1",
+        "--scenario",
+        "tests/fixtures/audio/virtual_duplex_development.yaml",
+        "--ess-artifact-root",
+        str(ess_root),
+    ]
+
+    cli.main(["repeatability-compute", *arguments])
+    computed = capsys.readouterr().out
+    receipt_path = (
+        store.session_path(DataOrigin.SYNTHETIC, "capture-session")
+        / "qc/repeat_sets/reassembly_assembly-1/repeat_set_cli-state/repeatability_receipt.json"
+    )
+    receipt = ProvisionalRepeatabilityReceipt.model_validate_json(receipt_path.read_bytes())
+    cli.main(["repeatability-validate", *arguments])
+    validated = capsys.readouterr().out
+
+    expected_fields = {
+        "decision_status": receipt.decision_status,
+        "repeatability_decision": receipt.repeatability_decision,
+        "baseline_assigned": str(receipt.baseline_assigned).lower(),
+        "baseline_role": receipt.baseline_role,
+        "baseline_selection_status": receipt.baseline_selection_status,
+        "baseline_difference_computed": str(receipt.baseline_difference_computed).lower(),
+        "drift_evaluated": str(receipt.drift_evaluated).lower(),
+        "drift_decision": receipt.drift_decision,
+        "thresholds_applied": str(receipt.thresholds_applied).lower(),
+        "repeatability_threshold": "null",
+        "threshold_source": "null",
+    }
+    for output in (computed, validated):
+        assert all(f"{field}={value}" in output for field, value in expected_fields.items())
+        assert "REPEATABILITY_NOT_EVALUATED" in output
+        assert "BASELINE_NOT_ASSIGNED" in output
+        assert "BASELINE_SELECTION_DEFERRED_UNTIL_PROTOCOL_BINDING" in output
+        assert "DRIFT_NOT_EVALUATED" in output
+        assert "THRESHOLDS_NOT_APPLIED" in output
+
+
+def test_state_and_binding_attacks_are_read_only_and_restorable(tmp_path: Path) -> None:
+    store, bundle, scenario, ess_root, _ = _setup(tmp_path)
+    published = publish_provisional_repeatability(
+        store=store,
+        bundle=bundle,
+        scenario=scenario,
+        ess_artifact_root=ess_root,
+        session_id="capture-session",
+        repeat_set_id="attacks",
+        members=_members(),
+        now=lambda: FIXED_TIME,
+    )
+    session_root = store.session_path(DataOrigin.SYNTHETIC, "capture-session")
+
+    def validate() -> None:
+        validate_provisional_repeatability(
+            store=store,
+            bundle=bundle,
+            scenario=scenario,
+            ess_artifact_root=ess_root,
+            session_id="capture-session",
+            repeat_set_id="attacks",
+            members=_members(),
+        )
+
+    def assert_read_only_failure() -> None:
+        attacked_tree = _tree_sha256(session_root)
+        with pytest.raises(RepeatabilityPersistenceError):
+            validate()
+        assert _tree_sha256(session_root) == attacked_tree
+
+    receipt_path = published.repeatability_path / "repeatability_receipt.json"
+    receipt_sidecar = published.repeatability_path / "repeatability_receipt.sha256"
+    original_receipt = receipt_path.read_bytes()
+    original_sidecar = receipt_sidecar.read_bytes()
+    for field, value in (
+        ("baseline_role", "assigned"),
+        ("baseline_selection_status", "selected"),
+        ("drift_decision", "pass"),
+        ("repeatability_decision", "pass"),
+    ):
+        payload = json.loads(original_receipt)
+        payload[field] = value
+        attacked = canonical_json_bytes(payload)
+        receipt_path.write_bytes(attacked)
+        receipt_sidecar.write_bytes(
+            f"{hashlib.sha256(attacked).hexdigest()}  repeatability_receipt.json\n".encode("ascii")
+        )
+        assert_read_only_failure()
+        receipt_path.write_bytes(original_receipt)
+        receipt_sidecar.write_bytes(original_sidecar)
+        validate()
+
+    old_payload = json.loads(original_receipt)
+    old_payload["schema_version"] = "1.0.0"
+    old_payload["repeatability_algorithm_version"] = "1.0.0"
+    old_receipt = canonical_json_bytes(old_payload)
+    receipt_path.write_bytes(old_receipt)
+    receipt_sidecar.write_bytes(
+        f"{hashlib.sha256(old_receipt).hexdigest()}  repeatability_receipt.json\n".encode("ascii")
+    )
+    assert_read_only_failure()
+    receipt_path.write_bytes(original_receipt)
+    receipt_sidecar.write_bytes(original_sidecar)
+    validate()
+
+    for filename, field, value in (
+        ("repeatability_metadata.json", "drift_decision", "pass"),
+        ("repeatability_record.json", "baseline_role", "assigned"),
+    ):
+        target = published.repeatability_path / filename
+        original = target.read_bytes()
+        payload = json.loads(original)
+        payload[field] = value
+        target.write_bytes(canonical_json_bytes(payload))
+        assert_read_only_failure()
+        target.write_bytes(original)
+        validate()
+
+    receipt_sidecar.write_bytes(original_sidecar + b"tamper")
+    assert_read_only_failure()
+    receipt_sidecar.write_bytes(original_sidecar)
+    validate()
+
+    event = next((session_root / "events").glob("*_repeatability_created.json"))
+    original_event = event.read_bytes()
+    for field in ("repeatability_receipt_sha256", "repeatability_record_sha256"):
+        payload = json.loads(original_event)
+        payload[field] = "0" * 64
+        event.write_bytes(canonical_json_bytes(payload))
+        assert_read_only_failure()
+        event.write_bytes(original_event)
+        validate()
+
+
+@pytest.mark.parametrize(
+    ("mutation", "value"),
+    [
+        ("baseline_role", None),
+        ("baseline_role", "assigned"),
+        ("baseline_selection_status", "selected"),
+        ("drift_decision", "pass"),
+        ("repeatability_decision", "pass"),
+        ("drift_evaluated", True),
+        ("thresholds_applied", True),
+        ("repeatability_threshold", 0.5),
+        ("schema_version", "1.0.0"),
+        ("repeatability_algorithm_version", "1.0.0"),
+        ("unexpected", "extra"),
+    ],
+)
+def test_repeatability_receipt_rejects_invalid_state_and_old_versions(
+    tmp_path: Path, mutation: str, value: object
+) -> None:
+    store, bundle, scenario, ess_root, _ = _setup(tmp_path)
+    published = publish_provisional_repeatability(
+        store=store,
+        bundle=bundle,
+        scenario=scenario,
+        ess_artifact_root=ess_root,
+        session_id="capture-session",
+        repeat_set_id="strict-state",
+        members=_members(),
+        now=lambda: FIXED_TIME,
+    )
+    payload = published.receipt.model_dump(mode="json")
+    payload[mutation] = value
+
+    with pytest.raises(ValidationError):
+        ProvisionalRepeatabilityReceipt.model_validate(payload)
+
+
+@pytest.mark.parametrize(
+    "missing",
+    ["baseline_role", "baseline_selection_status", "drift_decision"],
+)
+def test_repeatability_receipt_requires_every_explicit_state(tmp_path: Path, missing: str) -> None:
+    store, bundle, scenario, ess_root, _ = _setup(tmp_path)
+    published = publish_provisional_repeatability(
+        store=store,
+        bundle=bundle,
+        scenario=scenario,
+        ess_artifact_root=ess_root,
+        session_id="capture-session",
+        repeat_set_id="required-state",
+        members=_members(),
+        now=lambda: FIXED_TIME,
+    )
+    payload = published.receipt.model_dump(mode="json")
+    del payload[missing]
+
+    with pytest.raises(ValidationError):
+        ProvisionalRepeatabilityReceipt.model_validate(payload)

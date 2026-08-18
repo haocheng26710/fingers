@@ -145,8 +145,14 @@
       "type": "boolean"
     },
     "baseline_role": {
+      "const": "not_assigned",
       "title": "Baseline Role",
-      "type": "null"
+      "type": "string"
+    },
+    "baseline_selection_status": {
+      "const": "deferred_until_protocol_binding",
+      "title": "Baseline Selection Status",
+      "type": "string"
     },
     "bundle_content_sha256": {
       "pattern": "^[0-9a-f]{64}$",
@@ -196,6 +202,11 @@
     "device_manifest_sha256": {
       "pattern": "^[0-9a-f]{64}$",
       "title": "Device Manifest Sha256",
+      "type": "string"
+    },
+    "drift_decision": {
+      "const": "not_evaluated",
+      "title": "Drift Decision",
       "type": "string"
     },
     "drift_evaluated": {
@@ -371,8 +382,13 @@
       "type": "string"
     },
     "repeatability_algorithm_version": {
-      "const": "1.0.0",
+      "const": "1.1.0",
       "title": "Repeatability Algorithm Version",
+      "type": "string"
+    },
+    "repeatability_decision": {
+      "const": "not_evaluated",
+      "title": "Repeatability Decision",
       "type": "string"
     },
     "repeatability_metrics_sha256": {
@@ -400,7 +416,7 @@
       "type": "integer"
     },
     "schema_version": {
-      "const": "1.0.0",
+      "const": "1.1.0",
       "title": "Schema Version",
       "type": "string"
     },
@@ -469,6 +485,18 @@
     }
   },
   "required": [
+    "decision_status",
+    "repeatability_decision",
+    "thresholds_applied",
+    "repeatability_threshold",
+    "threshold_source",
+    "baseline_assigned",
+    "baseline_role",
+    "baseline_selection_status",
+    "baseline_difference_computed",
+    "protocol_condition_binding_performed",
+    "drift_evaluated",
+    "drift_decision",
     "schema_version",
     "session_id",
     "reassembly_id",
@@ -520,15 +548,6 @@
     "phase_rms_formula_id",
     "metric_computation_status",
     "evaluation_status",
-    "decision_status",
-    "thresholds_applied",
-    "repeatability_threshold",
-    "threshold_source",
-    "baseline_assigned",
-    "baseline_role",
-    "baseline_difference_computed",
-    "protocol_condition_binding_performed",
-    "drift_evaluated",
     "create_only",
     "immutable",
     "hardware_io_performed",
