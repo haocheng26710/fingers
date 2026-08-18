@@ -172,6 +172,26 @@ def zero_fill_align(raw: NDArray[np.generic], latency_samples: int) -> Float64Ar
     return np.ascontiguousarray(aligned)
 
 
+def _spectral_ratio(
+    response: Float64Array, reference: Float64Array, *, fft_length: int
+) -> NDArray[np.complex128]:
+    reference_spectrum = np.fft.rfft(reference, n=fft_length)
+    response_spectrum = np.fft.rfft(response, n=fft_length)
+    threshold = (
+        float(np.max(np.abs(reference_spectrum))) * np.finfo(np.float64).eps * reference.size
+    )
+    transfer = np.zeros_like(response_spectrum)
+    np.divide(
+        response_spectrum,
+        reference_spectrum,
+        out=transfer,
+        where=np.abs(reference_spectrum) > threshold,
+    )
+    if not bool(np.isfinite(transfer).all()):
+        raise EssProcessingError("spectral division produced non-finite values")
+    return np.ascontiguousarray(transfer, dtype=np.complex128)
+
+
 def _channel_first(value: NDArray[np.generic], label: str) -> Float64Array:
     array = np.asarray(value)
     if array.ndim != 2 or array.shape[0] != 1 or array.shape[1] == 0:
@@ -253,8 +273,13 @@ def process_ess_waveforms(
     peak_index, peak_value = _unique_absolute_peak(ir_raw_vector, "raw impulse response")
     ir_aligned_vector = zero_fill_align(ir_raw_vector, latency)
     transfer_fft_length = _next_power_of_two(ir_raw_vector.size)
-    transfer_raw = np.fft.rfft(ir_raw_vector, n=transfer_fft_length)
-    transfer_aligned = np.fft.rfft(ir_aligned_vector, n=transfer_fft_length)
+    transfer_raw = _spectral_ratio(
+        input_after_pre, output_after_pre, fft_length=transfer_fft_length
+    )
+    aligned_input_after_pre = zero_fill_align(input_after_pre, latency)
+    transfer_aligned = _spectral_ratio(
+        aligned_input_after_pre, output_after_pre, fft_length=transfer_fft_length
+    )
     frequency = np.fft.rfftfreq(transfer_fft_length, d=1.0 / sample_rate_hz)
     magnitude_raw = np.abs(transfer_raw)
     magnitude_aligned = np.abs(transfer_aligned)

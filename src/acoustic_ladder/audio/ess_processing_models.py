@@ -154,6 +154,19 @@ class ProcessingRecord(EssProcessingModel):
     result_marker: Literal["NOT_AN_EXPERIMENTAL_RESULT"]
 
 
+class ProcessingCreatedEvent(EssProcessingModel):
+    schema_version: Literal["1.0.0"]
+    event: Literal["processing_created"]
+    sequence: int = Field(gt=0)
+    session_id: str = Field(pattern=r"^[A-Za-z0-9_.-]+$")
+    data_origin: Literal["synthetic"]
+    processing_id: str = Field(pattern=r"^[A-Za-z0-9_.-]+$")
+    source_run_id: str = Field(pattern=r"^[A-Za-z0-9_.-]+$")
+    created_at: AwareDatetime
+    processing_record_sha256: str = Field(pattern=SHA256_PATTERN)
+    processing_receipt_sha256: str = Field(pattern=SHA256_PATTERN)
+
+
 @dataclass(frozen=True)
 class PublishedEssProcessing:
     processing_path: Path

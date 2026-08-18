@@ -14,6 +14,7 @@ from pydantic import ValidationError
 from acoustic_ladder import cli
 from acoustic_ladder.audio.ess_processing_models import (
     ProcessingArrayDescriptor,
+    ProcessingRecord,
     PublishedEssProcessing,
 )
 from acoustic_ladder.audio.ess_processing_persistence import (
@@ -30,7 +31,7 @@ from acoustic_ladder.audio.virtual_capture_persistence import (
     PublishedVirtualCapture,
     publish_virtual_capture,
 )
-from acoustic_ladder.config.bundle import LoadedBundle
+from acoustic_ladder.config.bundle import LoadedBundle, canonical_json_bytes
 from acoustic_ladder.domain.models import DataOrigin
 from acoustic_ladder.storage.io import StorageError, atomic_write_bytes
 from acoustic_ladder.storage.npz import deterministic_npz_bytes, load_deterministic_npz
@@ -121,6 +122,13 @@ def _published_capture(tmp_path: Path) -> CaptureSetup:
 
 def _publish_processing(tmp_path: Path, processing_id: str = "processing-1") -> ProcessingSetup:
     store, bundle, scenario, ess_root, real_root, capture = _published_capture(tmp_path)
+    expected = (
+        store.session_path(DataOrigin.SYNTHETIC, "capture-session")
+        / "processed"
+        / "run_capture-1"
+        / f"processing_{processing_id}"
+    )
+    assert not expected.exists()
     processing = publish_ess_processing(
         store=store,
         bundle=bundle,
@@ -161,6 +169,96 @@ def test_processing_publication_creates_exact_completed_file_set(tmp_path: Path)
     *_, processing = _publish_processing(tmp_path)
     assert {entry.name for entry in processing.processing_path.iterdir()} == (PROCESSING_FILE_NAMES)
     assert (processing.processing_path / "PROCESSING_COMPLETE").read_bytes() == b"complete\n"
+
+
+def test_processing_publication_appends_hash_bound_audit_event(tmp_path: Path) -> None:
+    store, bundle, scenario, ess_root, _, _, processing = _publish_processing(tmp_path)
+    event_paths = _processing_event_files(store)
+    assert len(event_paths) == 1
+    event = json.loads(event_paths[0].read_bytes())
+    record_path = processing.processing_path / "processing_record.json"
+    record = json.loads(record_path.read_bytes())
+    assert event["event"] == "processing_created"
+    assert event["data_origin"] == "synthetic"
+    assert event["session_id"] == "capture-session"
+    assert event["processing_id"] == "processing-1"
+    assert event["source_run_id"] == "capture-1"
+    assert event["created_at"] == record["created_at"]
+    assert event["processing_record_sha256"] == hashlib.sha256(record_path.read_bytes()).hexdigest()
+    assert event["processing_receipt_sha256"] == processing.receipt_sha256
+    validate_ess_processing(
+        store=store,
+        bundle=bundle,
+        scenario=scenario,
+        ess_artifact_root=ess_root,
+        session_id="capture-session",
+        source_run_id="capture-1",
+        processing_id="processing-1",
+    )
+
+
+def test_processing_event_append_failure_reports_published_true(
+    tmp_path: Path, monkeypatch: pytest.MonkeyPatch
+) -> None:
+    store, bundle, scenario, ess_root, _, _ = _published_capture(tmp_path)
+
+    def fail_event(
+        origin: DataOrigin,
+        session_id: str,
+        event: str,
+        payload: dict[str, object],
+    ) -> Path:
+        raise StorageError("injected processing event failure")
+
+    monkeypatch.setattr(store, "append_event", fail_event)
+    with pytest.raises(
+        EssProcessingPersistenceError, match="injected processing event failure; published=true"
+    ):
+        publish_ess_processing(
+            store=store,
+            bundle=bundle,
+            scenario=scenario,
+            ess_artifact_root=ess_root,
+            session_id="capture-session",
+            source_run_id="capture-1",
+            processing_id="event-failure",
+            now=lambda: FIXED_TIME,
+        )
+    target = (
+        store.session_path(DataOrigin.SYNTHETIC, "capture-session")
+        / "processed"
+        / "run_capture-1"
+        / "processing_event-failure"
+    )
+    assert target.is_dir()
+    assert {path.name for path in target.iterdir()} == PROCESSING_FILE_NAMES
+    assert not _processing_event_files(store)
+
+
+def test_two_processing_events_are_distinguished_by_identity(tmp_path: Path) -> None:
+    store, bundle, scenario, ess_root, _, _, first = _publish_processing(tmp_path)
+    second = publish_ess_processing(
+        store=store,
+        bundle=bundle,
+        scenario=scenario,
+        ess_artifact_root=ess_root,
+        session_id="capture-session",
+        source_run_id="capture-1",
+        processing_id="processing-2",
+        now=lambda: FIXED_TIME,
+    )
+    assert len(_processing_event_files(store)) == 2
+    for processing_id, published in (("processing-1", first), ("processing-2", second)):
+        validated = validate_ess_processing(
+            store=store,
+            bundle=bundle,
+            scenario=scenario,
+            ess_artifact_root=ess_root,
+            session_id="capture-session",
+            source_run_id="capture-1",
+            processing_id=processing_id,
+        )
+        assert validated.processing_path == published.processing_path
 
 
 def test_nominal_publication_recovers_waveform_latency_and_gain(tmp_path: Path) -> None:
@@ -272,6 +370,269 @@ def test_processing_receipt_closes_source_timing_latency_and_safety_audit(
 def _rewrite_sidecar(path: Path, sidecar: Path) -> None:
     digest = hashlib.sha256(path.read_bytes()).hexdigest()
     sidecar.write_text(f"{digest}  {path.name}\n", encoding="ascii", newline="\n")
+
+
+def _processing_event_files(store: ImmutableSessionStore) -> list[Path]:
+    session = store.session_path(DataOrigin.SYNTHETIC, "capture-session")
+    return sorted((session / "events").glob("*_processing_created.json"))
+
+
+def _ensure_processing_event(
+    store: ImmutableSessionStore, processing: PublishedEssProcessing
+) -> Path:
+    existing = _processing_event_files(store)
+    if existing:
+        assert len(existing) == 1
+        return existing[0]
+    record_path = processing.processing_path / "processing_record.json"
+    record = json.loads(record_path.read_bytes())
+    return store.append_event(
+        DataOrigin.SYNTHETIC,
+        "capture-session",
+        "processing_created",
+        {
+            "schema_version": "1.0.0",
+            "processing_id": "processing-1",
+            "source_run_id": "capture-1",
+            "created_at": record["created_at"],
+            "processing_record_sha256": hashlib.sha256(record_path.read_bytes()).hexdigest(),
+            "processing_receipt_sha256": processing.receipt_sha256,
+        },
+    )
+
+
+def _session_file_bytes(store: ImmutableSessionStore) -> dict[str, bytes]:
+    session = store.session_path(DataOrigin.SYNTHETIC, "capture-session")
+    return {
+        path.relative_to(session).as_posix(): path.read_bytes()
+        for path in session.rglob("*")
+        if path.is_file()
+    }
+
+
+@pytest.mark.parametrize(
+    ("sidecar_name", "mutation"),
+    [
+        ("processing_arrays.npz.sha256", "extra-newline"),
+        ("processing_receipt.sha256", "trailing-whitespace"),
+        ("processing_arrays.npz.sha256", "crlf"),
+        ("processing_arrays.npz.sha256", "duplicate-record"),
+        ("processing_arrays.npz.sha256", "wrong-filename"),
+        ("processing_arrays.npz.sha256", "non-ascii"),
+        ("processing_arrays.npz.sha256", "missing"),
+        ("processing_arrays.npz.sha256", "directory"),
+    ],
+)
+def test_validator_rejects_noncanonical_sidecar_bytes_read_only(
+    tmp_path: Path, sidecar_name: str, mutation: str
+) -> None:
+    store, bundle, scenario, ess_root, _, _, processing = _publish_processing(tmp_path)
+    path = processing.processing_path / sidecar_name
+    original = path.read_bytes()
+    if mutation == "extra-newline":
+        path.write_bytes(original + b"\n")
+    elif mutation == "trailing-whitespace":
+        path.write_bytes(original[:-1] + b"  \n")
+    elif mutation == "crlf":
+        path.write_bytes(original.replace(b"\n", b"\r\n"))
+    elif mutation == "duplicate-record":
+        path.write_bytes(original + original)
+    elif mutation == "wrong-filename":
+        path.write_bytes(original.replace(b"processing_arrays.npz", b"wrong.bin"))
+    elif mutation == "non-ascii":
+        path.write_bytes(original[:-1] + "é\n".encode())
+    elif mutation == "missing":
+        path.unlink()
+    else:
+        path.unlink()
+        path.mkdir()
+    attacked = _session_file_bytes(store)
+    with pytest.raises(EssProcessingPersistenceError):
+        validate_ess_processing(
+            store=store,
+            bundle=bundle,
+            scenario=scenario,
+            ess_artifact_root=ess_root,
+            session_id="capture-session",
+            source_run_id="capture-1",
+            processing_id="processing-1",
+        )
+    assert _session_file_bytes(store) == attacked
+    if mutation == "directory":
+        assert path.is_dir()
+    elif mutation == "missing":
+        assert not path.exists()
+
+
+@pytest.mark.parametrize("marker", [b"done\n", b"complete"])
+def test_validator_rejects_noncanonical_completion_marker_read_only(
+    tmp_path: Path, marker: bytes
+) -> None:
+    store, bundle, scenario, ess_root, _, _, processing = _publish_processing(tmp_path)
+    (processing.processing_path / "PROCESSING_COMPLETE").write_bytes(marker)
+    attacked = _session_file_bytes(store)
+    with pytest.raises(EssProcessingPersistenceError):
+        validate_ess_processing(
+            store=store,
+            bundle=bundle,
+            scenario=scenario,
+            ess_artifact_root=ess_root,
+            session_id="capture-session",
+            source_run_id="capture-1",
+            processing_id="processing-1",
+        )
+    assert _session_file_bytes(store) == attacked
+
+
+def test_validator_rejects_completion_marker_directory_read_only(tmp_path: Path) -> None:
+    store, bundle, scenario, ess_root, _, _, processing = _publish_processing(tmp_path)
+    marker = processing.processing_path / "PROCESSING_COMPLETE"
+    marker.unlink()
+    marker.mkdir()
+    attacked = _session_file_bytes(store)
+    with pytest.raises(EssProcessingPersistenceError):
+        validate_ess_processing(
+            store=store,
+            bundle=bundle,
+            scenario=scenario,
+            ess_artifact_root=ess_root,
+            session_id="capture-session",
+            source_run_id="capture-1",
+            processing_id="processing-1",
+        )
+    assert marker.is_dir()
+    assert _session_file_bytes(store) == attacked
+
+
+def test_validator_rejects_canonical_record_created_at_tamper_read_only(
+    tmp_path: Path,
+) -> None:
+    store, bundle, scenario, ess_root, _, _, processing = _publish_processing(tmp_path)
+    record_path = processing.processing_path / "processing_record.json"
+    record = json.loads(record_path.read_bytes())
+    record["created_at"] = "2031-02-03T04:05:07+00:00"
+    tampered_record = ProcessingRecord.model_validate_json(canonical_json_bytes(record))
+    record_path.write_bytes(canonical_json_bytes(tampered_record.model_dump(mode="json")))
+    attacked = _session_file_bytes(store)
+    with pytest.raises(EssProcessingPersistenceError):
+        validate_ess_processing(
+            store=store,
+            bundle=bundle,
+            scenario=scenario,
+            ess_artifact_root=ess_root,
+            session_id="capture-session",
+            source_run_id="capture-1",
+            processing_id="processing-1",
+        )
+    assert _session_file_bytes(store) == attacked
+
+
+def test_validator_rejects_missing_processing_audit_event_read_only(tmp_path: Path) -> None:
+    store, bundle, scenario, ess_root, _, _, processing = _publish_processing(tmp_path)
+    _ensure_processing_event(store, processing).unlink()
+    attacked = _session_file_bytes(store)
+    with pytest.raises(EssProcessingPersistenceError):
+        validate_ess_processing(
+            store=store,
+            bundle=bundle,
+            scenario=scenario,
+            ess_artifact_root=ess_root,
+            session_id="capture-session",
+            source_run_id="capture-1",
+            processing_id="processing-1",
+        )
+    assert _session_file_bytes(store) == attacked
+
+
+@pytest.mark.parametrize(
+    ("field", "value"),
+    [
+        ("processing_record_sha256", "0" * 64),
+        ("processing_receipt_sha256", "0" * 64),
+        ("created_at", "2031-02-03T04:05:07+00:00"),
+        ("processing_id", "other-processing"),
+        ("source_run_id", "other-run"),
+        ("session_id", "other-session"),
+        ("data_origin", "real"),
+    ],
+)
+def test_validator_rejects_processing_audit_event_tamper_read_only(
+    tmp_path: Path, field: str, value: str
+) -> None:
+    store, bundle, scenario, ess_root, _, _, processing = _publish_processing(tmp_path)
+    event_path = _ensure_processing_event(store, processing)
+    event = json.loads(event_path.read_bytes())
+    event[field] = value
+    event_path.write_bytes(canonical_json_bytes(event))
+    attacked = _session_file_bytes(store)
+    with pytest.raises(EssProcessingPersistenceError):
+        validate_ess_processing(
+            store=store,
+            bundle=bundle,
+            scenario=scenario,
+            ess_artifact_root=ess_root,
+            session_id="capture-session",
+            source_run_id="capture-1",
+            processing_id="processing-1",
+        )
+    assert _session_file_bytes(store) == attacked
+
+
+def test_validator_rejects_duplicate_processing_audit_event_read_only(tmp_path: Path) -> None:
+    store, bundle, scenario, ess_root, _, _, processing = _publish_processing(tmp_path)
+    event_path = _ensure_processing_event(store, processing)
+    event = json.loads(event_path.read_bytes())
+    store.append_event(
+        DataOrigin.SYNTHETIC,
+        "capture-session",
+        "processing_created",
+        {
+            key: value
+            for key, value in event.items()
+            if key not in {"event", "sequence", "session_id", "data_origin"}
+        },
+    )
+    attacked = _session_file_bytes(store)
+    with pytest.raises(EssProcessingPersistenceError):
+        validate_ess_processing(
+            store=store,
+            bundle=bundle,
+            scenario=scenario,
+            ess_artifact_root=ess_root,
+            session_id="capture-session",
+            source_run_id="capture-1",
+            processing_id="processing-1",
+        )
+    assert _session_file_bytes(store) == attacked
+
+
+@pytest.mark.parametrize("mutation", ["extra", "noncanonical", "filename-sequence"])
+def test_validator_rejects_malformed_processing_audit_envelope_read_only(
+    tmp_path: Path, mutation: str
+) -> None:
+    store, bundle, scenario, ess_root, _, _, processing = _publish_processing(tmp_path)
+    event_path = _ensure_processing_event(store, processing)
+    if mutation == "filename-sequence":
+        event_path = event_path.rename(event_path.with_name("999999_processing_created.json"))
+    else:
+        event = json.loads(event_path.read_bytes())
+        if mutation == "extra":
+            event["unexpected"] = True
+            event_path.write_bytes(canonical_json_bytes(event))
+        else:
+            event_path.write_bytes(event_path.read_bytes() + b"\n")
+    attacked = _session_file_bytes(store)
+    with pytest.raises(EssProcessingPersistenceError):
+        validate_ess_processing(
+            store=store,
+            bundle=bundle,
+            scenario=scenario,
+            ess_artifact_root=ess_root,
+            session_id="capture-session",
+            source_run_id="capture-1",
+            processing_id="processing-1",
+        )
+    assert _session_file_bytes(store) == attacked
 
 
 def test_receipt_descriptors_cover_and_hash_every_npz_array(tmp_path: Path) -> None:

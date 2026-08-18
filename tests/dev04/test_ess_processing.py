@@ -117,6 +117,92 @@ def test_nominal_processing_recovers_latency_and_gain_from_waveforms() -> None:
     assert result.arrays["analysis_band_mask"].dtype == np.bool_
 
 
+def test_public_pipeline_identity_oracle_recovers_unity_zero_lag() -> None:
+    output, _, audio = _fixture_waveforms()
+    result = process_ess_waveforms(
+        output,
+        output.copy(),
+        sample_rate_hz=audio.sample_rate_hz,
+        sweep_sample_count=12000,
+        pre_silence_sample_count=480,
+        start_frequency_hz=audio.ess_start_frequency_hz,
+        end_frequency_hz=audio.ess_end_frequency_hz,
+        analysis_lower_hz=500.0,
+        analysis_upper_hz=8000.0,
+        smoothing_enabled=False,
+    )
+    mask = result.arrays["analysis_band_mask"]
+    assert result.estimated_latency_samples == 0
+    assert result.latency_correlation_coefficient == pytest.approx(1.0, abs=1e-12)
+    assert result.ir_raw_dominant_peak_index == 0
+    assert result.arrays["ir_raw"][0, 0, 0] == pytest.approx(1.0, abs=1e-12)
+    np.testing.assert_allclose(result.arrays["magnitude_raw_linear"][0, 0, mask], 1.0, atol=1e-12)
+    np.testing.assert_allclose(result.arrays["phase_raw_rad"][0, 0, mask], 0.0, atol=1e-12)
+
+
+def test_public_pipeline_multitap_fir_oracle_retains_taps_and_signs() -> None:
+    output, _, audio = _fixture_waveforms()
+    impulse_response = np.zeros(24, dtype=np.float64)
+    impulse_response[7] = 0.25
+    impulse_response[23] = -0.10
+    captured = np.convolve(output[0], impulse_response, mode="full")[: output.shape[1]][
+        np.newaxis, :
+    ]
+    result = process_ess_waveforms(
+        output,
+        captured,
+        sample_rate_hz=audio.sample_rate_hz,
+        sweep_sample_count=12000,
+        pre_silence_sample_count=480,
+        start_frequency_hz=audio.ess_start_frequency_hz,
+        end_frequency_hz=audio.ess_end_frequency_hz,
+        analysis_lower_hz=500.0,
+        analysis_upper_hz=8000.0,
+        smoothing_enabled=False,
+    )
+    ir = result.arrays["ir_raw"][0, 0]
+    active_sweep = output[0, 480 : 480 + 12000].astype(np.float64)
+    positions = np.arange(active_sweep.size, dtype=np.float64)
+    inverse = active_sweep[::-1] * np.exp(
+        -np.log(audio.ess_end_frequency_hz / audio.ess_start_frequency_hz)
+        * positions
+        / active_sweep.size
+    )
+    reference_before = np.convolve(active_sweep, inverse, mode="full")
+    reference_peak = int(np.argmax(np.abs(reference_before)))
+    reference = reference_before / reference_before[reference_peak]
+    expected_tap_7 = 0.25 * reference[reference_peak] - 0.10 * reference[reference_peak - 16]
+    expected_tap_23 = 0.25 * reference[reference_peak + 16] - 0.10 * reference[reference_peak]
+    assert result.estimated_latency_samples == 7
+    assert result.ir_raw_dominant_peak_index == 7
+    assert ir[7] == pytest.approx(expected_tap_7, abs=1e-10)
+    assert ir[23] == pytest.approx(expected_tap_23, abs=1e-10)
+    assert ir[7] > 0.0
+    assert ir[23] < 0.0
+    assert ir[23] / ir[7] == pytest.approx(expected_tap_23 / expected_tap_7, abs=1e-10)
+
+
+def test_public_pipeline_polarity_oracle_preserves_negative_sign() -> None:
+    output, _, audio = _fixture_waveforms()
+    result = process_ess_waveforms(
+        output,
+        -output,
+        sample_rate_hz=audio.sample_rate_hz,
+        sweep_sample_count=12000,
+        pre_silence_sample_count=480,
+        start_frequency_hz=audio.ess_start_frequency_hz,
+        end_frequency_hz=audio.ess_end_frequency_hz,
+        analysis_lower_hz=500.0,
+        analysis_upper_hz=8000.0,
+        smoothing_enabled=False,
+    )
+    assert result.estimated_latency_samples == 0
+    assert result.latency_correlation_coefficient == pytest.approx(-1.0, abs=1e-12)
+    assert abs(result.latency_correlation_coefficient) == pytest.approx(1.0, abs=1e-12)
+    assert result.ir_raw_dominant_peak_index == 0
+    assert result.ir_raw_dominant_peak_value == pytest.approx(-1.0, abs=1e-12)
+
+
 def test_processing_api_contains_no_truth_or_scenario_parameters() -> None:
     parameters = inspect.signature(process_ess_waveforms).parameters
     assert not {

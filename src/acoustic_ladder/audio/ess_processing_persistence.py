@@ -17,6 +17,7 @@ from acoustic_ladder.audio.ess_processing_models import (
     SAFETY_MARKER,
     EssProcessingReceipt,
     ProcessingArrayDescriptor,
+    ProcessingCreatedEvent,
     ProcessingRecord,
     PublishedEssProcessing,
 )
@@ -47,6 +48,8 @@ RECEIPT_SIDECAR = "processing_receipt.sha256"
 METADATA_NAME = "processing_metadata.json"
 RECORD_NAME = "processing_record.json"
 COMPLETE_NAME = "PROCESSING_COMPLETE"
+COMPLETE_BYTES = b"complete\n"
+PROCESSING_EVENT_NAME = "processing_created"
 PROCESSING_FILE_NAMES = frozenset(
     {
         ARRAYS_NAME,
@@ -348,6 +351,7 @@ def publish_ess_processing(
         experimental_result=False,
         result_marker="NOT_AN_EXPERIMENTAL_RESULT",
     )
+    record_bytes = canonical_json_bytes(record.model_dump(mode="json"))
     session = store.session_path(DataOrigin.SYNTHETIC, session_id)
     target = session / "processed" / f"run_{source_run_id}" / f"processing_{processing_id}"
     try:
@@ -364,6 +368,19 @@ def publish_ess_processing(
             metadata=_metadata(receipt_digest),
             record=record,
         )
+        store.append_event(
+            DataOrigin.SYNTHETIC,
+            session_id,
+            PROCESSING_EVENT_NAME,
+            {
+                "schema_version": "1.0.0",
+                "processing_id": processing_id,
+                "source_run_id": source_run_id,
+                "created_at": record.model_dump(mode="json")["created_at"],
+                "processing_record_sha256": sha256_bytes(record_bytes),
+                "processing_receipt_sha256": receipt_digest,
+            },
+        )
     except Exception as exc:
         published = (target / COMPLETE_NAME).is_file()
         raise EssProcessingPersistenceError(str(exc), published=published) from exc
@@ -373,14 +390,65 @@ def publish_ess_processing(
 def _verify_sidecar(root: Path, filename: str, sidecar: str) -> str:
     digest = sha256_bytes((root / filename).read_bytes())
     try:
-        words = (root / sidecar).read_text(encoding="ascii").split()
-    except (OSError, UnicodeError) as exc:
+        actual = (root / sidecar).read_bytes()
+    except OSError as exc:
         raise EssProcessingPersistenceError(str(exc), published=True) from exc
-    if words != [digest, filename]:
+    if actual != _sidecar(digest, filename):
         raise EssProcessingPersistenceError(
             f"invalid SHA256 sidecar for {filename}", published=True
         )
     return digest
+
+
+def _validated_processing_event(
+    *,
+    store: ImmutableSessionStore,
+    session_id: str,
+    source_run_id: str,
+    processing_id: str,
+    record: ProcessingRecord,
+    record_bytes: bytes,
+    receipt_sha256: str,
+) -> ProcessingCreatedEvent:
+    session = store.session_path(DataOrigin.SYNTHETIC, session_id)
+    event_paths = sorted((session / "events").glob(f"*_{PROCESSING_EVENT_NAME}.json"))
+    matching: list[ProcessingCreatedEvent] = []
+    for path in event_paths:
+        try:
+            raw = path.read_bytes()
+            event = ProcessingCreatedEvent.model_validate_json(raw)
+        except (OSError, ValidationError) as exc:
+            raise EssProcessingPersistenceError(
+                f"invalid {PROCESSING_EVENT_NAME} event: {exc}", published=True
+            ) from exc
+        if raw != canonical_json_bytes(event.model_dump(mode="json")):
+            raise EssProcessingPersistenceError(
+                f"noncanonical {PROCESSING_EVENT_NAME} event", published=True
+            )
+        expected_name = f"{event.sequence:06d}_{PROCESSING_EVENT_NAME}.json"
+        if path.name != expected_name:
+            raise EssProcessingPersistenceError(
+                f"invalid {PROCESSING_EVENT_NAME} event filename sequence", published=True
+            )
+        if event.processing_id == processing_id:
+            matching.append(event)
+    if len(matching) != 1:
+        raise EssProcessingPersistenceError(
+            f"expected exactly one matching {PROCESSING_EVENT_NAME} event", published=True
+        )
+    event = matching[0]
+    if (
+        event.session_id != session_id
+        or event.data_origin != DataOrigin.SYNTHETIC.value
+        or event.source_run_id != source_run_id
+        or event.created_at != record.created_at
+        or event.processing_record_sha256 != sha256_bytes(record_bytes)
+        or event.processing_receipt_sha256 != receipt_sha256
+    ):
+        raise EssProcessingPersistenceError(
+            f"{PROCESSING_EVENT_NAME} event binding differs", published=True
+        )
+    return event
 
 
 def validate_ess_processing(
@@ -416,15 +484,26 @@ def validate_ess_processing(
         )
     arrays_digest = _verify_sidecar(root, ARRAYS_NAME, ARRAYS_SIDECAR)
     receipt_digest = _verify_sidecar(root, RECEIPT_NAME, RECEIPT_SIDECAR)
+    receipt_bytes = (root / RECEIPT_NAME).read_bytes()
+    record_bytes = (root / RECORD_NAME).read_bytes()
     try:
-        receipt = EssProcessingReceipt.model_validate_json((root / RECEIPT_NAME).read_bytes())
-        record = ProcessingRecord.model_validate_json((root / RECORD_NAME).read_bytes())
+        receipt = EssProcessingReceipt.model_validate_json(receipt_bytes)
+        record = ProcessingRecord.model_validate_json(record_bytes)
     except ValidationError as exc:
         raise EssProcessingPersistenceError(str(exc), published=True) from exc
-    if (root / RECEIPT_NAME).read_bytes() != canonical_json_bytes(receipt.model_dump(mode="json")):
+    if receipt_bytes != canonical_json_bytes(receipt.model_dump(mode="json")):
         raise EssProcessingPersistenceError("processing receipt is not canonical", published=True)
-    if (root / RECORD_NAME).read_bytes() != canonical_json_bytes(record.model_dump(mode="json")):
+    if record_bytes != canonical_json_bytes(record.model_dump(mode="json")):
         raise EssProcessingPersistenceError("processing record is not canonical", published=True)
+    event = _validated_processing_event(
+        store=store,
+        session_id=session_id,
+        source_run_id=source_run_id,
+        processing_id=processing_id,
+        record=record,
+        record_bytes=record_bytes,
+        receipt_sha256=receipt_digest,
+    )
     arrays_bytes = deterministic_npz_bytes(result.arrays)
     expected_arrays_digest = sha256_bytes(arrays_bytes)
     expected_receipt = _receipt(
@@ -459,7 +538,7 @@ def validate_ess_processing(
         processing_id=processing_id,
         session_id=session_id,
         source_run_id=source_run_id,
-        created_at=record.created_at,
+        created_at=event.created_at,
         status="complete",
         processing_receipt_sha256=expected_receipt_digest,
         data_origin="synthetic",
@@ -470,7 +549,11 @@ def validate_ess_processing(
     )
     if record != expected_record:
         raise EssProcessingPersistenceError("processing record differs", published=True)
-    if arrays_digest != expected_arrays_digest or not (root / COMPLETE_NAME).is_file():
+    try:
+        complete_bytes = (root / COMPLETE_NAME).read_bytes()
+    except OSError as exc:
+        raise EssProcessingPersistenceError(str(exc), published=True) from exc
+    if arrays_digest != expected_arrays_digest or complete_bytes != COMPLETE_BYTES:
         raise EssProcessingPersistenceError(
             "processing digest or completion differs", published=True
         )
