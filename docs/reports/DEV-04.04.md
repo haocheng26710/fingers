@@ -6,6 +6,8 @@
 
 提交前普通 sandbox 的最终 `git fetch`/`ls-remote` 因无法连接 GitHub 失败，未据此声称远端一致；按权限流程重新执行获准的 `git fetch origin main` 后成功，确认 `HEAD == origin/main == b30e70d...`、remote URL 正确，再进入提交。最终 commit/push SHA 不能自引用写入其自身内容，以最终 Git 审计和最终回复为准。
 
+主实现已提交为 `38fe26fa4604be3201139ff14997236a455726b1`（`DEV-04.04: bind synthetic conditions and BLK baseline difference`）并以非 force push 成功更新 `origin/main`。推送后 fetch 与 `ls-remote refs/heads/main` 均返回同一 SHA，工作区当时干净。为让不可变日志包含这一已发生事实，随后只追加本报告/日志的 delivery audit；最终 main SHA 由最终回复报告。
+
 本步骤只实现 development-only、synthetic-only 的 Stage 1 condition binding 和 provisional baseline-difference continuous metrics。没有枚举、播放、录音或打开音频 Stream；没有执行正式 protocol；没有 QC/effect/repeatability/drift/classification PASS/FAIL，也没有硬件、校准、SPL 或实验结论。
 
 ## 实现
