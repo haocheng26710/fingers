@@ -90,6 +90,17 @@ from acoustic_ladder.protocol.planning_persistence import (
     publish_development_protocol_plan,
     validate_development_protocol_plan,
 )
+from acoustic_ladder.protocol.rehearsal import (
+    DevelopmentProtocolRehearsalStore,
+    apply_protocol_rehearsal_transition,
+    initialize_protocol_rehearsal,
+    read_protocol_rehearsal_status,
+    validate_protocol_rehearsal,
+)
+from acoustic_ladder.protocol.rehearsal_models import (
+    ProtocolRehearsalConcurrencyToken,
+    ProtocolRehearsalTransitionCommand,
+)
 from acoustic_ladder.storage.io import atomic_write_bytes
 from acoustic_ladder.storage.store import (
     DataRoots,
@@ -198,6 +209,41 @@ def _parser() -> argparse.ArgumentParser:
         protocol_plan.add_argument("--plan-spec", required=True)
         protocol_plan.add_argument("--development-plan-root", required=True)
         protocol_plan.add_argument("--plan-id", required=True)
+
+    for command_name in (
+        "protocol-rehearsal-init",
+        "protocol-rehearsal-status",
+        "protocol-rehearsal-step",
+        "protocol-rehearsal-validate",
+    ):
+        rehearsal = commands.add_parser(command_name)
+        _add_bundle_arguments(rehearsal)
+        rehearsal.add_argument("--plan-spec", required=True)
+        rehearsal.add_argument("--development-plan-root", required=True)
+        rehearsal.add_argument("--plan-id", required=True)
+        rehearsal.add_argument("--development-rehearsal-root", required=True)
+        rehearsal.add_argument("--rehearsal-id", required=True)
+        if command_name == "protocol-rehearsal-step":
+            rehearsal.add_argument(
+                "--action",
+                required=True,
+                choices=(
+                    "present-requirements",
+                    "claim",
+                    "mark-rehearsed",
+                    "mark-failed",
+                    "retry",
+                    "pause",
+                    "resume",
+                    "abort",
+                ),
+            )
+            rehearsal.add_argument("--actor-id", required=True)
+            rehearsal.add_argument("--expected-event-sequence", required=True, type=int)
+            rehearsal.add_argument("--expected-head-sha256", required=True)
+            rehearsal.add_argument("--expected-work-order-sha256", required=True)
+            rehearsal.add_argument("--reason-code")
+            rehearsal.add_argument("--detail")
 
     session = commands.add_parser("create-synthetic-session")
     _add_bundle_arguments(session)
@@ -457,6 +503,89 @@ def _all_blocked_states(manifest: dict[str, object], overrides: list[str]) -> di
 
 def main(argv: list[str] | None = None) -> None:
     args = _parser().parse_args(argv)
+    if args.command in {
+        "protocol-rehearsal-init",
+        "protocol-rehearsal-status",
+        "protocol-rehearsal-step",
+        "protocol-rehearsal-validate",
+    }:
+        project_root = Path(args.project_root).resolve()
+        rehearsal_bundle = _load_bundle(args)
+        rehearsal_spec_path = Path(args.plan_spec)
+        if not rehearsal_spec_path.is_absolute():
+            rehearsal_spec_path = project_root / rehearsal_spec_path
+        rehearsal_spec = load_development_protocol_plan_spec(
+            rehearsal_spec_path,
+            project_root=project_root,
+            bundle=rehearsal_bundle,
+        )
+        rehearsal_store = DevelopmentProtocolRehearsalStore(args.development_rehearsal_root)
+        rehearsal_plan_store = DevelopmentProtocolPlanStore(args.development_plan_root)
+        common = {
+            "store": rehearsal_store,
+            "plan_store": rehearsal_plan_store,
+            "bundle": rehearsal_bundle,
+            "spec": rehearsal_spec,
+            "plan_id": args.plan_id,
+            "rehearsal_id": args.rehearsal_id,
+        }
+        if args.command == "protocol-rehearsal-init":
+            rehearsal_status = initialize_protocol_rehearsal(**common, now=_now)
+            label = "PASS development protocol rehearsal initialization"
+        elif args.command == "protocol-rehearsal-status":
+            rehearsal_status = read_protocol_rehearsal_status(**common)
+            label = "PASS development protocol rehearsal status"
+        elif args.command == "protocol-rehearsal-validate":
+            rehearsal_status = validate_protocol_rehearsal(**common)
+            label = "PASS development protocol rehearsal validation"
+        else:
+            command = ProtocolRehearsalTransitionCommand.model_validate(
+                {
+                    "action": args.action,
+                    "rehearsal_actor_id": args.actor_id,
+                    "expected_event_sequence": args.expected_event_sequence,
+                    "expected_head_sha256": args.expected_head_sha256,
+                    "expected_current_work_order_sha256": (args.expected_work_order_sha256),
+                    "reason_code": args.reason_code,
+                    "detail": args.detail,
+                }
+            )
+            token = ProtocolRehearsalConcurrencyToken(
+                rehearsal_id=args.rehearsal_id,
+                event_sequence=args.expected_event_sequence,
+                head_event_sha256=args.expected_head_sha256,
+                current_work_order_sha256=args.expected_work_order_sha256,
+            )
+            rehearsal_status = apply_protocol_rehearsal_transition(
+                **common, command=command, token=token, now=_now
+            )
+            label = "PASS development protocol rehearsal transition"
+        token = rehearsal_status.concurrency_token
+        print(
+            f"{label}: rehearsal_id={rehearsal_status.rehearsal_id} "
+            f"state={rehearsal_status.rehearsal_state} "
+            f"phase={rehearsal_status.current_work_order_phase} "
+            f"cursor={rehearsal_status.cursor} "
+            f"total_work_order_count={rehearsal_status.total_work_order_count} "
+            f"event_sequence={token.event_sequence} "
+            f"head_event_sha256={token.head_event_sha256} "
+            f"current_work_order_sha256={token.current_work_order_sha256}"
+        )
+        print("development_rehearsal=true")
+        print(
+            "requirements_presented_for_rehearsal="
+            f"{str(rehearsal_status.requirements_presented_for_rehearsal).lower()}"
+        )
+        print("physical_operator_confirmation_performed=false")
+        print("operator_confirmation_status=pending")
+        print("protocol_execution_performed=false")
+        print("measurement_performed=false")
+        print("hardware_io_performed=false")
+        print("hardware_ready=false")
+        print("formal_eligible=false")
+        print("experimental_result=false")
+        print(f"safety_marker={rehearsal_status.safety_marker}")
+        return
     if args.command in {"protocol-plan-compile", "protocol-plan-validate"}:
         project_root = Path(args.project_root).resolve()
         plan_bundle = _load_bundle(args)

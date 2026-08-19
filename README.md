@@ -1,6 +1,6 @@
 # Acoustic Ladder
 
-本仓库当前实现到 `DEV-05.01`：除模型包、配置、不可变存储、synthetic 接口数据和只读音频清单外，现提供严格的离线 ESS 开发夹具、确定性虚拟全双工采集、离线 ESS processing、provisional QC、repeatability、Stage 1 synthetic baseline difference，以及阶段 1–4 development-only 协议矩阵编译器。编译器只生成不可变计划，不执行 protocol、不创建采集 run、不访问真实音频硬件，也不应用阈值或输出实验判决。
+本仓库当前实现到 `DEV-05.02`：除模型包、配置、不可变存储、synthetic 接口数据和只读音频清单外，现提供严格的离线 ESS 开发夹具、确定性虚拟全双工采集、离线 ESS processing、provisional QC、repeatability、Stage 1 synthetic baseline difference、阶段 1–4 development-only 协议矩阵编译器，以及由计划派生的可恢复离线协议排练账本。排练只推进软件工作单状态，不执行 protocol、不创建采集 run、不访问真实音频硬件，也不应用阈值或输出实验判决。
 
 当前状态固定为：
 
@@ -212,7 +212,21 @@ acoustic-ladder protocol-plan-compile --project-root . --protocol config/protoco
 acoustic-ladder protocol-plan-validate --project-root . --protocol config/protocols/stage1_single_bridge.yaml --audio tests/fixtures/audio/ess_offline_development.yaml --plan-spec tests/fixtures/protocol/stage1_protocol_plan.development.yaml --development-plan-root $planRoot --plan-id stage1-example
 ```
 
-当前 fixture 的 condition counts 为 19/4/4/16，planned measurements 为 152/32/32/128。随机化只排列 condition blocks，continuous repeats 始终相邻；算法为 `sha256_ranked_condition_blocks` `1.0.0`。Stage 2 固定孔径只是 proxy，Stage 3 不计算 interaction residual，Stage 4 不执行 classification。operator confirmation 仍为 pending，计划产物不是实验结果；DEV-05.02 尚未实施。详见 `docs/architecture/protocol-planning.md`。
+当前 fixture 的 condition counts 为 19/4/4/16，planned measurements 为 152/32/32/128。随机化只排列 condition blocks，continuous repeats 始终相邻；算法为 `sha256_ranked_condition_blocks` `1.0.0`。Stage 2 固定孔径只是 proxy，Stage 3 不计算 interaction residual，Stage 4 不执行 classification。operator confirmation 仍为 pending，计划产物不是实验结果。详见 `docs/architecture/protocol-planning.md`。
+
+## DEV-05.02 离线协议排练账本
+
+排练根与 plan、real、synthetic session 根相互独立。`protocol-rehearsal-init` 从已验证 compiled plan 的 `session_slots` 派生全部工作单；`status`/`validate` 只读重放 create-only 事件哈希链；`step` 只接受 action、actor 和上一状态返回的 sequence/head/work-order 并发 token，不能注入 ordinal、condition、NodeState、设备或输出路径。
+
+```powershell
+$rehearsalRoot = Join-Path $env:TEMP 'acoustic-ladder-dev0502-rehearsals'
+acoustic-ladder protocol-rehearsal-init @bundle --plan-spec tests/fixtures/protocol/stage1_protocol_plan.development.yaml --development-plan-root $planRoot --plan-id stage1-example --development-rehearsal-root $rehearsalRoot --rehearsal-id stage1-dry-run
+acoustic-ladder protocol-rehearsal-status @bundle --plan-spec tests/fixtures/protocol/stage1_protocol_plan.development.yaml --development-plan-root $planRoot --plan-id stage1-example --development-rehearsal-root $rehearsalRoot --rehearsal-id stage1-dry-run
+acoustic-ladder protocol-rehearsal-step @bundle --plan-spec tests/fixtures/protocol/stage1_protocol_plan.development.yaml --development-plan-root $planRoot --plan-id stage1-example --development-rehearsal-root $rehearsalRoot --rehearsal-id stage1-dry-run --action present-requirements --actor-id offline-runner --expected-event-sequence 0 --expected-head-sha256 <status-head> --expected-work-order-sha256 <status-work-order>
+acoustic-ladder protocol-rehearsal-validate @bundle --plan-spec tests/fixtures/protocol/stage1_protocol_plan.development.yaml --development-plan-root $planRoot --plan-id stage1-example --development-rehearsal-root $rehearsalRoot --rehearsal-id stage1-dry-run
+```
+
+正常工作单路径为 `present-requirements → claim → mark-rehearsed`；也支持 pause/resume、mark-failed/retry 和 abort。所有持久化安全状态继续声明未执行协议、未测量、未访问硬件、operator confirmation pending，CLI 的 `PASS` 仅表示软件排练或完整性重放成功。哈希链不是签名、外部 witness 或可信时间戳；活动账本尚未被后续记录引用的最后尾部删除没有外部可证明性。DEV-05.03 尚未实施。详见 `docs/architecture/protocol-rehearsal.md`。
 
 详细契约见 `docs/architecture/`；数据根目录政策见 `data/README.md`。
 

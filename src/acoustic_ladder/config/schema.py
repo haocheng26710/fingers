@@ -53,6 +53,12 @@ from acoustic_ladder.protocol.planning_models import (
     ProtocolPlanReceipt,
     ProtocolPlanRecord,
 )
+from acoustic_ladder.protocol.rehearsal_models import (
+    ProtocolRehearsalCompletion,
+    ProtocolRehearsalEvent,
+    ProtocolRehearsalManifest,
+    ProtocolRehearsalRecord,
+)
 
 SCHEMA_MODELS: dict[str, type[BaseModel]] = {
     "audio_config.schema.json": AudioConfig,
@@ -109,6 +115,12 @@ PROTOCOL_PLAN_SCHEMA_MODELS: dict[str, type[BaseModel]] = {
     "protocol_plan_receipt.schema.json": ProtocolPlanReceipt,
     "protocol_plan_record.schema.json": ProtocolPlanRecord,
 }
+PROTOCOL_REHEARSAL_SCHEMA_MODELS: dict[str, type[BaseModel]] = {
+    "protocol_rehearsal_manifest.schema.json": ProtocolRehearsalManifest,
+    "protocol_rehearsal_record.schema.json": ProtocolRehearsalRecord,
+    "protocol_rehearsal_event.schema.json": ProtocolRehearsalEvent,
+    "protocol_rehearsal_completion.schema.json": ProtocolRehearsalCompletion,
+}
 ALL_GENERATED_SCHEMA_MODELS = (
     GENERATED_SCHEMA_MODELS
     | ESS_SCHEMA_MODELS
@@ -118,6 +130,7 @@ ALL_GENERATED_SCHEMA_MODELS = (
     | REPEATABILITY_SCHEMA_MODELS
     | CONDITION_BASELINE_SCHEMA_MODELS
     | PROTOCOL_PLAN_SCHEMA_MODELS
+    | PROTOCOL_REHEARSAL_SCHEMA_MODELS
 )
 
 

@@ -1,0 +1,109 @@
+{
+  "additionalProperties": false,
+  "properties": {
+    "created_at": {
+      "format": "date-time",
+      "title": "Created At",
+      "type": "string"
+    },
+    "development_rehearsal": {
+      "const": true,
+      "title": "Development Rehearsal",
+      "type": "boolean"
+    },
+    "experimental_result": {
+      "const": false,
+      "title": "Experimental Result",
+      "type": "boolean"
+    },
+    "formal_eligible": {
+      "const": false,
+      "title": "Formal Eligible",
+      "type": "boolean"
+    },
+    "hardware_io_performed": {
+      "const": false,
+      "title": "Hardware Io Performed",
+      "type": "boolean"
+    },
+    "hardware_ready": {
+      "const": false,
+      "title": "Hardware Ready",
+      "type": "boolean"
+    },
+    "immutable_status": {
+      "const": "initialized",
+      "title": "Immutable Status",
+      "type": "string"
+    },
+    "manifest_sha256": {
+      "pattern": "^[0-9a-f]{64}$",
+      "title": "Manifest Sha256",
+      "type": "string"
+    },
+    "measurement_performed": {
+      "const": false,
+      "title": "Measurement Performed",
+      "type": "boolean"
+    },
+    "operator_confirmation_status": {
+      "const": "pending",
+      "title": "Operator Confirmation Status",
+      "type": "string"
+    },
+    "physical_operator_confirmation_performed": {
+      "const": false,
+      "title": "Physical Operator Confirmation Performed",
+      "type": "boolean"
+    },
+    "protocol_execution_performed": {
+      "const": false,
+      "title": "Protocol Execution Performed",
+      "type": "boolean"
+    },
+    "rehearsal_id": {
+      "title": "Rehearsal Id",
+      "type": "string"
+    },
+    "rehearsal_relative_path": {
+      "title": "Rehearsal Relative Path",
+      "type": "string"
+    },
+    "requirements_presented_for_rehearsal": {
+      "const": false,
+      "title": "Requirements Presented For Rehearsal",
+      "type": "boolean"
+    },
+    "safety_marker": {
+      "const": "DEVELOPMENT_PROTOCOL_REHEARSAL_NOT_EXECUTED_NOT_AN_EXPERIMENTAL_RESULT",
+      "title": "Safety Marker",
+      "type": "string"
+    },
+    "schema_version": {
+      "const": "1.0.0",
+      "title": "Schema Version",
+      "type": "string"
+    }
+  },
+  "required": [
+    "schema_version",
+    "rehearsal_id",
+    "rehearsal_relative_path",
+    "created_at",
+    "manifest_sha256",
+    "immutable_status",
+    "development_rehearsal",
+    "requirements_presented_for_rehearsal",
+    "physical_operator_confirmation_performed",
+    "operator_confirmation_status",
+    "protocol_execution_performed",
+    "measurement_performed",
+    "hardware_io_performed",
+    "hardware_ready",
+    "formal_eligible",
+    "experimental_result",
+    "safety_marker"
+  ],
+  "title": "ProtocolRehearsalRecord",
+  "type": "object"
+}

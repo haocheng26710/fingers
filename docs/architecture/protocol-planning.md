@@ -26,4 +26,6 @@ The validator rebuilds the matrix, hierarchy, SHA256-ranked order, plan, receipt
 
 ## Research boundary
 
-Operator confirmation remains pending. Stage 2 states are fixed-aperture proxies, not continuous deformation. Stage 3 does not calculate interaction residuals. Stage 4 does not perform classification. A CLI `PASS` means only compilation or replay succeeded. No real audio device is enumerated or opened, no calibration is applied, no protocol is executed and no experimental conclusion is produced. DEV-05.02 is not implemented.
+Operator confirmation remains pending. Stage 2 states are fixed-aperture proxies, not continuous deformation. Stage 3 does not calculate interaction residuals. Stage 4 does not perform classification. A planning CLI `PASS` means only compilation or replay succeeded. No real audio device is enumerated or opened, no calibration is applied, no protocol is executed and no experimental conclusion is produced.
+
+DEV-05.02 consumes only a successfully replay-validated published plan and derives ordered rehearsal work orders directly from its `session_slots`; it does not alter the plan or rerandomize conditions. Plan publication and rehearsal publication remain separate roots and contracts. See `protocol-rehearsal.md`.
