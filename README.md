@@ -1,6 +1,6 @@
 # Acoustic Ladder
 
-本仓库当前实现到 `DEV-04.03R`：除模型包、配置、不可变存储、synthetic 接口数据和只读音频清单外，现提供严格的离线 ESS 开发夹具、确定性虚拟全双工采集、离线 ESS processing、provisional QC，以及同一 reassembly 连续 synthetic captures 的 provisional repeatability 指标。当前没有 protocol condition/BLK baseline 绑定、baseline difference、阈值、pass/fail 或 drift 判决，也不声明硬件或实验就绪，不增加真实硬件接入或正式实验功能。
+本仓库当前实现到 `DEV-04.04`：除模型包、配置、不可变存储、synthetic 接口数据和只读音频清单外，现提供严格的离线 ESS 开发夹具、确定性虚拟全双工采集、离线 ESS processing、provisional QC、同一 reassembly 的 provisional repeatability，以及 Stage 1 development condition plan 所约束的全 BLK 对单桥 synthetic baseline-difference 连续指标。该能力不执行 protocol、不应用阈值、不输出 pass/fail、effect、classification 或 drift 判决，也不声明硬件或实验就绪，不增加真实硬件接入或正式实验功能。
 
 当前状态固定为：
 
@@ -183,7 +183,24 @@ uv --cache-dir .uv-cache run acoustic-ladder repeatability-compute @bundle --syn
 uv --cache-dir .uv-cache run acoustic-ladder repeatability-validate @bundle --synthetic-root $syntheticRoot --session-id virtual001 --repeat-set-id repeatset001 --member capture001:processing001:qc001 --member capture002:processing001:qc001 --scenario tests/fixtures/audio/virtual_duplex_development.yaml --ess-artifact-root (Join-Path $essRoot 'source_ess')
 ```
 
-结果严格位于 `qc/repeat_sets/reassembly_<reassembly_id>/repeat_set_<repeat_set_id>/` 的七文件 create-only envelope。DEV-04.03R receipt、algorithm 与 record 为 `1.1.0`，并把 not-evaluated、baseline not assigned/deferred、drift not evaluated 和 threshold false/null 状态写入 receipt、record 与 metadata。CLI 的结构化状态从已发布或已验证 receipt 读取；成功输出的 `PASS` 仅表示软件命令和完整性验证通过。活动 AnalysisConfig 的 baseline selection rule 或任一 decision threshold 非 null 时，publisher 和 validator 都会在创建 repeatability parent/staging/lock 前拒绝；旧 `1.0.0` repeatability artifact 必须重新生成。当前没有 protocol condition binding、baseline difference、漂移判决、硬件/校准/SPL 或实验结论。事件只提供内部完整性与审计绑定，不是数字签名、外部 witness 或可信时间戳。详细契约见 `docs/architecture/repeatability.md`。
+结果严格位于 `qc/repeat_sets/reassembly_<reassembly_id>/repeat_set_<repeat_set_id>/` 的七文件 create-only envelope。DEV-04.03R receipt、algorithm 与 record 为 `1.1.0`，并把 not-evaluated、baseline not assigned/deferred、drift not evaluated 和 threshold false/null 状态写入 receipt、record 与 metadata。CLI 的结构化状态从已发布或已验证 receipt 读取；成功输出的 `PASS` 仅表示软件命令和完整性验证通过。活动 AnalysisConfig 的 baseline selection rule 或任一 decision threshold 非 null 时，publisher 和 validator 都会在创建 repeatability parent/staging/lock 前拒绝；旧 `1.0.0` repeatability artifact 必须重新生成。该 legacy 路径自身仍没有 protocol condition binding、baseline difference、漂移判决、硬件/校准/SPL 或实验结论；DEV-04.04 通过独立版本化 receipt 和新 comparison 层扩展它。事件只提供内部完整性与审计绑定，不是数字签名、外部 witness 或可信时间戳。详细契约见 `docs/architecture/repeatability.md`。
+
+## DEV-04.04 protocol-condition binding 与 BLK baseline difference
+
+`tests/fixtures/protocol/stage1_single_bridge_conditions.development.yaml` 是严格的 development-only condition plan：唯一 baseline 为全 BLK，candidate 为一个 manifest node 上的一个 Stage 1 bridge state。`simulate-conditioned-capture` 将该绑定解析为完整 `NodeState` map，并通过纯 synthetic、块调度的虚拟双工后端发布 capture；`--condition-id` 只存在于这一 capture publisher，后续 processing、QC、repeatability 和 comparison 均从已验证 receipt 派生 condition 身份。
+
+```powershell
+acoustic-ladder simulate-conditioned-capture @bundle --synthetic-root $syntheticRoot --session-id condition001 --reassembly-id blk-a --run-id blk001 --measurement-order 0 --scenario tests/fixtures/audio/conditioned_virtual_duplex_development.yaml --condition-plan tests/fixtures/protocol/stage1_single_bridge_conditions.development.yaml --condition-id all_blk --ess-artifact-root $essRoot
+```
+
+每个 condition 的成员完成 processing、QC 和 `repeatability-compute --condition-plan ...` 后，可用两个 repeat-set identity 生成 comparison。参数名便于 CLI 阅读，但 baseline/candidate 角色会从两个 condition-aware repeatability receipt 重新验证并自动归一，不能由调用者伪造。
+
+```powershell
+acoustic-ladder baseline-difference-compute @bundle --synthetic-root $syntheticRoot --session-id condition001 --comparison-id blk-vs-n1-b40 --scenario tests/fixtures/audio/conditioned_virtual_duplex_development.yaml --condition-plan tests/fixtures/protocol/stage1_single_bridge_conditions.development.yaml --ess-artifact-root $essRoot --baseline-repeat-set-id blk-set --baseline-member blk001:p001:q001 --baseline-member blk002:p002:q002 --candidate-repeat-set-id n1-b40-set --candidate-member b40001:p101:q101 --candidate-member b40002:p102:q102
+acoustic-ladder baseline-difference-validate @bundle --synthetic-root $syntheticRoot --session-id condition001 --comparison-id blk-vs-n1-b40 --scenario tests/fixtures/audio/conditioned_virtual_duplex_development.yaml --condition-plan tests/fixtures/protocol/stage1_single_bridge_conditions.development.yaml --ess-artifact-root $essRoot --baseline-repeat-set-id blk-set --baseline-member blk001:p001:q001 --baseline-member blk002:p002:q002 --candidate-repeat-set-id n1-b40-set --candidate-member b40001:p101:q101 --candidate-member b40002:p102:q102
+```
+
+comparison 位于 `processed/baseline_differences/comparison_<comparison_id>/` 的 exact 11-file create-only envelope。保存 raw/aligned 复传递函数均值、加性差、稳定除法 ratio、分段 phase unwrap、raw/aligned IR 差分与连续指标；invalid bin 为零并另存 mask。这里的 synthetic 非零差分不是实验效应、装置可检测性或统计显著性结论。CLI 的 `PASS` 只表示 compute/validate 软件操作及完整性重放成功。
 
 详细契约见 `docs/architecture/`；数据根目录政策见 `data/README.md`。
 

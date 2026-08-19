@@ -1,0 +1,121 @@
+{
+  "$defs": {
+    "DevelopmentConditionDefinition": {
+      "additionalProperties": false,
+      "properties": {
+        "condition_id": {
+          "pattern": "^[A-Za-z0-9_-]+$",
+          "title": "Condition Id",
+          "type": "string"
+        },
+        "condition_role": {
+          "enum": [
+            "all_blk_reference",
+            "single_bridge_candidate"
+          ],
+          "title": "Condition Role",
+          "type": "string"
+        },
+        "selected_module": {
+          "anyOf": [
+            {
+              "type": "string"
+            },
+            {
+              "type": "null"
+            }
+          ],
+          "title": "Selected Module"
+        },
+        "selected_node": {
+          "anyOf": [
+            {
+              "type": "string"
+            },
+            {
+              "type": "null"
+            }
+          ],
+          "title": "Selected Node"
+        }
+      },
+      "required": [
+        "condition_id",
+        "condition_role",
+        "selected_node",
+        "selected_module"
+      ],
+      "title": "DevelopmentConditionDefinition",
+      "type": "object"
+    }
+  },
+  "additionalProperties": false,
+  "properties": {
+    "condition_plan_id": {
+      "pattern": "^[A-Za-z0-9_-]+$",
+      "title": "Condition Plan Id",
+      "type": "string"
+    },
+    "conditions": {
+      "items": {
+        "$ref": "#/$defs/DevelopmentConditionDefinition"
+      },
+      "minItems": 2,
+      "title": "Conditions",
+      "type": "array"
+    },
+    "experiment_stage": {
+      "const": 1,
+      "title": "Experiment Stage",
+      "type": "integer"
+    },
+    "experimental_result": {
+      "const": false,
+      "title": "Experimental Result",
+      "type": "boolean"
+    },
+    "formal_eligible": {
+      "const": false,
+      "title": "Formal Eligible",
+      "type": "boolean"
+    },
+    "hardware_io_authorized": {
+      "const": false,
+      "title": "Hardware Io Authorized",
+      "type": "boolean"
+    },
+    "protocol_execution_authorized": {
+      "const": false,
+      "title": "Protocol Execution Authorized",
+      "type": "boolean"
+    },
+    "schema_version": {
+      "const": "1.0.0",
+      "title": "Schema Version",
+      "type": "string"
+    },
+    "source_protocol_reference": {
+      "title": "Source Protocol Reference",
+      "type": "string"
+    },
+    "usage_scope": {
+      "const": "development_fixture",
+      "title": "Usage Scope",
+      "type": "string"
+    }
+  },
+  "required": [
+    "schema_version",
+    "condition_plan_id",
+    "usage_scope",
+    "source_protocol_reference",
+    "experiment_stage",
+    "protocol_execution_authorized",
+    "hardware_io_authorized",
+    "formal_eligible",
+    "experimental_result",
+    "conditions"
+  ],
+  "title": "DevelopmentConditionPlan",
+  "type": "object"
+}

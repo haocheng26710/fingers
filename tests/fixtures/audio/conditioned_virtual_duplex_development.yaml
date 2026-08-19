@@ -1,0 +1,12 @@
+schema_version: "1.0.0"
+scenario_id: conditioned_virtual_duplex_v1
+usage_scope: development_fixture
+backend_id: deterministic_conditioned_virtual_duplex
+backend_version: "1.0.0"
+block_size_frames: 256
+capture_tail_samples: 160
+fault_mode: none
+fault_block_index: null
+hardware_io_authorized: false
+formal_eligible: false
+experimental_result: false

@@ -32,6 +32,7 @@ from acoustic_ladder.storage.io import (
 )
 
 if TYPE_CHECKING:
+    from acoustic_ladder.audio.baseline_difference_models import BaselineDifferenceRecord
     from acoustic_ladder.audio.ess_processing_models import ProcessingRecord
     from acoustic_ladder.audio.provisional_qc_models import QcRecord
     from acoustic_ladder.audio.repeatability_models import RepeatabilityRecord
@@ -476,6 +477,78 @@ class ImmutableSessionStore:
         except FileExistsError as exc:
             raise StorageError(
                 f"repeatability publication is already in progress: {repeat_set_id}"
+            ) from exc
+        finally:
+            if descriptor is not None:
+                os.close(descriptor)
+                lock.unlink(missing_ok=True)
+            if not published and staging is not None and staging.exists():
+                shutil.rmtree(staging)
+
+    def create_synthetic_baseline_difference(
+        self,
+        *,
+        session_id: str,
+        comparison_id: str,
+        artifact_payloads: dict[str, bytes],
+        metadata: dict[str, object],
+        record: BaselineDifferenceRecord,
+    ) -> Path:
+        """Create-only publish an exact synthetic baseline-difference envelope."""
+
+        safe_identifier(comparison_id, "comparison_id")
+        self.validate_session(DataOrigin.SYNTHETIC, session_id)
+        if (
+            record.session_id != session_id
+            or record.comparison_id != comparison_id
+            or record.data_origin != "synthetic"
+        ):
+            raise StorageError("baseline-difference record identity does not match selected path")
+        required_payloads = {
+            "condition_binding.json",
+            "condition_binding.sha256",
+            "baseline_difference_arrays.npz",
+            "baseline_difference_arrays.npz.sha256",
+            "baseline_difference_metrics.json",
+            "baseline_difference_metrics.sha256",
+            "baseline_difference_receipt.json",
+            "baseline_difference_receipt.sha256",
+        }
+        if set(artifact_payloads) != required_payloads:
+            raise StorageError("baseline-difference artifact payload set is not exact")
+        session = self.session_path(DataOrigin.SYNTHETIC, session_id).resolve()
+        processed = (session / "processed").resolve()
+        parent = (processed / "baseline_differences").resolve()
+        if not processed.is_relative_to(session) or not parent.is_relative_to(processed):
+            raise StorageError("baseline-difference parent escapes the synthetic session")
+        parent.mkdir(parents=True, exist_ok=True)
+        final = (parent / f"comparison_{comparison_id}").resolve()
+        if final.parent != parent or not final.is_relative_to(parent):
+            raise StorageError("baseline-difference path escapes the synthetic session")
+        if final.exists():
+            raise StorageError(f"baseline difference already exists: {comparison_id}")
+        lock = parent / f".{comparison_id}.publish.lock"
+        descriptor: int | None = None
+        staging: Path | None = None
+        published = False
+        try:
+            descriptor = os.open(lock, os.O_CREAT | os.O_EXCL | os.O_WRONLY)
+            if final.exists():
+                raise StorageError(f"baseline difference already exists: {comparison_id}")
+            staging = Path(tempfile.mkdtemp(prefix=f".{comparison_id}.staging-", dir=parent))
+            for relative, payload in artifact_payloads.items():
+                atomic_write_bytes(confined_path(staging, relative), payload)
+            atomic_write_json(staging / "baseline_difference_metadata.json", metadata)
+            atomic_write_json(
+                staging / "baseline_difference_record.json", record.model_dump(mode="json")
+            )
+            atomic_write_bytes(staging / "BASELINE_DIFFERENCE_COMPLETE", b"complete\n")
+            os.rename(staging, final)
+            published = True
+            return final
+        except FileExistsError as exc:
+            raise StorageError(
+                f"baseline-difference publication is already in progress: {comparison_id}"
             ) from exc
         finally:
             if descriptor is not None:

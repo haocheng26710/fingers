@@ -7,6 +7,12 @@ from pathlib import Path
 
 from pydantic import BaseModel
 
+from acoustic_ladder.audio.baseline_difference import ProvisionalBaselineDifferenceMetrics
+from acoustic_ladder.audio.baseline_difference_models import ProvisionalBaselineDifferenceReceipt
+from acoustic_ladder.audio.condition_plan_models import DevelopmentConditionPlan
+from acoustic_ladder.audio.conditioned_virtual_capture_models import (
+    ConditionedVirtualCaptureReceipt,
+)
 from acoustic_ladder.audio.ess_processing_models import EssProcessingReceipt
 from acoustic_ladder.audio.excitation_models import EssArtifactMetadata, EssSignalSpec
 from acoustic_ladder.audio.models import (
@@ -21,6 +27,7 @@ from acoustic_ladder.audio.provisional_qc_models import (
     ProvisionalQcReceipt,
 )
 from acoustic_ladder.audio.repeatability_models import (
+    ConditionedProvisionalRepeatabilityReceipt,
     ProvisionalRepeatabilityMetrics,
     ProvisionalRepeatabilityReceipt,
 )
@@ -81,6 +88,15 @@ REPEATABILITY_SCHEMA_MODELS: dict[str, type[BaseModel]] = {
     "provisional_repeatability_metrics.schema.json": ProvisionalRepeatabilityMetrics,
     "provisional_repeatability_receipt.schema.json": ProvisionalRepeatabilityReceipt,
 }
+CONDITION_BASELINE_SCHEMA_MODELS: dict[str, type[BaseModel]] = {
+    "development_condition_plan.schema.json": DevelopmentConditionPlan,
+    "conditioned_virtual_capture_receipt.schema.json": ConditionedVirtualCaptureReceipt,
+    "conditioned_provisional_repeatability_receipt.schema.json": (
+        ConditionedProvisionalRepeatabilityReceipt
+    ),
+    "provisional_baseline_difference_metrics.schema.json": (ProvisionalBaselineDifferenceMetrics),
+    "provisional_baseline_difference_receipt.schema.json": (ProvisionalBaselineDifferenceReceipt),
+}
 ALL_GENERATED_SCHEMA_MODELS = (
     GENERATED_SCHEMA_MODELS
     | ESS_SCHEMA_MODELS
@@ -88,6 +104,7 @@ ALL_GENERATED_SCHEMA_MODELS = (
     | ESS_PROCESSING_SCHEMA_MODELS
     | PROVISIONAL_QC_SCHEMA_MODELS
     | REPEATABILITY_SCHEMA_MODELS
+    | CONDITION_BASELINE_SCHEMA_MODELS
 )
 
 

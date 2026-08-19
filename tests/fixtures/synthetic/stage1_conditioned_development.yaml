@@ -1,0 +1,27 @@
+schema_version: "1.0.0"
+config_id: stage1_conditioned_synthetic_fixture
+config_status: draft
+generator_version: stage1-conditioned-transparent-ir-v1
+random_seed: 20260819
+sample_rate_hz: 48000
+duration_s: 0.25
+speed_of_sound:
+  value_m_s: 343.0
+  source: package design assumption; not an environmental measurement
+  assumption_not_measurement: true
+baseline_coupling: 0.05
+propagation_loss_per_m: 0.4
+module_effect_scale: 0.15
+noise_level: 0.0
+session_drift: 0.0
+reassembly_drift: 0.0
+output_channel_count: 1
+input_channel_count: 1
+output_dtype: float32
+notes:
+  - Deterministic condition-binding software fixture only.
+  - Zero noise and drift prevent fixture randomness from being interpreted as a condition effect.
+physical_limitations:
+  - Not a measured acoustic response.
+  - Not a formal experiment parameter recommendation.
+  - Cannot establish significance, separability, or structural effectiveness.

@@ -1,0 +1,18 @@
+schema_version: "1.0.0"
+condition_plan_id: stage1_single_bridge_development
+usage_scope: development_fixture
+source_protocol_reference: config/protocols/stage1_single_bridge.yaml
+experiment_stage: 1
+protocol_execution_authorized: false
+hardware_io_authorized: false
+formal_eligible: false
+experimental_result: false
+conditions:
+  - condition_id: all_blk
+    condition_role: all_blk_reference
+    selected_node: null
+    selected_module: null
+  - condition_id: n1_b40
+    condition_role: single_bridge_candidate
+    selected_node: N1
+    selected_module: B40

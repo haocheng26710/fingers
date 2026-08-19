@@ -12,8 +12,23 @@ from pydantic import ValidationError
 
 from acoustic_ladder import __version__
 from acoustic_ladder.audio.backend import SoundDeviceInventoryBackend
+from acoustic_ladder.audio.baseline_difference_models import RepeatabilitySourceIdentity
+from acoustic_ladder.audio.baseline_difference_persistence import (
+    publish_provisional_baseline_difference,
+    validate_provisional_baseline_difference,
+)
+from acoustic_ladder.audio.condition_plan import load_development_condition_plan
+from acoustic_ladder.audio.conditioned_virtual_capture import (
+    load_conditioned_virtual_capture_scenario,
+    publish_conditioned_virtual_capture,
+    validate_conditioned_virtual_capture,
+)
+from acoustic_ladder.audio.conditioned_virtual_capture_models import (
+    LoadedConditionedVirtualCaptureScenario,
+)
 from acoustic_ladder.audio.context_validation import validate_audio_context_bundle
 from acoustic_ladder.audio.ess_processing_persistence import (
+    CaptureScenario,
     publish_ess_processing,
     validate_ess_processing,
 )
@@ -48,7 +63,10 @@ from acoustic_ladder.audio.repeatability_persistence import (
     validate_provisional_repeatability,
 )
 from acoustic_ladder.audio.summary import render_inventory_summary
-from acoustic_ladder.audio.virtual_capture_models import load_virtual_capture_scenario
+from acoustic_ladder.audio.virtual_capture_models import (
+    LoadedVirtualCaptureScenario,
+    load_virtual_capture_scenario,
+)
 from acoustic_ladder.audio.virtual_capture_persistence import (
     publish_virtual_capture,
     validate_virtual_capture,
@@ -124,6 +142,15 @@ def _synthetic_store(synthetic_root: str | Path) -> ImmutableSessionStore:
     root = Path(synthetic_root).resolve()
     unavailable_real_root = root.parent / ".real_root_unavailable_to_synthetic_cli"
     return ImmutableSessionStore(DataRoots(synthetic=root, real=unavailable_real_root))
+
+
+def _loaded_capture_scenario(args: argparse.Namespace, project_root: Path) -> CaptureScenario:
+    scenario_path = Path(args.scenario)
+    if not scenario_path.is_absolute():
+        scenario_path = project_root / scenario_path
+    if getattr(args, "condition_plan", None):
+        return load_conditioned_virtual_capture_scenario(scenario_path, project_root=project_root)
+    return load_virtual_capture_scenario(scenario_path, project_root=project_root)
 
 
 def _audio_backend() -> SoundDeviceInventoryBackend:
@@ -298,6 +325,27 @@ def _parser() -> argparse.ArgumentParser:
     simulate_capture.add_argument("--scenario", required=True)
     simulate_capture.add_argument("--ess-artifact-root", required=True)
 
+    conditioned_capture = commands.add_parser("simulate-conditioned-capture")
+    _add_bundle_arguments(conditioned_capture)
+    conditioned_capture.add_argument("--synthetic-root", required=True)
+    conditioned_capture.add_argument("--session-id", required=True)
+    conditioned_capture.add_argument("--reassembly-id", required=True)
+    conditioned_capture.add_argument("--run-id", required=True)
+    conditioned_capture.add_argument("--measurement-order", type=int, default=0)
+    conditioned_capture.add_argument("--scenario", required=True)
+    conditioned_capture.add_argument("--condition-plan", required=True)
+    conditioned_capture.add_argument("--condition-id", required=True)
+    conditioned_capture.add_argument("--ess-artifact-root", required=True)
+
+    conditioned_validate = commands.add_parser("validate-conditioned-capture")
+    _add_bundle_arguments(conditioned_validate)
+    conditioned_validate.add_argument("--synthetic-root", required=True)
+    conditioned_validate.add_argument("--session-id", required=True)
+    conditioned_validate.add_argument("--run-id", required=True)
+    conditioned_validate.add_argument("--scenario", required=True)
+    conditioned_validate.add_argument("--condition-plan", required=True)
+    conditioned_validate.add_argument("--ess-artifact-root", required=True)
+
     validate_capture = commands.add_parser("validate-simulated-capture")
     _add_bundle_arguments(validate_capture)
     validate_capture.add_argument("--synthetic-root", required=True)
@@ -315,6 +363,7 @@ def _parser() -> argparse.ArgumentParser:
         processing.add_argument("--processing-id", required=True)
         processing.add_argument("--scenario", required=True)
         processing.add_argument("--ess-artifact-root", required=True)
+        processing.add_argument("--condition-plan")
     for command_name in ("qc-compute", "qc-validate"):
         qc = commands.add_parser(command_name)
         _add_bundle_arguments(qc)
@@ -325,6 +374,7 @@ def _parser() -> argparse.ArgumentParser:
         qc.add_argument("--qc-id", required=True)
         qc.add_argument("--scenario", required=True)
         qc.add_argument("--ess-artifact-root", required=True)
+        qc.add_argument("--condition-plan")
     for command_name in ("repeatability-compute", "repeatability-validate"):
         repeatability = commands.add_parser(command_name)
         _add_bundle_arguments(repeatability)
@@ -336,6 +386,24 @@ def _parser() -> argparse.ArgumentParser:
         )
         repeatability.add_argument("--scenario", required=True)
         repeatability.add_argument("--ess-artifact-root", required=True)
+        repeatability.add_argument("--condition-plan")
+    for command_name in ("baseline-difference-compute", "baseline-difference-validate"):
+        comparison = commands.add_parser(command_name)
+        _add_bundle_arguments(comparison)
+        comparison.add_argument("--synthetic-root", required=True)
+        comparison.add_argument("--session-id", required=True)
+        comparison.add_argument("--comparison-id", required=True)
+        comparison.add_argument("--scenario", required=True)
+        comparison.add_argument("--condition-plan", required=True)
+        comparison.add_argument("--ess-artifact-root", required=True)
+        comparison.add_argument("--baseline-repeat-set-id", required=True)
+        comparison.add_argument(
+            "--baseline-member", action="append", type=_repeatability_member, required=True
+        )
+        comparison.add_argument("--candidate-repeat-set-id", required=True)
+        comparison.add_argument(
+            "--candidate-member", action="append", type=_repeatability_member, required=True
+        )
     return parser
 
 
@@ -538,13 +606,64 @@ def main(argv: list[str] | None = None) -> None:
             )
         print(SAFETY_MARKER)
         return
+    if args.command in {"simulate-conditioned-capture", "validate-conditioned-capture"}:
+        project_root = Path(args.project_root).resolve()
+        loaded_bundle = _load_bundle(args)
+        loaded_scenario = _loaded_capture_scenario(args, project_root)
+        if not isinstance(loaded_scenario, LoadedConditionedVirtualCaptureScenario):
+            raise ValueError("conditioned capture requires a conditioned scenario")
+        capture_store = _synthetic_store(args.synthetic_root)
+        if args.command == "simulate-conditioned-capture":
+            plan_path = Path(args.condition_plan)
+            if not plan_path.is_absolute():
+                plan_path = project_root / plan_path
+            loaded_plan = load_development_condition_plan(
+                plan_path, project_root=project_root, bundle=loaded_bundle
+            )
+            conditioned_capture_result = publish_conditioned_virtual_capture(
+                store=capture_store,
+                bundle=loaded_bundle,
+                scenario=loaded_scenario,
+                condition_plan=loaded_plan,
+                condition_id=args.condition_id,
+                ess_artifact_root=args.ess_artifact_root,
+                session_id=args.session_id,
+                reassembly_id=args.reassembly_id,
+                run_id=args.run_id,
+                measurement_order=args.measurement_order,
+                now=_now,
+            )
+            label = "PASS conditioned synthetic capture"
+        else:
+            conditioned_capture_result = validate_conditioned_virtual_capture(
+                store=capture_store,
+                bundle=loaded_bundle,
+                scenario=loaded_scenario,
+                ess_artifact_root=args.ess_artifact_root,
+                session_id=args.session_id,
+                run_id=args.run_id,
+            )
+            label = "PASS conditioned synthetic capture validation"
+        conditioned_receipt = conditioned_capture_result.receipt
+        print(
+            f"{label}: capture_id={conditioned_receipt.capture_id} "
+            f"run_id={conditioned_receipt.run_id} "
+            f"condition_id={conditioned_receipt.condition_id} "
+            f"condition_role={conditioned_receipt.condition_role} "
+            f"reassembly_id={conditioned_receipt.reassembly_id} "
+            f"receipt_sha256={conditioned_capture_result.receipt_sha256}"
+        )
+        print("SYNTHETIC_ONLY")
+        print("PROTOCOL_CONDITION_BINDING_ONLY")
+        print("NO_HARDWARE_AUDIO_IO_PERFORMED")
+        print("NOT_AN_EXPERIMENTAL_RESULT")
+        return
     if args.command in {"simulate-duplex-capture", "validate-simulated-capture"}:
         project_root = Path(args.project_root).resolve()
         loaded_bundle = _load_bundle(args)
-        scenario_path = Path(args.scenario)
-        if not scenario_path.is_absolute():
-            scenario_path = project_root / scenario_path
-        loaded_scenario = load_virtual_capture_scenario(scenario_path, project_root=project_root)
+        loaded_scenario = _loaded_capture_scenario(args, project_root)
+        if not isinstance(loaded_scenario, LoadedVirtualCaptureScenario):
+            raise ValueError("legacy capture command requires a legacy virtual scenario")
         capture_store = _synthetic_store(args.synthetic_root)
         if args.command == "simulate-duplex-capture":
             capture = publish_virtual_capture(
@@ -586,10 +705,7 @@ def main(argv: list[str] | None = None) -> None:
     if args.command in {"process-simulated-capture", "validate-simulated-processing"}:
         project_root = Path(args.project_root).resolve()
         loaded_bundle = _load_bundle(args)
-        scenario_path = Path(args.scenario)
-        if not scenario_path.is_absolute():
-            scenario_path = project_root / scenario_path
-        loaded_scenario = load_virtual_capture_scenario(scenario_path, project_root=project_root)
+        loaded_scenario = _loaded_capture_scenario(args, project_root)
         processing_store = _synthetic_store(args.synthetic_root)
         arguments = {
             "store": processing_store,
@@ -628,10 +744,7 @@ def main(argv: list[str] | None = None) -> None:
     if args.command in {"qc-compute", "qc-validate"}:
         project_root = Path(args.project_root).resolve()
         loaded_bundle = _load_bundle(args)
-        scenario_path = Path(args.scenario)
-        if not scenario_path.is_absolute():
-            scenario_path = project_root / scenario_path
-        loaded_scenario = load_virtual_capture_scenario(scenario_path, project_root=project_root)
+        loaded_scenario = _loaded_capture_scenario(args, project_root)
         arguments = {
             "store": _synthetic_store(args.synthetic_root),
             "bundle": loaded_bundle,
@@ -678,10 +791,7 @@ def main(argv: list[str] | None = None) -> None:
     if args.command in {"repeatability-compute", "repeatability-validate"}:
         project_root = Path(args.project_root).resolve()
         loaded_bundle = _load_bundle(args)
-        scenario_path = Path(args.scenario)
-        if not scenario_path.is_absolute():
-            scenario_path = project_root / scenario_path
-        loaded_scenario = load_virtual_capture_scenario(scenario_path, project_root=project_root)
+        loaded_scenario = _loaded_capture_scenario(args, project_root)
         arguments = {
             "store": _synthetic_store(args.synthetic_root),
             "bundle": loaded_bundle,
@@ -745,6 +855,77 @@ def main(argv: list[str] | None = None) -> None:
         print("BASELINE_SELECTION_DEFERRED_UNTIL_PROTOCOL_BINDING")
         print("NO_BASELINE_DIFFERENCE_COMPUTED")
         print("DRIFT_NOT_EVALUATED")
+        print("NO_HARDWARE_AUDIO_IO_PERFORMED")
+        print("NOT_AN_EXPERIMENTAL_RESULT")
+        return
+    if args.command in {"baseline-difference-compute", "baseline-difference-validate"}:
+        project_root = Path(args.project_root).resolve()
+        loaded_bundle = _load_bundle(args)
+        loaded_scenario = _loaded_capture_scenario(args, project_root)
+        if not isinstance(loaded_scenario, LoadedConditionedVirtualCaptureScenario):
+            raise ValueError("baseline difference requires a conditioned scenario")
+        plan_path = Path(args.condition_plan)
+        if not plan_path.is_absolute():
+            plan_path = project_root / plan_path
+        loaded_plan = load_development_condition_plan(
+            plan_path, project_root=project_root, bundle=loaded_bundle
+        )
+        arguments = {
+            "store": _synthetic_store(args.synthetic_root),
+            "bundle": loaded_bundle,
+            "scenario": loaded_scenario,
+            "condition_plan": loaded_plan,
+            "ess_artifact_root": args.ess_artifact_root,
+            "session_id": args.session_id,
+            "comparison_id": args.comparison_id,
+            "source_a": RepeatabilitySourceIdentity(
+                repeat_set_id=args.baseline_repeat_set_id,
+                members=args.baseline_member,
+            ),
+            "source_b": RepeatabilitySourceIdentity(
+                repeat_set_id=args.candidate_repeat_set_id,
+                members=args.candidate_member,
+            ),
+        }
+        if args.command == "baseline-difference-compute":
+            comparison = publish_provisional_baseline_difference(**arguments, now=_now)
+            label = "PASS provisional baseline difference"
+        else:
+            comparison = validate_provisional_baseline_difference(**arguments)
+            label = "PASS provisional baseline difference validation"
+        comparison_receipt = comparison.receipt
+        print(
+            f"{label}: comparison_path={comparison.comparison_path} "
+            f"arrays_sha256={comparison.arrays_sha256} "
+            f"metrics_sha256={comparison.metrics_sha256} "
+            f"receipt_sha256={comparison.receipt_sha256} "
+            f"baseline_condition_id={comparison_receipt.baseline_source.condition_id} "
+            f"candidate_condition_id={comparison_receipt.candidate_source.condition_id} "
+            f"baseline_reassembly_id={comparison_receipt.baseline_source.reassembly_id} "
+            f"candidate_reassembly_id={comparison_receipt.candidate_source.reassembly_id} "
+            f"baseline_member_count={len(comparison_receipt.baseline_source.members)} "
+            f"candidate_member_count={len(comparison_receipt.candidate_source.members)} "
+            f"analysis_bin_count={comparison_receipt.analysis_band_bin_count} "
+            f"raw_valid_bin_count={comparison_receipt.ratio_valid_bin_count['raw']} "
+            f"aligned_valid_bin_count={comparison_receipt.ratio_valid_bin_count['aligned']}"
+        )
+        print(f"baseline_selection_status={comparison_receipt.baseline_selection_status}")
+        print(
+            "baseline_difference_computed="
+            f"{str(comparison_receipt.baseline_difference_computed).lower()}"
+        )
+        print(f"decision_status={comparison_receipt.decision_status}")
+        print(f"thresholds_applied={str(comparison_receipt.thresholds_applied).lower()}")
+        print(f"hardware_io_performed={str(comparison_receipt.hardware_io_performed).lower()}")
+        print(f"formal_eligible={str(comparison_receipt.formal_eligible).lower()}")
+        print(f"experimental_result={str(comparison_receipt.experimental_result).lower()}")
+        print(f"safety_marker={comparison_receipt.safety_marker}")
+        print("SYNTHETIC_ONLY")
+        print("PROVISIONAL_BASELINE_DIFFERENCE_METRICS_ONLY")
+        print("PROTOCOL_CONDITION_BINDING_ONLY")
+        print("BASELINE_SELECTED_FROM_VERIFIED_ALL_BLK_CONDITION")
+        print("DECISION_NOT_EVALUATED")
+        print("THRESHOLDS_NOT_APPLIED")
         print("NO_HARDWARE_AUDIO_IO_PERFORMED")
         print("NOT_AN_EXPERIMENTAL_RESULT")
         return

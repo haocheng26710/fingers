@@ -1,0 +1,186 @@
+{
+  "$defs": {
+    "IrDifferenceMetrics": {
+      "additionalProperties": false,
+      "properties": {
+        "difference_absolute_peak": {
+          "minimum": 0,
+          "title": "Difference Absolute Peak",
+          "type": "number"
+        },
+        "difference_l2": {
+          "minimum": 0,
+          "title": "Difference L2",
+          "type": "number"
+        },
+        "difference_peak_index": {
+          "minimum": 0,
+          "title": "Difference Peak Index",
+          "type": "integer"
+        },
+        "symmetric_nrmse": {
+          "anyOf": [
+            {
+              "minimum": 0,
+              "type": "number"
+            },
+            {
+              "type": "null"
+            }
+          ],
+          "default": null,
+          "title": "Symmetric Nrmse"
+        },
+        "symmetric_nrmse_status": {
+          "enum": [
+            "computed",
+            "zero_symmetric_norm"
+          ],
+          "title": "Symmetric Nrmse Status",
+          "type": "string"
+        }
+      },
+      "required": [
+        "symmetric_nrmse_status",
+        "difference_l2",
+        "difference_absolute_peak",
+        "difference_peak_index"
+      ],
+      "title": "IrDifferenceMetrics",
+      "type": "object"
+    },
+    "TransferDifferenceMetrics": {
+      "additionalProperties": false,
+      "properties": {
+        "analysis_band_bin_count": {
+          "exclusiveMinimum": 0,
+          "title": "Analysis Band Bin Count",
+          "type": "integer"
+        },
+        "analysis_band_valid_bin_count": {
+          "minimum": 0,
+          "title": "Analysis Band Valid Bin Count",
+          "type": "integer"
+        },
+        "analysis_band_valid_fraction": {
+          "maximum": 1,
+          "minimum": 0,
+          "title": "Analysis Band Valid Fraction",
+          "type": "number"
+        },
+        "complex_additive_difference_symmetric_relative_l2": {
+          "anyOf": [
+            {
+              "minimum": 0,
+              "type": "number"
+            },
+            {
+              "type": "null"
+            }
+          ],
+          "default": null,
+          "title": "Complex Additive Difference Symmetric Relative L2"
+        },
+        "complex_additive_difference_symmetric_relative_l2_status": {
+          "enum": [
+            "computed",
+            "zero_symmetric_norm"
+          ],
+          "title": "Complex Additive Difference Symmetric Relative L2 Status",
+          "type": "string"
+        },
+        "magnitude_difference_maximum_absolute_db": {
+          "minimum": 0,
+          "title": "Magnitude Difference Maximum Absolute Db",
+          "type": "number"
+        },
+        "magnitude_difference_rms_db": {
+          "minimum": 0,
+          "title": "Magnitude Difference Rms Db",
+          "type": "number"
+        },
+        "phase_defined_count": {
+          "minimum": 0,
+          "title": "Phase Defined Count",
+          "type": "integer"
+        },
+        "phase_defined_fraction": {
+          "maximum": 1,
+          "minimum": 0,
+          "title": "Phase Defined Fraction",
+          "type": "number"
+        },
+        "phase_difference_maximum_absolute_rad": {
+          "anyOf": [
+            {
+              "minimum": 0,
+              "type": "number"
+            },
+            {
+              "type": "null"
+            }
+          ],
+          "default": null,
+          "title": "Phase Difference Maximum Absolute Rad"
+        },
+        "phase_difference_rms_rad": {
+          "anyOf": [
+            {
+              "minimum": 0,
+              "type": "number"
+            },
+            {
+              "type": "null"
+            }
+          ],
+          "default": null,
+          "title": "Phase Difference Rms Rad"
+        },
+        "phase_difference_status": {
+          "enum": [
+            "computed",
+            "no_valid_bins"
+          ],
+          "title": "Phase Difference Status",
+          "type": "string"
+        }
+      },
+      "required": [
+        "analysis_band_bin_count",
+        "analysis_band_valid_bin_count",
+        "analysis_band_valid_fraction",
+        "complex_additive_difference_symmetric_relative_l2_status",
+        "magnitude_difference_rms_db",
+        "magnitude_difference_maximum_absolute_db",
+        "phase_difference_status",
+        "phase_defined_count",
+        "phase_defined_fraction"
+      ],
+      "title": "TransferDifferenceMetrics",
+      "type": "object"
+    }
+  },
+  "additionalProperties": false,
+  "properties": {
+    "aligned_ir": {
+      "$ref": "#/$defs/IrDifferenceMetrics"
+    },
+    "aligned_transfer": {
+      "$ref": "#/$defs/TransferDifferenceMetrics"
+    },
+    "raw_ir": {
+      "$ref": "#/$defs/IrDifferenceMetrics"
+    },
+    "raw_transfer": {
+      "$ref": "#/$defs/TransferDifferenceMetrics"
+    }
+  },
+  "required": [
+    "raw_transfer",
+    "aligned_transfer",
+    "raw_ir",
+    "aligned_ir"
+  ],
+  "title": "ProvisionalBaselineDifferenceMetrics",
+  "type": "object"
+}

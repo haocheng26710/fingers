@@ -12,6 +12,13 @@ from typing import Literal
 import numpy as np
 from pydantic import ValidationError
 
+from acoustic_ladder.audio.conditioned_virtual_capture import (
+    validate_conditioned_virtual_capture,
+)
+from acoustic_ladder.audio.conditioned_virtual_capture_models import (
+    LoadedConditionedVirtualCaptureScenario,
+    PublishedConditionedVirtualCapture,
+)
 from acoustic_ladder.audio.ess_processing import EssProcessingResult, process_ess_waveforms
 from acoustic_ladder.audio.ess_processing_models import (
     SAFETY_MARKER,
@@ -62,6 +69,9 @@ PROCESSING_FILE_NAMES = frozenset(
     }
 )
 _ASCII_IDENTIFIER = re.compile(r"^[A-Za-z0-9_.-]+$")
+
+CaptureScenario = LoadedVirtualCaptureScenario | LoadedConditionedVirtualCaptureScenario
+PublishedCapture = PublishedVirtualCapture | PublishedConditionedVirtualCapture
 
 
 class EssProcessingPersistenceError(StorageError):
@@ -133,19 +143,30 @@ def _compute(
     *,
     store: ImmutableSessionStore,
     bundle: LoadedBundle,
-    scenario: LoadedVirtualCaptureScenario,
+    scenario: CaptureScenario,
     ess_artifact_root: str | Path,
     session_id: str,
     source_run_id: str,
-) -> tuple[EssProcessingResult, PublishedVirtualCapture, EssArtifactReceipt]:
-    capture = validate_virtual_capture(
-        store=store,
-        bundle=bundle,
-        scenario=scenario,
-        ess_artifact_root=ess_artifact_root,
-        session_id=session_id,
-        run_id=source_run_id,
-    )
+) -> tuple[EssProcessingResult, PublishedCapture, EssArtifactReceipt]:
+    capture: PublishedCapture
+    if isinstance(scenario, LoadedConditionedVirtualCaptureScenario):
+        capture = validate_conditioned_virtual_capture(
+            store=store,
+            bundle=bundle,
+            scenario=scenario,
+            ess_artifact_root=ess_artifact_root,
+            session_id=session_id,
+            run_id=source_run_id,
+        )
+    else:
+        capture = validate_virtual_capture(
+            store=store,
+            bundle=bundle,
+            scenario=scenario,
+            ess_artifact_root=ess_artifact_root,
+            session_id=session_id,
+            run_id=source_run_id,
+        )
     ess = validate_offline_ess_artifact(ess_artifact_root, bundle.configs["audio"])
     run_path = capture.run_path
     output, output_rate = decode_ieee_float32_wav((run_path / OUTPUT_WAV).read_bytes())
@@ -184,7 +205,7 @@ def _receipt(
     source_run_id: str,
     bundle: LoadedBundle,
     result: EssProcessingResult,
-    capture: PublishedVirtualCapture,
+    capture: PublishedCapture,
     ess: EssArtifactReceipt,
     arrays_sha256: str,
 ) -> EssProcessingReceipt:
@@ -314,7 +335,7 @@ def publish_ess_processing(
     *,
     store: ImmutableSessionStore,
     bundle: LoadedBundle,
-    scenario: LoadedVirtualCaptureScenario,
+    scenario: CaptureScenario,
     ess_artifact_root: str | Path,
     session_id: str,
     source_run_id: str,
@@ -465,7 +486,7 @@ def validate_ess_processing(
     *,
     store: ImmutableSessionStore,
     bundle: LoadedBundle,
-    scenario: LoadedVirtualCaptureScenario,
+    scenario: CaptureScenario,
     ess_artifact_root: str | Path,
     session_id: str,
     source_run_id: str,

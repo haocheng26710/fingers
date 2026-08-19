@@ -1,0 +1,767 @@
+{
+  "$defs": {
+    "LoadingDirection": {
+      "enum": [
+        "loading",
+        "unloading",
+        "not_applicable",
+        "unknown"
+      ],
+      "title": "LoadingDirection",
+      "type": "string"
+    },
+    "NodeState": {
+      "additionalProperties": false,
+      "properties": {
+        "continuous_value": {
+          "anyOf": [
+            {
+              "type": "number"
+            },
+            {
+              "type": "null"
+            }
+          ],
+          "title": "Continuous Value"
+        },
+        "discrete_label": {
+          "anyOf": [
+            {
+              "type": "string"
+            },
+            {
+              "type": "null"
+            }
+          ],
+          "title": "Discrete Label"
+        },
+        "loading_direction": {
+          "$ref": "#/$defs/LoadingDirection"
+        },
+        "module_id": {
+          "title": "Module Id",
+          "type": "string"
+        },
+        "node_id": {
+          "title": "Node Id",
+          "type": "string"
+        },
+        "notes": {
+          "anyOf": [
+            {
+              "type": "string"
+            },
+            {
+              "type": "null"
+            }
+          ],
+          "title": "Notes"
+        },
+        "provenance": {
+          "anyOf": [
+            {
+              "type": "string"
+            },
+            {
+              "type": "null"
+            }
+          ],
+          "title": "Provenance"
+        },
+        "proxy_state": {
+          "title": "Proxy State",
+          "type": "boolean"
+        },
+        "state_id": {
+          "title": "State Id",
+          "type": "string"
+        },
+        "state_type": {
+          "title": "State Type",
+          "type": "string"
+        },
+        "unit": {
+          "anyOf": [
+            {
+              "type": "string"
+            },
+            {
+              "type": "null"
+            }
+          ],
+          "title": "Unit"
+        }
+      },
+      "required": [
+        "node_id",
+        "state_id",
+        "module_id",
+        "state_type",
+        "discrete_label",
+        "continuous_value",
+        "unit",
+        "loading_direction",
+        "proxy_state",
+        "provenance",
+        "notes"
+      ],
+      "title": "NodeState",
+      "type": "object"
+    },
+    "RepeatabilityMemberIdentity": {
+      "additionalProperties": false,
+      "properties": {
+        "processing_id": {
+          "pattern": "^[A-Za-z0-9_.-]+$",
+          "title": "Processing Id",
+          "type": "string"
+        },
+        "qc_id": {
+          "pattern": "^[A-Za-z0-9_.-]+$",
+          "title": "Qc Id",
+          "type": "string"
+        },
+        "source_run_id": {
+          "pattern": "^[A-Za-z0-9_.-]+$",
+          "title": "Source Run Id",
+          "type": "string"
+        }
+      },
+      "required": [
+        "source_run_id",
+        "processing_id",
+        "qc_id"
+      ],
+      "title": "RepeatabilityMemberIdentity",
+      "type": "object"
+    },
+    "RepeatabilityMemberProvenance": {
+      "additionalProperties": false,
+      "properties": {
+        "capture_receipt_sha256": {
+          "pattern": "^[0-9a-f]{64}$",
+          "title": "Capture Receipt Sha256",
+          "type": "string"
+        },
+        "captured_input_wav_sha256": {
+          "pattern": "^[0-9a-f]{64}$",
+          "title": "Captured Input Wav Sha256",
+          "type": "string"
+        },
+        "estimated_latency_samples": {
+          "minimum": 0,
+          "title": "Estimated Latency Samples",
+          "type": "integer"
+        },
+        "identity": {
+          "$ref": "#/$defs/RepeatabilityMemberIdentity"
+        },
+        "measurement_order": {
+          "minimum": 0,
+          "title": "Measurement Order",
+          "type": "integer"
+        },
+        "processing_arrays_sha256": {
+          "pattern": "^[0-9a-f]{64}$",
+          "title": "Processing Arrays Sha256",
+          "type": "string"
+        },
+        "processing_receipt_sha256": {
+          "pattern": "^[0-9a-f]{64}$",
+          "title": "Processing Receipt Sha256",
+          "type": "string"
+        },
+        "qc_metrics_sha256": {
+          "pattern": "^[0-9a-f]{64}$",
+          "title": "Qc Metrics Sha256",
+          "type": "string"
+        },
+        "qc_receipt_sha256": {
+          "pattern": "^[0-9a-f]{64}$",
+          "title": "Qc Receipt Sha256",
+          "type": "string"
+        }
+      },
+      "required": [
+        "identity",
+        "measurement_order",
+        "estimated_latency_samples",
+        "capture_receipt_sha256",
+        "captured_input_wav_sha256",
+        "processing_receipt_sha256",
+        "processing_arrays_sha256",
+        "qc_metrics_sha256",
+        "qc_receipt_sha256"
+      ],
+      "title": "RepeatabilityMemberProvenance",
+      "type": "object"
+    }
+  },
+  "additionalProperties": false,
+  "description": "Versioned repeatability receipt with protocol-condition provenance.",
+  "properties": {
+    "absolute_spl_calibrated": {
+      "const": false,
+      "title": "Absolute Spl Calibrated",
+      "type": "boolean"
+    },
+    "analysis_band_bin_count": {
+      "exclusiveMinimum": 0,
+      "title": "Analysis Band Bin Count",
+      "type": "integer"
+    },
+    "analysis_band_mask_sha256": {
+      "pattern": "^[0-9a-f]{64}$",
+      "title": "Analysis Band Mask Sha256",
+      "type": "string"
+    },
+    "analysis_config_normalized_sha256": {
+      "pattern": "^[0-9a-f]{64}$",
+      "title": "Analysis Config Normalized Sha256",
+      "type": "string"
+    },
+    "analysis_config_raw_sha256": {
+      "pattern": "^[0-9a-f]{64}$",
+      "title": "Analysis Config Raw Sha256",
+      "type": "string"
+    },
+    "analysis_config_reference": {
+      "title": "Analysis Config Reference",
+      "type": "string"
+    },
+    "audio_config_normalized_sha256": {
+      "pattern": "^[0-9a-f]{64}$",
+      "title": "Audio Config Normalized Sha256",
+      "type": "string"
+    },
+    "audio_config_raw_sha256": {
+      "pattern": "^[0-9a-f]{64}$",
+      "title": "Audio Config Raw Sha256",
+      "type": "string"
+    },
+    "audio_config_reference": {
+      "title": "Audio Config Reference",
+      "type": "string"
+    },
+    "baseline_assigned": {
+      "const": false,
+      "title": "Baseline Assigned",
+      "type": "boolean"
+    },
+    "baseline_difference_computed": {
+      "const": false,
+      "title": "Baseline Difference Computed",
+      "type": "boolean"
+    },
+    "baseline_role": {
+      "const": "not_assigned",
+      "title": "Baseline Role",
+      "type": "string"
+    },
+    "baseline_selection_status": {
+      "const": "deferred_until_protocol_binding",
+      "title": "Baseline Selection Status",
+      "type": "string"
+    },
+    "bundle_content_sha256": {
+      "pattern": "^[0-9a-f]{64}$",
+      "title": "Bundle Content Sha256",
+      "type": "string"
+    },
+    "calibration_applied": {
+      "const": false,
+      "title": "Calibration Applied",
+      "type": "boolean"
+    },
+    "calibration_file_verified": {
+      "const": false,
+      "title": "Calibration File Verified",
+      "type": "boolean"
+    },
+    "captured_input_correlation_formula_id": {
+      "const": "normalized_dot_after_pre_silence_without_epsilon",
+      "title": "Captured Input Correlation Formula Id",
+      "type": "string"
+    },
+    "channel_mapping_verified": {
+      "const": false,
+      "title": "Channel Mapping Verified",
+      "type": "boolean"
+    },
+    "complex_transfer_relative_l2_formula_id": {
+      "const": "analysis_band_symmetric_complex_l2_over_root_mean_square_norm",
+      "title": "Complex Transfer Relative L2 Formula Id",
+      "type": "string"
+    },
+    "condition_id": {
+      "pattern": "^[A-Za-z0-9_.-]+$",
+      "title": "Condition Id",
+      "type": "string"
+    },
+    "condition_plan_id": {
+      "pattern": "^[A-Za-z0-9_.-]+$",
+      "title": "Condition Plan Id",
+      "type": "string"
+    },
+    "condition_plan_normalized_sha256": {
+      "pattern": "^[0-9a-f]{64}$",
+      "title": "Condition Plan Normalized Sha256",
+      "type": "string"
+    },
+    "condition_plan_raw_sha256": {
+      "pattern": "^[0-9a-f]{64}$",
+      "title": "Condition Plan Raw Sha256",
+      "type": "string"
+    },
+    "condition_plan_reference": {
+      "title": "Condition Plan Reference",
+      "type": "string"
+    },
+    "condition_role": {
+      "enum": [
+        "all_blk_reference",
+        "single_bridge_candidate"
+      ],
+      "title": "Condition Role",
+      "type": "string"
+    },
+    "create_only": {
+      "const": true,
+      "title": "Create Only",
+      "type": "boolean"
+    },
+    "data_origin": {
+      "const": "synthetic",
+      "title": "Data Origin",
+      "type": "string"
+    },
+    "decision_status": {
+      "const": "not_evaluated",
+      "title": "Decision Status",
+      "type": "string"
+    },
+    "device_manifest_sha256": {
+      "pattern": "^[0-9a-f]{64}$",
+      "title": "Device Manifest Sha256",
+      "type": "string"
+    },
+    "drift_decision": {
+      "const": "not_evaluated",
+      "title": "Drift Decision",
+      "type": "string"
+    },
+    "drift_evaluated": {
+      "const": false,
+      "title": "Drift Evaluated",
+      "type": "boolean"
+    },
+    "electrical_loopback_available": {
+      "const": false,
+      "title": "Electrical Loopback Available",
+      "type": "boolean"
+    },
+    "evaluation_status": {
+      "const": "provisional_repeatability_metrics_only",
+      "title": "Evaluation Status",
+      "type": "string"
+    },
+    "experimental_result": {
+      "const": false,
+      "title": "Experimental Result",
+      "type": "boolean"
+    },
+    "formal_eligible": {
+      "const": false,
+      "title": "Formal Eligible",
+      "type": "boolean"
+    },
+    "frequency_bin_count": {
+      "exclusiveMinimum": 0,
+      "title": "Frequency Bin Count",
+      "type": "integer"
+    },
+    "full_duplex_verified": {
+      "const": false,
+      "title": "Full Duplex Verified",
+      "type": "boolean"
+    },
+    "hardware_io_performed": {
+      "const": false,
+      "title": "Hardware Io Performed",
+      "type": "boolean"
+    },
+    "hardware_ready": {
+      "const": false,
+      "title": "Hardware Ready",
+      "type": "boolean"
+    },
+    "immutable": {
+      "const": true,
+      "title": "Immutable",
+      "type": "boolean"
+    },
+    "ir_correlation_formula_id": {
+      "const": "normalized_dot_aligned_ir_without_epsilon",
+      "title": "Ir Correlation Formula Id",
+      "type": "string"
+    },
+    "ir_sample_count": {
+      "exclusiveMinimum": 0,
+      "title": "Ir Sample Count",
+      "type": "integer"
+    },
+    "ir_symmetric_nrmse_formula_id": {
+      "const": "symmetric_l2_over_root_mean_square_norm",
+      "title": "Ir Symmetric Nrmse Formula Id",
+      "type": "string"
+    },
+    "latency_delta_formula_id": {
+      "const": "validated_processing_latency_j_minus_i",
+      "title": "Latency Delta Formula Id",
+      "type": "string"
+    },
+    "magnitude_rmse_formula_id": {
+      "const": "float64_tiny_floor_20_log10_magnitude_rmse_db",
+      "title": "Magnitude Rmse Formula Id",
+      "type": "string"
+    },
+    "members": {
+      "items": {
+        "$ref": "#/$defs/RepeatabilityMemberProvenance"
+      },
+      "title": "Members",
+      "type": "array"
+    },
+    "metric_computation_status": {
+      "const": "complete",
+      "title": "Metric Computation Status",
+      "type": "string"
+    },
+    "non_blk_node_count": {
+      "maximum": 1,
+      "minimum": 0,
+      "title": "Non Blk Node Count",
+      "type": "integer"
+    },
+    "normalized_member_list_sha256": {
+      "pattern": "^[0-9a-f]{64}$",
+      "title": "Normalized Member List Sha256",
+      "type": "string"
+    },
+    "pair_enumeration_formula_id": {
+      "const": "all_unique_unordered_pairs_in_measurement_order",
+      "title": "Pair Enumeration Formula Id",
+      "type": "string"
+    },
+    "phase_rms_formula_id": {
+      "const": "joint_nonzero_angle_h_i_times_conjugate_h_j_rms_without_unwrap",
+      "title": "Phase Rms Formula Id",
+      "type": "string"
+    },
+    "playback_performed": {
+      "const": false,
+      "title": "Playback Performed",
+      "type": "boolean"
+    },
+    "post_silence_sample_count": {
+      "minimum": 0,
+      "title": "Post Silence Sample Count",
+      "type": "integer"
+    },
+    "pre_silence_sample_count": {
+      "minimum": 0,
+      "title": "Pre Silence Sample Count",
+      "type": "integer"
+    },
+    "processing_algorithm_id": {
+      "const": "offline_ess_deconvolution_transfer",
+      "title": "Processing Algorithm Id",
+      "type": "string"
+    },
+    "processing_algorithm_version": {
+      "const": "1.1.0",
+      "title": "Processing Algorithm Version",
+      "type": "string"
+    },
+    "processing_schema_version": {
+      "const": "1.1.0",
+      "title": "Processing Schema Version",
+      "type": "string"
+    },
+    "protocol_condition_binding_performed": {
+      "const": true,
+      "title": "Protocol Condition Binding Performed",
+      "type": "boolean"
+    },
+    "protocol_execution_performed": {
+      "const": false,
+      "title": "Protocol Execution Performed",
+      "type": "boolean"
+    },
+    "protocol_id": {
+      "pattern": "^[A-Za-z0-9_.-]+$",
+      "title": "Protocol Id",
+      "type": "string"
+    },
+    "qc_algorithm_id": {
+      "const": "provisional_offline_qc_metrics",
+      "title": "Qc Algorithm Id",
+      "type": "string"
+    },
+    "qc_algorithm_version": {
+      "const": "1.0.0",
+      "title": "Qc Algorithm Version",
+      "type": "string"
+    },
+    "qc_schema_version": {
+      "const": "1.0.0",
+      "title": "Qc Schema Version",
+      "type": "string"
+    },
+    "reassembly_id": {
+      "pattern": "^[A-Za-z0-9_.-]+$",
+      "title": "Reassembly Id",
+      "type": "string"
+    },
+    "recording_performed": {
+      "const": false,
+      "title": "Recording Performed",
+      "type": "boolean"
+    },
+    "repeat_set_id": {
+      "pattern": "^[A-Za-z0-9_.-]+$",
+      "title": "Repeat Set Id",
+      "type": "string"
+    },
+    "repeatability_algorithm_id": {
+      "const": "provisional_continuous_repeatability_metrics",
+      "title": "Repeatability Algorithm Id",
+      "type": "string"
+    },
+    "repeatability_algorithm_version": {
+      "const": "1.1.0",
+      "title": "Repeatability Algorithm Version",
+      "type": "string"
+    },
+    "repeatability_decision": {
+      "const": "not_evaluated",
+      "title": "Repeatability Decision",
+      "type": "string"
+    },
+    "repeatability_metrics_sha256": {
+      "pattern": "^[0-9a-f]{64}$",
+      "title": "Repeatability Metrics Sha256",
+      "type": "string"
+    },
+    "repeatability_threshold": {
+      "title": "Repeatability Threshold",
+      "type": "null"
+    },
+    "resolved_node_states": {
+      "additionalProperties": {
+        "$ref": "#/$defs/NodeState"
+      },
+      "title": "Resolved Node States",
+      "type": "object"
+    },
+    "resolved_node_states_sha256": {
+      "pattern": "^[0-9a-f]{64}$",
+      "title": "Resolved Node States Sha256",
+      "type": "string"
+    },
+    "run_mode": {
+      "const": "development",
+      "title": "Run Mode",
+      "type": "string"
+    },
+    "safety_marker": {
+      "const": "SYNTHETIC_PROVISIONAL_REPEATABILITY_METRICS_NOT_AN_EXPERIMENTAL_RESULT",
+      "title": "Safety Marker",
+      "type": "string"
+    },
+    "sample_rate_hz": {
+      "exclusiveMinimum": 0,
+      "title": "Sample Rate Hz",
+      "type": "integer"
+    },
+    "schema_version": {
+      "const": "1.2.0",
+      "title": "Schema Version",
+      "type": "string"
+    },
+    "session_id": {
+      "pattern": "^[A-Za-z0-9_.-]+$",
+      "title": "Session Id",
+      "type": "string"
+    },
+    "shared_clock_verified": {
+      "const": false,
+      "title": "Shared Clock Verified",
+      "type": "boolean"
+    },
+    "source_ess_artifact_id": {
+      "pattern": "^[A-Za-z0-9_.-]+$",
+      "title": "Source Ess Artifact Id",
+      "type": "string"
+    },
+    "source_ess_metadata_sha256": {
+      "pattern": "^[0-9a-f]{64}$",
+      "title": "Source Ess Metadata Sha256",
+      "type": "string"
+    },
+    "source_ess_raw_float32_sha256": {
+      "pattern": "^[0-9a-f]{64}$",
+      "title": "Source Ess Raw Float32 Sha256",
+      "type": "string"
+    },
+    "source_ess_wav_sha256": {
+      "pattern": "^[0-9a-f]{64}$",
+      "title": "Source Ess Wav Sha256",
+      "type": "string"
+    },
+    "source_protocol_normalized_sha256": {
+      "pattern": "^[0-9a-f]{64}$",
+      "title": "Source Protocol Normalized Sha256",
+      "type": "string"
+    },
+    "source_protocol_raw_sha256": {
+      "pattern": "^[0-9a-f]{64}$",
+      "title": "Source Protocol Raw Sha256",
+      "type": "string"
+    },
+    "source_protocol_reference": {
+      "title": "Source Protocol Reference",
+      "type": "string"
+    },
+    "sweep_sample_count": {
+      "exclusiveMinimum": 1,
+      "title": "Sweep Sample Count",
+      "type": "integer"
+    },
+    "threshold_source": {
+      "title": "Threshold Source",
+      "type": "null"
+    },
+    "thresholds_applied": {
+      "const": false,
+      "title": "Thresholds Applied",
+      "type": "boolean"
+    },
+    "transfer_fft_length": {
+      "exclusiveMinimum": 0,
+      "title": "Transfer Fft Length",
+      "type": "integer"
+    },
+    "virtual_scenario_normalized_sha256": {
+      "pattern": "^[0-9a-f]{64}$",
+      "title": "Virtual Scenario Normalized Sha256",
+      "type": "string"
+    },
+    "virtual_scenario_raw_sha256": {
+      "pattern": "^[0-9a-f]{64}$",
+      "title": "Virtual Scenario Raw Sha256",
+      "type": "string"
+    },
+    "virtual_scenario_reference": {
+      "title": "Virtual Scenario Reference",
+      "type": "string"
+    }
+  },
+  "required": [
+    "decision_status",
+    "repeatability_decision",
+    "thresholds_applied",
+    "repeatability_threshold",
+    "threshold_source",
+    "baseline_assigned",
+    "baseline_role",
+    "baseline_selection_status",
+    "baseline_difference_computed",
+    "drift_evaluated",
+    "drift_decision",
+    "schema_version",
+    "session_id",
+    "reassembly_id",
+    "repeat_set_id",
+    "data_origin",
+    "run_mode",
+    "members",
+    "normalized_member_list_sha256",
+    "bundle_content_sha256",
+    "device_manifest_sha256",
+    "audio_config_reference",
+    "audio_config_raw_sha256",
+    "audio_config_normalized_sha256",
+    "analysis_config_reference",
+    "analysis_config_raw_sha256",
+    "analysis_config_normalized_sha256",
+    "virtual_scenario_reference",
+    "virtual_scenario_raw_sha256",
+    "virtual_scenario_normalized_sha256",
+    "source_ess_artifact_id",
+    "source_ess_metadata_sha256",
+    "source_ess_wav_sha256",
+    "source_ess_raw_float32_sha256",
+    "processing_schema_version",
+    "processing_algorithm_id",
+    "processing_algorithm_version",
+    "qc_schema_version",
+    "qc_algorithm_id",
+    "qc_algorithm_version",
+    "sample_rate_hz",
+    "sweep_sample_count",
+    "pre_silence_sample_count",
+    "post_silence_sample_count",
+    "transfer_fft_length",
+    "frequency_bin_count",
+    "ir_sample_count",
+    "analysis_band_bin_count",
+    "analysis_band_mask_sha256",
+    "repeatability_metrics_sha256",
+    "repeatability_algorithm_id",
+    "repeatability_algorithm_version",
+    "pair_enumeration_formula_id",
+    "captured_input_correlation_formula_id",
+    "latency_delta_formula_id",
+    "ir_correlation_formula_id",
+    "ir_symmetric_nrmse_formula_id",
+    "complex_transfer_relative_l2_formula_id",
+    "magnitude_rmse_formula_id",
+    "phase_rms_formula_id",
+    "metric_computation_status",
+    "evaluation_status",
+    "create_only",
+    "immutable",
+    "hardware_io_performed",
+    "playback_performed",
+    "recording_performed",
+    "hardware_ready",
+    "full_duplex_verified",
+    "shared_clock_verified",
+    "channel_mapping_verified",
+    "calibration_file_verified",
+    "calibration_applied",
+    "absolute_spl_calibrated",
+    "electrical_loopback_available",
+    "formal_eligible",
+    "experimental_result",
+    "safety_marker",
+    "protocol_id",
+    "condition_plan_id",
+    "condition_plan_reference",
+    "condition_plan_raw_sha256",
+    "condition_plan_normalized_sha256",
+    "source_protocol_reference",
+    "source_protocol_raw_sha256",
+    "source_protocol_normalized_sha256",
+    "condition_id",
+    "condition_role",
+    "resolved_node_states",
+    "resolved_node_states_sha256",
+    "non_blk_node_count",
+    "protocol_condition_binding_performed",
+    "protocol_execution_performed"
+  ],
+  "title": "ConditionedProvisionalRepeatabilityReceipt",
+  "type": "object"
+}

@@ -12,9 +12,18 @@ from typing import Literal, TypedDict
 import numpy as np
 from pydantic import ValidationError
 
+from acoustic_ladder.audio.conditioned_virtual_capture import (
+    ConditionedVirtualCapturePersistenceError,
+    validate_conditioned_virtual_capture,
+)
+from acoustic_ladder.audio.conditioned_virtual_capture_models import (
+    LoadedConditionedVirtualCaptureScenario,
+    PublishedConditionedVirtualCapture,
+)
 from acoustic_ladder.audio.ess_processing_models import PublishedEssProcessing
 from acoustic_ladder.audio.ess_processing_persistence import (
     ARRAYS_NAME,
+    CaptureScenario,
     EssProcessingPersistenceError,
     validate_ess_processing,
 )
@@ -31,6 +40,7 @@ from acoustic_ladder.audio.repeatability import (
 )
 from acoustic_ladder.audio.repeatability_models import (
     REPEATABILITY_SAFETY_MARKER,
+    ConditionedProvisionalRepeatabilityReceipt,
     ProvisionalRepeatabilityMetrics,
     ProvisionalRepeatabilityReceipt,
     PublishedProvisionalRepeatability,
@@ -39,7 +49,6 @@ from acoustic_ladder.audio.repeatability_models import (
     RepeatabilityMemberProvenance,
     RepeatabilityRecord,
 )
-from acoustic_ladder.audio.virtual_capture_models import LoadedVirtualCaptureScenario
 from acoustic_ladder.audio.virtual_capture_persistence import (
     INPUT_WAV,
     PublishedVirtualCapture,
@@ -86,7 +95,7 @@ class RepeatabilityPersistenceError(StorageError):
 
 @dataclass(frozen=True)
 class _LoadedMember:
-    capture: PublishedVirtualCapture
+    capture: PublishedVirtualCapture | PublishedConditionedVirtualCapture
     processing: PublishedEssProcessing
     qc: PublishedProvisionalQc
     provenance: RepeatabilityMemberProvenance
@@ -176,7 +185,7 @@ def _load_member(
     *,
     store: ImmutableSessionStore,
     bundle: LoadedBundle,
-    scenario: LoadedVirtualCaptureScenario,
+    scenario: CaptureScenario,
     ess_artifact_root: str | Path,
     session_id: str,
     identity: RepeatabilityMemberIdentity,
@@ -188,14 +197,25 @@ def _load_member(
     ):
         _identifier(value, label)
     try:
-        capture = validate_virtual_capture(
-            store=store,
-            bundle=bundle,
-            scenario=scenario,
-            ess_artifact_root=ess_artifact_root,
-            session_id=session_id,
-            run_id=identity.source_run_id,
-        )
+        capture: PublishedVirtualCapture | PublishedConditionedVirtualCapture
+        if isinstance(scenario, LoadedConditionedVirtualCaptureScenario):
+            capture = validate_conditioned_virtual_capture(
+                store=store,
+                bundle=bundle,
+                scenario=scenario,
+                ess_artifact_root=ess_artifact_root,
+                session_id=session_id,
+                run_id=identity.source_run_id,
+            )
+        else:
+            capture = validate_virtual_capture(
+                store=store,
+                bundle=bundle,
+                scenario=scenario,
+                ess_artifact_root=ess_artifact_root,
+                session_id=session_id,
+                run_id=identity.source_run_id,
+            )
         processing = validate_ess_processing(
             store=store,
             bundle=bundle,
@@ -219,6 +239,7 @@ def _load_member(
         OSError,
         ValueError,
         VirtualCapturePersistenceError,
+        ConditionedVirtualCapturePersistenceError,
         EssProcessingPersistenceError,
         ProvisionalQcPersistenceError,
     ) as exc:
@@ -299,6 +320,20 @@ def _load_member(
         int(np.count_nonzero(mask)),
         sha256_bytes(mask_bytes),
     )
+    if isinstance(capture, PublishedConditionedVirtualCapture):
+        conditioned = capture.receipt
+        compatibility_key += (
+            conditioned.protocol_id,
+            conditioned.condition_plan_reference,
+            conditioned.condition_plan_raw_sha256,
+            conditioned.condition_plan_normalized_sha256,
+            conditioned.source_protocol_reference,
+            conditioned.source_protocol_raw_sha256,
+            conditioned.source_protocol_normalized_sha256,
+            conditioned.condition_id,
+            conditioned.condition_role,
+            conditioned.resolved_node_states_sha256,
+        )
     return _LoadedMember(capture, processing, qc, provenance, kernel, compatibility_key)
 
 
@@ -306,7 +341,7 @@ def _compute(
     *,
     store: ImmutableSessionStore,
     bundle: LoadedBundle,
-    scenario: LoadedVirtualCaptureScenario,
+    scenario: CaptureScenario,
     ess_artifact_root: str | Path,
     session_id: str,
     members: Sequence[RepeatabilityMemberIdentity],
@@ -347,7 +382,7 @@ def _receipt(
     repeat_set_id: str,
     loaded: Sequence[_LoadedMember],
     metrics_sha256: str,
-) -> ProvisionalRepeatabilityReceipt:
+) -> ProvisionalRepeatabilityReceipt | ConditionedProvisionalRepeatabilityReceipt:
     first = loaded[0]
     capture = first.capture.receipt
     processing = first.processing.receipt
@@ -357,7 +392,7 @@ def _receipt(
     analysis = capture.config_snapshots["analysis_config"]
     mask = first.kernel.analysis_band_mask
     mask_bytes = np.ascontiguousarray(mask, dtype=np.bool_).tobytes(order="C")
-    return ProvisionalRepeatabilityReceipt(
+    common: dict[str, object] = dict(
         schema_version="1.1.0",
         session_id=session_id,
         reassembly_id=capture.reassembly_id,
@@ -429,9 +464,36 @@ def _receipt(
         experimental_result=False,
         safety_marker=REPEATABILITY_SAFETY_MARKER,
     )
+    if isinstance(first.capture, PublishedConditionedVirtualCapture):
+        conditioned = first.capture.receipt
+        common.update(
+            schema_version="1.2.0",
+            protocol_id=conditioned.protocol_id,
+            condition_plan_id=conditioned.condition_plan_id,
+            condition_plan_reference=conditioned.condition_plan_reference,
+            condition_plan_raw_sha256=conditioned.condition_plan_raw_sha256,
+            condition_plan_normalized_sha256=conditioned.condition_plan_normalized_sha256,
+            source_protocol_reference=conditioned.source_protocol_reference,
+            source_protocol_raw_sha256=conditioned.source_protocol_raw_sha256,
+            source_protocol_normalized_sha256=conditioned.source_protocol_normalized_sha256,
+            condition_id=conditioned.condition_id,
+            condition_role=conditioned.condition_role,
+            resolved_node_states=conditioned.resolved_node_states,
+            resolved_node_states_sha256=conditioned.resolved_node_states_sha256,
+            non_blk_node_count=sum(
+                state.module_id != "BLK" for state in conditioned.resolved_node_states.values()
+            ),
+            protocol_condition_binding_performed=True,
+            protocol_execution_performed=False,
+        )
+        return ConditionedProvisionalRepeatabilityReceipt.model_validate(common)
+    return ProvisionalRepeatabilityReceipt.model_validate(common)
 
 
-def _metadata(receipt: ProvisionalRepeatabilityReceipt, receipt_sha256: str) -> dict[str, object]:
+def _metadata(
+    receipt: ProvisionalRepeatabilityReceipt | ConditionedProvisionalRepeatabilityReceipt,
+    receipt_sha256: str,
+) -> dict[str, object]:
     return {
         **_state(),
         "data_origin": "synthetic",
@@ -466,7 +528,7 @@ def publish_provisional_repeatability(
     *,
     store: ImmutableSessionStore,
     bundle: LoadedBundle,
-    scenario: LoadedVirtualCaptureScenario,
+    scenario: CaptureScenario,
     ess_artifact_root: str | Path,
     session_id: str,
     repeat_set_id: str,
@@ -622,7 +684,7 @@ def validate_provisional_repeatability(
     *,
     store: ImmutableSessionStore,
     bundle: LoadedBundle,
-    scenario: LoadedVirtualCaptureScenario,
+    scenario: CaptureScenario,
     ess_artifact_root: str | Path,
     session_id: str,
     repeat_set_id: str,
@@ -653,7 +715,13 @@ def validate_provisional_repeatability(
     record_bytes = (root / RECORD_NAME).read_bytes()
     try:
         stored_metrics = ProvisionalRepeatabilityMetrics.model_validate_json(metrics_bytes)
-        stored_receipt = ProvisionalRepeatabilityReceipt.model_validate_json(receipt_bytes)
+        stored_receipt: ProvisionalRepeatabilityReceipt | ConditionedProvisionalRepeatabilityReceipt
+        if isinstance(scenario, LoadedConditionedVirtualCaptureScenario):
+            stored_receipt = ConditionedProvisionalRepeatabilityReceipt.model_validate_json(
+                receipt_bytes
+            )
+        else:
+            stored_receipt = ProvisionalRepeatabilityReceipt.model_validate_json(receipt_bytes)
         record = RepeatabilityRecord.model_validate_json(record_bytes)
     except ValidationError as exc:
         raise RepeatabilityPersistenceError(str(exc), published=True) from exc

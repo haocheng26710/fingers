@@ -1,0 +1,799 @@
+{
+  "$defs": {
+    "BaselineDifferenceSourceProvenance": {
+      "additionalProperties": false,
+      "properties": {
+        "condition_id": {
+          "pattern": "^[A-Za-z0-9_.-]+$",
+          "title": "Condition Id",
+          "type": "string"
+        },
+        "condition_role": {
+          "enum": [
+            "all_blk_reference",
+            "single_bridge_candidate"
+          ],
+          "title": "Condition Role",
+          "type": "string"
+        },
+        "members": {
+          "items": {
+            "$ref": "#/$defs/RepeatabilityMemberProvenance"
+          },
+          "minItems": 2,
+          "title": "Members",
+          "type": "array"
+        },
+        "non_blk_node_count": {
+          "maximum": 1,
+          "minimum": 0,
+          "title": "Non Blk Node Count",
+          "type": "integer"
+        },
+        "normalized_member_list_sha256": {
+          "pattern": "^[0-9a-f]{64}$",
+          "title": "Normalized Member List Sha256",
+          "type": "string"
+        },
+        "reassembly_id": {
+          "pattern": "^[A-Za-z0-9_.-]+$",
+          "title": "Reassembly Id",
+          "type": "string"
+        },
+        "repeat_set_id": {
+          "pattern": "^[A-Za-z0-9_.-]+$",
+          "title": "Repeat Set Id",
+          "type": "string"
+        },
+        "repeatability_metrics_sha256": {
+          "pattern": "^[0-9a-f]{64}$",
+          "title": "Repeatability Metrics Sha256",
+          "type": "string"
+        },
+        "repeatability_receipt_sha256": {
+          "pattern": "^[0-9a-f]{64}$",
+          "title": "Repeatability Receipt Sha256",
+          "type": "string"
+        },
+        "resolved_node_states": {
+          "additionalProperties": {
+            "$ref": "#/$defs/NodeState"
+          },
+          "title": "Resolved Node States",
+          "type": "object"
+        },
+        "resolved_node_states_sha256": {
+          "pattern": "^[0-9a-f]{64}$",
+          "title": "Resolved Node States Sha256",
+          "type": "string"
+        }
+      },
+      "required": [
+        "reassembly_id",
+        "repeat_set_id",
+        "condition_id",
+        "condition_role",
+        "resolved_node_states",
+        "resolved_node_states_sha256",
+        "non_blk_node_count",
+        "members",
+        "normalized_member_list_sha256",
+        "repeatability_metrics_sha256",
+        "repeatability_receipt_sha256"
+      ],
+      "title": "BaselineDifferenceSourceProvenance",
+      "type": "object"
+    },
+    "ConfigLayer": {
+      "enum": [
+        "device_manifest",
+        "audio_config",
+        "protocol_config",
+        "analysis_config",
+        "synthetic_config"
+      ],
+      "type": "string"
+    },
+    "ConfigSnapshot": {
+      "additionalProperties": false,
+      "properties": {
+        "layer": {
+          "$ref": "#/$defs/ConfigLayer"
+        },
+        "normalized_sha256": {
+          "title": "Normalized Sha256",
+          "type": "string"
+        },
+        "original_relative_path": {
+          "minLength": 1,
+          "title": "Original Relative Path",
+          "type": "string"
+        },
+        "original_sha256": {
+          "title": "Original Sha256",
+          "type": "string"
+        },
+        "validation_status": {
+          "const": "valid",
+          "title": "Validation Status",
+          "type": "string"
+        }
+      },
+      "required": [
+        "layer",
+        "original_relative_path",
+        "original_sha256",
+        "normalized_sha256",
+        "validation_status"
+      ],
+      "title": "ConfigSnapshot",
+      "type": "object"
+    },
+    "LoadingDirection": {
+      "enum": [
+        "loading",
+        "unloading",
+        "not_applicable",
+        "unknown"
+      ],
+      "title": "LoadingDirection",
+      "type": "string"
+    },
+    "NodeState": {
+      "additionalProperties": false,
+      "properties": {
+        "continuous_value": {
+          "anyOf": [
+            {
+              "type": "number"
+            },
+            {
+              "type": "null"
+            }
+          ],
+          "title": "Continuous Value"
+        },
+        "discrete_label": {
+          "anyOf": [
+            {
+              "type": "string"
+            },
+            {
+              "type": "null"
+            }
+          ],
+          "title": "Discrete Label"
+        },
+        "loading_direction": {
+          "$ref": "#/$defs/LoadingDirection"
+        },
+        "module_id": {
+          "title": "Module Id",
+          "type": "string"
+        },
+        "node_id": {
+          "title": "Node Id",
+          "type": "string"
+        },
+        "notes": {
+          "anyOf": [
+            {
+              "type": "string"
+            },
+            {
+              "type": "null"
+            }
+          ],
+          "title": "Notes"
+        },
+        "provenance": {
+          "anyOf": [
+            {
+              "type": "string"
+            },
+            {
+              "type": "null"
+            }
+          ],
+          "title": "Provenance"
+        },
+        "proxy_state": {
+          "title": "Proxy State",
+          "type": "boolean"
+        },
+        "state_id": {
+          "title": "State Id",
+          "type": "string"
+        },
+        "state_type": {
+          "title": "State Type",
+          "type": "string"
+        },
+        "unit": {
+          "anyOf": [
+            {
+              "type": "string"
+            },
+            {
+              "type": "null"
+            }
+          ],
+          "title": "Unit"
+        }
+      },
+      "required": [
+        "node_id",
+        "state_id",
+        "module_id",
+        "state_type",
+        "discrete_label",
+        "continuous_value",
+        "unit",
+        "loading_direction",
+        "proxy_state",
+        "provenance",
+        "notes"
+      ],
+      "title": "NodeState",
+      "type": "object"
+    },
+    "RepeatabilityMemberIdentity": {
+      "additionalProperties": false,
+      "properties": {
+        "processing_id": {
+          "pattern": "^[A-Za-z0-9_.-]+$",
+          "title": "Processing Id",
+          "type": "string"
+        },
+        "qc_id": {
+          "pattern": "^[A-Za-z0-9_.-]+$",
+          "title": "Qc Id",
+          "type": "string"
+        },
+        "source_run_id": {
+          "pattern": "^[A-Za-z0-9_.-]+$",
+          "title": "Source Run Id",
+          "type": "string"
+        }
+      },
+      "required": [
+        "source_run_id",
+        "processing_id",
+        "qc_id"
+      ],
+      "title": "RepeatabilityMemberIdentity",
+      "type": "object"
+    },
+    "RepeatabilityMemberProvenance": {
+      "additionalProperties": false,
+      "properties": {
+        "capture_receipt_sha256": {
+          "pattern": "^[0-9a-f]{64}$",
+          "title": "Capture Receipt Sha256",
+          "type": "string"
+        },
+        "captured_input_wav_sha256": {
+          "pattern": "^[0-9a-f]{64}$",
+          "title": "Captured Input Wav Sha256",
+          "type": "string"
+        },
+        "estimated_latency_samples": {
+          "minimum": 0,
+          "title": "Estimated Latency Samples",
+          "type": "integer"
+        },
+        "identity": {
+          "$ref": "#/$defs/RepeatabilityMemberIdentity"
+        },
+        "measurement_order": {
+          "minimum": 0,
+          "title": "Measurement Order",
+          "type": "integer"
+        },
+        "processing_arrays_sha256": {
+          "pattern": "^[0-9a-f]{64}$",
+          "title": "Processing Arrays Sha256",
+          "type": "string"
+        },
+        "processing_receipt_sha256": {
+          "pattern": "^[0-9a-f]{64}$",
+          "title": "Processing Receipt Sha256",
+          "type": "string"
+        },
+        "qc_metrics_sha256": {
+          "pattern": "^[0-9a-f]{64}$",
+          "title": "Qc Metrics Sha256",
+          "type": "string"
+        },
+        "qc_receipt_sha256": {
+          "pattern": "^[0-9a-f]{64}$",
+          "title": "Qc Receipt Sha256",
+          "type": "string"
+        }
+      },
+      "required": [
+        "identity",
+        "measurement_order",
+        "estimated_latency_samples",
+        "capture_receipt_sha256",
+        "captured_input_wav_sha256",
+        "processing_receipt_sha256",
+        "processing_arrays_sha256",
+        "qc_metrics_sha256",
+        "qc_receipt_sha256"
+      ],
+      "title": "RepeatabilityMemberProvenance",
+      "type": "object"
+    }
+  },
+  "additionalProperties": false,
+  "properties": {
+    "absolute_spl_calibrated": {
+      "const": false,
+      "title": "Absolute Spl Calibrated",
+      "type": "boolean"
+    },
+    "algorithm_id": {
+      "const": "provisional_all_blk_baseline_complex_difference",
+      "title": "Algorithm Id",
+      "type": "string"
+    },
+    "algorithm_version": {
+      "const": "1.0.0",
+      "title": "Algorithm Version",
+      "type": "string"
+    },
+    "analysis_band_bin_count": {
+      "exclusiveMinimum": 0,
+      "title": "Analysis Band Bin Count",
+      "type": "integer"
+    },
+    "analysis_band_mask_sha256": {
+      "pattern": "^[0-9a-f]{64}$",
+      "title": "Analysis Band Mask Sha256",
+      "type": "string"
+    },
+    "arrays_sha256": {
+      "pattern": "^[0-9a-f]{64}$",
+      "title": "Arrays Sha256",
+      "type": "string"
+    },
+    "baseline_assigned": {
+      "const": true,
+      "title": "Baseline Assigned",
+      "type": "boolean"
+    },
+    "baseline_comparison_decision": {
+      "const": "not_evaluated",
+      "title": "Baseline Comparison Decision",
+      "type": "string"
+    },
+    "baseline_difference_computed": {
+      "const": true,
+      "title": "Baseline Difference Computed",
+      "type": "boolean"
+    },
+    "baseline_role": {
+      "const": "all_blk_reference",
+      "title": "Baseline Role",
+      "type": "string"
+    },
+    "baseline_selection_status": {
+      "const": "selected_from_verified_all_blk_condition",
+      "title": "Baseline Selection Status",
+      "type": "string"
+    },
+    "baseline_source": {
+      "$ref": "#/$defs/BaselineDifferenceSourceProvenance"
+    },
+    "bundle_content_sha256": {
+      "pattern": "^[0-9a-f]{64}$",
+      "title": "Bundle Content Sha256",
+      "type": "string"
+    },
+    "calibration_applied": {
+      "const": false,
+      "title": "Calibration Applied",
+      "type": "boolean"
+    },
+    "candidate_source": {
+      "$ref": "#/$defs/BaselineDifferenceSourceProvenance"
+    },
+    "classification_pass_threshold": {
+      "title": "Classification Pass Threshold",
+      "type": "null"
+    },
+    "classification_performed": {
+      "const": false,
+      "title": "Classification Performed",
+      "type": "boolean"
+    },
+    "comparison_id": {
+      "pattern": "^[A-Za-z0-9_.-]+$",
+      "title": "Comparison Id",
+      "type": "string"
+    },
+    "condition_binding_sha256": {
+      "pattern": "^[0-9a-f]{64}$",
+      "title": "Condition Binding Sha256",
+      "type": "string"
+    },
+    "condition_plan_normalized_sha256": {
+      "pattern": "^[0-9a-f]{64}$",
+      "title": "Condition Plan Normalized Sha256",
+      "type": "string"
+    },
+    "condition_plan_raw_sha256": {
+      "pattern": "^[0-9a-f]{64}$",
+      "title": "Condition Plan Raw Sha256",
+      "type": "string"
+    },
+    "condition_plan_reference": {
+      "title": "Condition Plan Reference",
+      "type": "string"
+    },
+    "config_snapshots": {
+      "additionalProperties": {
+        "$ref": "#/$defs/ConfigSnapshot"
+      },
+      "title": "Config Snapshots",
+      "type": "object"
+    },
+    "create_only": {
+      "const": true,
+      "title": "Create Only",
+      "type": "boolean"
+    },
+    "cross_validation_performed": {
+      "const": false,
+      "title": "Cross Validation Performed",
+      "type": "boolean"
+    },
+    "data_origin": {
+      "const": "synthetic",
+      "title": "Data Origin",
+      "type": "string"
+    },
+    "decision_status": {
+      "const": "not_evaluated",
+      "title": "Decision Status",
+      "type": "string"
+    },
+    "denominator_floor": {
+      "exclusiveMinimum": 0,
+      "title": "Denominator Floor",
+      "type": "number"
+    },
+    "denominator_floor_formula_id": {
+      "const": "max_baseline_magnitude_times_float64_epsilon_times_frequency_count_or_tiny",
+      "title": "Denominator Floor Formula Id",
+      "type": "string"
+    },
+    "device_manifest_sha256": {
+      "pattern": "^[0-9a-f]{64}$",
+      "title": "Device Manifest Sha256",
+      "type": "string"
+    },
+    "drift_decision": {
+      "const": "not_evaluated",
+      "title": "Drift Decision",
+      "type": "string"
+    },
+    "drift_evaluated": {
+      "const": false,
+      "title": "Drift Evaluated",
+      "type": "boolean"
+    },
+    "drift_threshold": {
+      "title": "Drift Threshold",
+      "type": "null"
+    },
+    "effect_threshold": {
+      "title": "Effect Threshold",
+      "type": "null"
+    },
+    "evaluation_status": {
+      "const": "provisional_baseline_difference_metrics_only",
+      "title": "Evaluation Status",
+      "type": "string"
+    },
+    "experimental_result": {
+      "const": false,
+      "title": "Experimental Result",
+      "type": "boolean"
+    },
+    "feature_extraction_performed": {
+      "const": false,
+      "title": "Feature Extraction Performed",
+      "type": "boolean"
+    },
+    "formal_eligible": {
+      "const": false,
+      "title": "Formal Eligible",
+      "type": "boolean"
+    },
+    "frequency_bin_count": {
+      "exclusiveMinimum": 0,
+      "title": "Frequency Bin Count",
+      "type": "integer"
+    },
+    "hardware_io_performed": {
+      "const": false,
+      "title": "Hardware Io Performed",
+      "type": "boolean"
+    },
+    "hardware_ready": {
+      "const": false,
+      "title": "Hardware Ready",
+      "type": "boolean"
+    },
+    "immutable": {
+      "const": true,
+      "title": "Immutable",
+      "type": "boolean"
+    },
+    "invalid_bin_output_policy": {
+      "const": "ratio_and_phase_zero_with_validity_masks",
+      "title": "Invalid Bin Output Policy",
+      "type": "string"
+    },
+    "ir_sample_count": {
+      "exclusiveMinimum": 0,
+      "title": "Ir Sample Count",
+      "type": "integer"
+    },
+    "metrics_sha256": {
+      "pattern": "^[0-9a-f]{64}$",
+      "title": "Metrics Sha256",
+      "type": "string"
+    },
+    "phase_unwrap_rule": {
+      "const": "unwrap_each_contiguous_valid_segment_without_crossing_gaps",
+      "title": "Phase Unwrap Rule",
+      "type": "string"
+    },
+    "playback_performed": {
+      "const": false,
+      "title": "Playback Performed",
+      "type": "boolean"
+    },
+    "processing_algorithm_id": {
+      "title": "Processing Algorithm Id",
+      "type": "string"
+    },
+    "processing_algorithm_version": {
+      "title": "Processing Algorithm Version",
+      "type": "string"
+    },
+    "protocol_condition_binding_performed": {
+      "const": true,
+      "title": "Protocol Condition Binding Performed",
+      "type": "boolean"
+    },
+    "protocol_execution_performed": {
+      "const": false,
+      "title": "Protocol Execution Performed",
+      "type": "boolean"
+    },
+    "qc_algorithm_id": {
+      "title": "Qc Algorithm Id",
+      "type": "string"
+    },
+    "qc_algorithm_version": {
+      "title": "Qc Algorithm Version",
+      "type": "string"
+    },
+    "qc_threshold": {
+      "title": "Qc Threshold",
+      "type": "null"
+    },
+    "ratio_invalid_bin_count": {
+      "additionalProperties": {
+        "type": "integer"
+      },
+      "propertyNames": {
+        "enum": [
+          "raw",
+          "aligned"
+        ]
+      },
+      "title": "Ratio Invalid Bin Count",
+      "type": "object"
+    },
+    "ratio_valid_bin_count": {
+      "additionalProperties": {
+        "type": "integer"
+      },
+      "propertyNames": {
+        "enum": [
+          "raw",
+          "aligned"
+        ]
+      },
+      "title": "Ratio Valid Bin Count",
+      "type": "object"
+    },
+    "recording_performed": {
+      "const": false,
+      "title": "Recording Performed",
+      "type": "boolean"
+    },
+    "repeatability_algorithm_id": {
+      "title": "Repeatability Algorithm Id",
+      "type": "string"
+    },
+    "repeatability_algorithm_version": {
+      "title": "Repeatability Algorithm Version",
+      "type": "string"
+    },
+    "run_mode": {
+      "const": "development",
+      "title": "Run Mode",
+      "type": "string"
+    },
+    "safety_marker": {
+      "const": "SYNTHETIC_PROVISIONAL_BASELINE_DIFFERENCE_METRICS_NOT_AN_EXPERIMENTAL_RESULT",
+      "title": "Safety Marker",
+      "type": "string"
+    },
+    "sample_rate_hz": {
+      "exclusiveMinimum": 0,
+      "title": "Sample Rate Hz",
+      "type": "integer"
+    },
+    "scenario_normalized_sha256": {
+      "pattern": "^[0-9a-f]{64}$",
+      "title": "Scenario Normalized Sha256",
+      "type": "string"
+    },
+    "scenario_raw_sha256": {
+      "pattern": "^[0-9a-f]{64}$",
+      "title": "Scenario Raw Sha256",
+      "type": "string"
+    },
+    "scenario_reference": {
+      "title": "Scenario Reference",
+      "type": "string"
+    },
+    "schema_version": {
+      "const": "1.0.0",
+      "title": "Schema Version",
+      "type": "string"
+    },
+    "session_id": {
+      "pattern": "^[A-Za-z0-9_.-]+$",
+      "title": "Session Id",
+      "type": "string"
+    },
+    "smoothing_applied": {
+      "const": false,
+      "title": "Smoothing Applied",
+      "type": "boolean"
+    },
+    "source_ess_artifact_id": {
+      "pattern": "^[A-Za-z0-9_.-]+$",
+      "title": "Source Ess Artifact Id",
+      "type": "string"
+    },
+    "source_ess_metadata_sha256": {
+      "pattern": "^[0-9a-f]{64}$",
+      "title": "Source Ess Metadata Sha256",
+      "type": "string"
+    },
+    "source_ess_raw_float32_sha256": {
+      "pattern": "^[0-9a-f]{64}$",
+      "title": "Source Ess Raw Float32 Sha256",
+      "type": "string"
+    },
+    "source_ess_wav_sha256": {
+      "pattern": "^[0-9a-f]{64}$",
+      "title": "Source Ess Wav Sha256",
+      "type": "string"
+    },
+    "source_protocol_normalized_sha256": {
+      "pattern": "^[0-9a-f]{64}$",
+      "title": "Source Protocol Normalized Sha256",
+      "type": "string"
+    },
+    "source_protocol_raw_sha256": {
+      "pattern": "^[0-9a-f]{64}$",
+      "title": "Source Protocol Raw Sha256",
+      "type": "string"
+    },
+    "source_protocol_reference": {
+      "title": "Source Protocol Reference",
+      "type": "string"
+    },
+    "thresholds_applied": {
+      "const": false,
+      "title": "Thresholds Applied",
+      "type": "boolean"
+    },
+    "transfer_fft_length": {
+      "exclusiveMinimum": 0,
+      "title": "Transfer Fft Length",
+      "type": "integer"
+    }
+  },
+  "required": [
+    "evaluation_status",
+    "decision_status",
+    "baseline_comparison_decision",
+    "protocol_condition_binding_performed",
+    "protocol_execution_performed",
+    "baseline_assigned",
+    "baseline_role",
+    "baseline_selection_status",
+    "baseline_difference_computed",
+    "thresholds_applied",
+    "qc_threshold",
+    "effect_threshold",
+    "drift_threshold",
+    "classification_pass_threshold",
+    "drift_evaluated",
+    "drift_decision",
+    "smoothing_applied",
+    "feature_extraction_performed",
+    "classification_performed",
+    "cross_validation_performed",
+    "hardware_io_performed",
+    "playback_performed",
+    "recording_performed",
+    "hardware_ready",
+    "calibration_applied",
+    "absolute_spl_calibrated",
+    "formal_eligible",
+    "experimental_result",
+    "schema_version",
+    "algorithm_id",
+    "algorithm_version",
+    "session_id",
+    "comparison_id",
+    "data_origin",
+    "run_mode",
+    "baseline_source",
+    "candidate_source",
+    "condition_binding_sha256",
+    "condition_plan_reference",
+    "condition_plan_raw_sha256",
+    "condition_plan_normalized_sha256",
+    "source_protocol_reference",
+    "source_protocol_raw_sha256",
+    "source_protocol_normalized_sha256",
+    "bundle_content_sha256",
+    "device_manifest_sha256",
+    "config_snapshots",
+    "scenario_reference",
+    "scenario_raw_sha256",
+    "scenario_normalized_sha256",
+    "source_ess_artifact_id",
+    "source_ess_metadata_sha256",
+    "source_ess_wav_sha256",
+    "source_ess_raw_float32_sha256",
+    "sample_rate_hz",
+    "transfer_fft_length",
+    "frequency_bin_count",
+    "ir_sample_count",
+    "analysis_band_bin_count",
+    "analysis_band_mask_sha256",
+    "processing_algorithm_id",
+    "processing_algorithm_version",
+    "qc_algorithm_id",
+    "qc_algorithm_version",
+    "repeatability_algorithm_id",
+    "repeatability_algorithm_version",
+    "denominator_floor_formula_id",
+    "denominator_floor",
+    "ratio_valid_bin_count",
+    "ratio_invalid_bin_count",
+    "invalid_bin_output_policy",
+    "phase_unwrap_rule",
+    "arrays_sha256",
+    "metrics_sha256",
+    "create_only",
+    "immutable",
+    "safety_marker"
+  ],
+  "title": "ProvisionalBaselineDifferenceReceipt",
+  "type": "object"
+}

@@ -12,6 +12,7 @@ from typing import Literal
 from pydantic import AwareDatetime, BaseModel, ConfigDict, Field, field_validator, model_validator
 
 from acoustic_ladder.config.bundle import canonical_json_bytes
+from acoustic_ladder.domain.models import NodeState
 from acoustic_ladder.domain.paths import validate_relative_path
 from acoustic_ladder.storage.io import sha256_bytes
 
@@ -392,6 +393,159 @@ class ProvisionalRepeatabilityReceipt(RepeatabilityStateFields):
         return self
 
 
+class ConditionedProvisionalRepeatabilityReceipt(RepeatabilityModel):
+    """Versioned repeatability receipt with protocol-condition provenance."""
+
+    decision_status: Literal["not_evaluated"]
+    repeatability_decision: Literal["not_evaluated"]
+    thresholds_applied: Literal[False]
+    repeatability_threshold: None
+    threshold_source: None
+    baseline_assigned: Literal[False]
+    baseline_role: Literal["not_assigned"]
+    baseline_selection_status: Literal["deferred_until_protocol_binding"]
+    baseline_difference_computed: Literal[False]
+    drift_evaluated: Literal[False]
+    drift_decision: Literal["not_evaluated"]
+    schema_version: Literal["1.2.0"]
+    session_id: str = Field(pattern=SAFE_IDENTIFIER_PATTERN)
+    reassembly_id: str = Field(pattern=SAFE_IDENTIFIER_PATTERN)
+    repeat_set_id: str = Field(pattern=SAFE_IDENTIFIER_PATTERN)
+    data_origin: Literal["synthetic"]
+    run_mode: Literal["development"]
+    members: list[RepeatabilityMemberProvenance]
+    normalized_member_list_sha256: str = Field(pattern=SHA256_PATTERN)
+    bundle_content_sha256: str = Field(pattern=SHA256_PATTERN)
+    device_manifest_sha256: str = Field(pattern=SHA256_PATTERN)
+    audio_config_reference: str
+    audio_config_raw_sha256: str = Field(pattern=SHA256_PATTERN)
+    audio_config_normalized_sha256: str = Field(pattern=SHA256_PATTERN)
+    analysis_config_reference: str
+    analysis_config_raw_sha256: str = Field(pattern=SHA256_PATTERN)
+    analysis_config_normalized_sha256: str = Field(pattern=SHA256_PATTERN)
+    virtual_scenario_reference: str
+    virtual_scenario_raw_sha256: str = Field(pattern=SHA256_PATTERN)
+    virtual_scenario_normalized_sha256: str = Field(pattern=SHA256_PATTERN)
+    source_ess_artifact_id: str = Field(pattern=SAFE_IDENTIFIER_PATTERN)
+    source_ess_metadata_sha256: str = Field(pattern=SHA256_PATTERN)
+    source_ess_wav_sha256: str = Field(pattern=SHA256_PATTERN)
+    source_ess_raw_float32_sha256: str = Field(pattern=SHA256_PATTERN)
+    processing_schema_version: Literal["1.1.0"]
+    processing_algorithm_id: Literal["offline_ess_deconvolution_transfer"]
+    processing_algorithm_version: Literal["1.1.0"]
+    qc_schema_version: Literal["1.0.0"]
+    qc_algorithm_id: Literal["provisional_offline_qc_metrics"]
+    qc_algorithm_version: Literal["1.0.0"]
+    sample_rate_hz: int = Field(gt=0)
+    sweep_sample_count: int = Field(gt=1)
+    pre_silence_sample_count: int = Field(ge=0)
+    post_silence_sample_count: int = Field(ge=0)
+    transfer_fft_length: int = Field(gt=0)
+    frequency_bin_count: int = Field(gt=0)
+    ir_sample_count: int = Field(gt=0)
+    analysis_band_bin_count: int = Field(gt=0)
+    analysis_band_mask_sha256: str = Field(pattern=SHA256_PATTERN)
+    repeatability_metrics_sha256: str = Field(pattern=SHA256_PATTERN)
+    repeatability_algorithm_id: Literal["provisional_continuous_repeatability_metrics"]
+    repeatability_algorithm_version: Literal["1.1.0"]
+    pair_enumeration_formula_id: Literal["all_unique_unordered_pairs_in_measurement_order"]
+    captured_input_correlation_formula_id: Literal[
+        "normalized_dot_after_pre_silence_without_epsilon"
+    ]
+    latency_delta_formula_id: Literal["validated_processing_latency_j_minus_i"]
+    ir_correlation_formula_id: Literal["normalized_dot_aligned_ir_without_epsilon"]
+    ir_symmetric_nrmse_formula_id: Literal["symmetric_l2_over_root_mean_square_norm"]
+    complex_transfer_relative_l2_formula_id: Literal[
+        "analysis_band_symmetric_complex_l2_over_root_mean_square_norm"
+    ]
+    magnitude_rmse_formula_id: Literal["float64_tiny_floor_20_log10_magnitude_rmse_db"]
+    phase_rms_formula_id: Literal["joint_nonzero_angle_h_i_times_conjugate_h_j_rms_without_unwrap"]
+    metric_computation_status: Literal["complete"]
+    evaluation_status: Literal["provisional_repeatability_metrics_only"]
+    create_only: Literal[True]
+    immutable: Literal[True]
+    hardware_io_performed: Literal[False]
+    playback_performed: Literal[False]
+    recording_performed: Literal[False]
+    hardware_ready: Literal[False]
+    full_duplex_verified: Literal[False]
+    shared_clock_verified: Literal[False]
+    channel_mapping_verified: Literal[False]
+    calibration_file_verified: Literal[False]
+    calibration_applied: Literal[False]
+    absolute_spl_calibrated: Literal[False]
+    electrical_loopback_available: Literal[False]
+    formal_eligible: Literal[False]
+    experimental_result: Literal[False]
+    safety_marker: Literal["SYNTHETIC_PROVISIONAL_REPEATABILITY_METRICS_NOT_AN_EXPERIMENTAL_RESULT"]
+    protocol_id: str = Field(pattern=SAFE_IDENTIFIER_PATTERN)
+    condition_plan_id: str = Field(pattern=SAFE_IDENTIFIER_PATTERN)
+    condition_plan_reference: str
+    condition_plan_raw_sha256: str = Field(pattern=SHA256_PATTERN)
+    condition_plan_normalized_sha256: str = Field(pattern=SHA256_PATTERN)
+    source_protocol_reference: str
+    source_protocol_raw_sha256: str = Field(pattern=SHA256_PATTERN)
+    source_protocol_normalized_sha256: str = Field(pattern=SHA256_PATTERN)
+    condition_id: str = Field(pattern=SAFE_IDENTIFIER_PATTERN)
+    condition_role: Literal["all_blk_reference", "single_bridge_candidate"]
+    resolved_node_states: dict[str, NodeState]
+    resolved_node_states_sha256: str = Field(pattern=SHA256_PATTERN)
+    non_blk_node_count: int = Field(ge=0, le=1)
+    protocol_condition_binding_performed: Literal[True]
+    protocol_execution_performed: Literal[False]
+
+    @field_validator(
+        "audio_config_reference",
+        "analysis_config_reference",
+        "virtual_scenario_reference",
+        "condition_plan_reference",
+        "source_protocol_reference",
+    )
+    @classmethod
+    def condition_references_are_relative(cls, value: str) -> str:
+        return validate_relative_path(value)
+
+    @model_validator(mode="after")
+    def condition_binding_is_consistent(self) -> ConditionedProvisionalRepeatabilityReceipt:
+        if len(self.members) < 2:
+            raise ValueError("repeatability receipt requires at least two members")
+        orders = [member.measurement_order for member in self.members]
+        if orders != sorted(orders) or orders != list(range(orders[0], orders[-1] + 1)):
+            raise ValueError("receipt members must have sorted continuous measurement orders")
+        identities = [member.identity.model_dump_json() for member in self.members]
+        source_runs = [member.identity.source_run_id for member in self.members]
+        if len(set(identities)) != len(identities) or len(set(source_runs)) != len(source_runs):
+            raise ValueError("receipt members must have unique identities and source runs")
+        if self.frequency_bin_count != self.transfer_fft_length // 2 + 1:
+            raise ValueError("frequency-bin count differs from transfer FFT length")
+        if self.analysis_band_bin_count > self.frequency_bin_count:
+            raise ValueError("analysis-band count exceeds frequency-bin count")
+        expected_members = sha256_bytes(
+            canonical_json_bytes([member.model_dump(mode="json") for member in self.members])
+        )
+        if expected_members != self.normalized_member_list_sha256:
+            raise ValueError("normalized member-list digest differs from receipt members")
+        expected = sha256_bytes(
+            canonical_json_bytes(
+                {
+                    node_id: state.model_dump(mode="json")
+                    for node_id, state in self.resolved_node_states.items()
+                }
+            )
+        )
+        if expected != self.resolved_node_states_sha256:
+            raise ValueError("resolved node-state digest differs")
+        actual_non_blk = sum(
+            state.module_id != "BLK" for state in self.resolved_node_states.values()
+        )
+        if actual_non_blk != self.non_blk_node_count:
+            raise ValueError("non-BLK node count differs")
+        expected_non_blk = 0 if self.condition_role == "all_blk_reference" else 1
+        if actual_non_blk != expected_non_blk:
+            raise ValueError("condition role differs from resolved node states")
+        return self
+
+
 class RepeatabilityRecord(RepeatabilityStateFields):
     schema_version: Literal["1.1.0"]
     session_id: str = Field(pattern=SAFE_IDENTIFIER_PATTERN)
@@ -429,7 +583,7 @@ class RepeatabilityCreatedEvent(RepeatabilityModel):
 class PublishedProvisionalRepeatability:
     repeatability_path: Path
     metrics: ProvisionalRepeatabilityMetrics
-    receipt: ProvisionalRepeatabilityReceipt
+    receipt: ProvisionalRepeatabilityReceipt | ConditionedProvisionalRepeatabilityReceipt
     metrics_sha256: str
     receipt_sha256: str
     record_created_at: datetime

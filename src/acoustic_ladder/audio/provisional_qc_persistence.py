@@ -12,6 +12,7 @@ from pydantic import ValidationError
 from acoustic_ladder.audio.ess_processing_models import PublishedEssProcessing
 from acoustic_ladder.audio.ess_processing_persistence import (
     ARRAYS_NAME,
+    CaptureScenario,
     EssProcessingPersistenceError,
     validate_ess_processing,
 )
@@ -29,7 +30,6 @@ from acoustic_ladder.audio.provisional_qc_models import (
     QcCreatedEvent,
     QcRecord,
 )
-from acoustic_ladder.audio.virtual_capture_models import LoadedVirtualCaptureScenario
 from acoustic_ladder.audio.virtual_capture_persistence import INPUT_WAV, OUTPUT_WAV
 from acoustic_ladder.config.bundle import LoadedBundle, canonical_json_bytes
 from acoustic_ladder.config.models import AnalysisConfig
@@ -113,7 +113,7 @@ def _compute(
     *,
     store: ImmutableSessionStore,
     bundle: LoadedBundle,
-    scenario: LoadedVirtualCaptureScenario,
+    scenario: CaptureScenario,
     ess_artifact_root: str | Path,
     session_id: str,
     source_run_id: str,
@@ -232,7 +232,7 @@ def publish_provisional_qc(
     *,
     store: ImmutableSessionStore,
     bundle: LoadedBundle,
-    scenario: LoadedVirtualCaptureScenario,
+    scenario: CaptureScenario,
     ess_artifact_root: str | Path,
     session_id: str,
     source_run_id: str,
@@ -400,7 +400,7 @@ def validate_provisional_qc(
     *,
     store: ImmutableSessionStore,
     bundle: LoadedBundle,
-    scenario: LoadedVirtualCaptureScenario,
+    scenario: CaptureScenario,
     ess_artifact_root: str | Path,
     session_id: str,
     source_run_id: str,
