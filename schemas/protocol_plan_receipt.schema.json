@@ -1,0 +1,247 @@
+{
+  "additionalProperties": false,
+  "properties": {
+    "all_node_states_complete": {
+      "const": true,
+      "title": "All Node States Complete",
+      "type": "boolean"
+    },
+    "bundle_content_sha256": {
+      "pattern": "^[0-9a-f]{64}$",
+      "title": "Bundle Content Sha256",
+      "type": "string"
+    },
+    "compiled_plan_sha256": {
+      "pattern": "^[0-9a-f]{64}$",
+      "title": "Compiled Plan Sha256",
+      "type": "string"
+    },
+    "compiler_algorithm_id": {
+      "const": "development_protocol_matrix_compiler",
+      "title": "Compiler Algorithm Id",
+      "type": "string"
+    },
+    "compiler_algorithm_version": {
+      "const": "1.0.0",
+      "title": "Compiler Algorithm Version",
+      "type": "string"
+    },
+    "condition_count": {
+      "exclusiveMinimum": 0,
+      "title": "Condition Count",
+      "type": "integer"
+    },
+    "condition_matrix_sha256": {
+      "pattern": "^[0-9a-f]{64}$",
+      "title": "Condition Matrix Sha256",
+      "type": "string"
+    },
+    "continuous_repeats_per_condition": {
+      "exclusiveMinimum": 0,
+      "title": "Continuous Repeats Per Condition",
+      "type": "integer"
+    },
+    "development_fixture": {
+      "const": true,
+      "title": "Development Fixture",
+      "type": "boolean"
+    },
+    "experiment_stage": {
+      "enum": [
+        1,
+        2,
+        3,
+        4
+      ],
+      "title": "Experiment Stage",
+      "type": "integer"
+    },
+    "experimental_result": {
+      "const": false,
+      "title": "Experimental Result",
+      "type": "boolean"
+    },
+    "formal_eligible": {
+      "const": false,
+      "title": "Formal Eligible",
+      "type": "boolean"
+    },
+    "hardware_io_performed": {
+      "const": false,
+      "title": "Hardware Io Performed",
+      "type": "boolean"
+    },
+    "manifest_reference": {
+      "title": "Manifest Reference",
+      "type": "string"
+    },
+    "manifest_sha256": {
+      "pattern": "^[0-9a-f]{64}$",
+      "title": "Manifest Sha256",
+      "type": "string"
+    },
+    "model_package_sha256": {
+      "pattern": "^[0-9a-f]{64}$",
+      "title": "Model Package Sha256",
+      "type": "string"
+    },
+    "operator_confirmation_required": {
+      "const": true,
+      "title": "Operator Confirmation Required",
+      "type": "boolean"
+    },
+    "operator_confirmation_status": {
+      "const": "pending",
+      "title": "Operator Confirmation Status",
+      "type": "string"
+    },
+    "plan_id": {
+      "pattern": "^[A-Za-z0-9_-]+$",
+      "title": "Plan Id",
+      "type": "string"
+    },
+    "plan_spec_id": {
+      "title": "Plan Spec Id",
+      "type": "string"
+    },
+    "plan_spec_normalized_sha256": {
+      "pattern": "^[0-9a-f]{64}$",
+      "title": "Plan Spec Normalized Sha256",
+      "type": "string"
+    },
+    "plan_spec_raw_sha256": {
+      "pattern": "^[0-9a-f]{64}$",
+      "title": "Plan Spec Raw Sha256",
+      "type": "string"
+    },
+    "plan_spec_reference": {
+      "title": "Plan Spec Reference",
+      "type": "string"
+    },
+    "planned_measurement_count": {
+      "exclusiveMinimum": 0,
+      "title": "Planned Measurement Count",
+      "type": "integer"
+    },
+    "protocol_execution_performed": {
+      "const": false,
+      "title": "Protocol Execution Performed",
+      "type": "boolean"
+    },
+    "protocol_id": {
+      "title": "Protocol Id",
+      "type": "string"
+    },
+    "protocol_normalized_sha256": {
+      "pattern": "^[0-9a-f]{64}$",
+      "title": "Protocol Normalized Sha256",
+      "type": "string"
+    },
+    "protocol_raw_sha256": {
+      "pattern": "^[0-9a-f]{64}$",
+      "title": "Protocol Raw Sha256",
+      "type": "string"
+    },
+    "protocol_reference": {
+      "title": "Protocol Reference",
+      "type": "string"
+    },
+    "protocol_version": {
+      "title": "Protocol Version",
+      "type": "string"
+    },
+    "random_seed": {
+      "anyOf": [
+        {
+          "type": "string"
+        },
+        {
+          "type": "null"
+        }
+      ],
+      "title": "Random Seed"
+    },
+    "randomization_algorithm_id": {
+      "const": "sha256_ranked_condition_blocks",
+      "title": "Randomization Algorithm Id",
+      "type": "string"
+    },
+    "randomization_algorithm_version": {
+      "const": "1.0.0",
+      "title": "Randomization Algorithm Version",
+      "type": "string"
+    },
+    "randomization_enabled": {
+      "title": "Randomization Enabled",
+      "type": "boolean"
+    },
+    "reassemblies_per_session": {
+      "exclusiveMinimum": 0,
+      "title": "Reassemblies Per Session",
+      "type": "integer"
+    },
+    "safety_marker": {
+      "const": "DEVELOPMENT_PROTOCOL_PLAN_NOT_EXECUTED_NOT_AN_EXPERIMENTAL_RESULT",
+      "title": "Safety Marker",
+      "type": "string"
+    },
+    "schedule_sha256": {
+      "pattern": "^[0-9a-f]{64}$",
+      "title": "Schedule Sha256",
+      "type": "string"
+    },
+    "schema_version": {
+      "const": "1.0.0",
+      "title": "Schema Version",
+      "type": "string"
+    },
+    "session_count": {
+      "exclusiveMinimum": 0,
+      "title": "Session Count",
+      "type": "integer"
+    }
+  },
+  "required": [
+    "schema_version",
+    "compiler_algorithm_id",
+    "compiler_algorithm_version",
+    "plan_id",
+    "plan_spec_id",
+    "plan_spec_reference",
+    "plan_spec_raw_sha256",
+    "plan_spec_normalized_sha256",
+    "protocol_reference",
+    "protocol_raw_sha256",
+    "protocol_normalized_sha256",
+    "protocol_id",
+    "protocol_version",
+    "experiment_stage",
+    "manifest_reference",
+    "manifest_sha256",
+    "model_package_sha256",
+    "bundle_content_sha256",
+    "condition_count",
+    "planned_measurement_count",
+    "session_count",
+    "reassemblies_per_session",
+    "continuous_repeats_per_condition",
+    "randomization_enabled",
+    "randomization_algorithm_id",
+    "randomization_algorithm_version",
+    "random_seed",
+    "condition_matrix_sha256",
+    "schedule_sha256",
+    "compiled_plan_sha256",
+    "all_node_states_complete",
+    "operator_confirmation_required",
+    "operator_confirmation_status",
+    "development_fixture",
+    "protocol_execution_performed",
+    "hardware_io_performed",
+    "formal_eligible",
+    "experimental_result",
+    "safety_marker"
+  ],
+  "title": "ProtocolPlanReceipt",
+  "type": "object"
+}

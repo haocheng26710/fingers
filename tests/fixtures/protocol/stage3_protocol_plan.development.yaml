@@ -1,0 +1,16 @@
+schema_version: "1.0.0"
+plan_spec_id: stage3_development_plan
+usage_scope: development_fixture
+source_protocol_reference: config/protocols/stage3_two_node_interaction.yaml
+session_count: 2
+reassemblies_per_session: 2
+continuous_repeats_per_condition: 2
+randomization_enabled: true
+random_seed: dev0501-test-seed-v1
+selected_nodes: [N5, N2]
+max_planned_measurements: 1000
+operator_confirmation_required: true
+protocol_execution_authorized: false
+hardware_io_authorized: false
+formal_eligible: false
+experimental_result: false

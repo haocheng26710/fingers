@@ -1,0 +1,86 @@
+{
+  "additionalProperties": false,
+  "properties": {
+    "compiled_plan_sha256": {
+      "pattern": "^[0-9a-f]{64}$",
+      "title": "Compiled Plan Sha256",
+      "type": "string"
+    },
+    "created_at": {
+      "format": "date-time",
+      "title": "Created At",
+      "type": "string"
+    },
+    "experimental_result": {
+      "const": false,
+      "title": "Experimental Result",
+      "type": "boolean"
+    },
+    "formal_eligible": {
+      "const": false,
+      "title": "Formal Eligible",
+      "type": "boolean"
+    },
+    "hardware_io_performed": {
+      "const": false,
+      "title": "Hardware Io Performed",
+      "type": "boolean"
+    },
+    "immutable_status": {
+      "const": "immutable",
+      "title": "Immutable Status",
+      "type": "string"
+    },
+    "operator_confirmation_status": {
+      "const": "pending",
+      "title": "Operator Confirmation Status",
+      "type": "string"
+    },
+    "plan_id": {
+      "pattern": "^[A-Za-z0-9_-]+$",
+      "title": "Plan Id",
+      "type": "string"
+    },
+    "plan_relative_path": {
+      "title": "Plan Relative Path",
+      "type": "string"
+    },
+    "protocol_execution_performed": {
+      "const": false,
+      "title": "Protocol Execution Performed",
+      "type": "boolean"
+    },
+    "receipt_sha256": {
+      "pattern": "^[0-9a-f]{64}$",
+      "title": "Receipt Sha256",
+      "type": "string"
+    },
+    "safety_marker": {
+      "const": "DEVELOPMENT_PROTOCOL_PLAN_NOT_EXECUTED_NOT_AN_EXPERIMENTAL_RESULT",
+      "title": "Safety Marker",
+      "type": "string"
+    },
+    "schema_version": {
+      "const": "1.0.0",
+      "title": "Schema Version",
+      "type": "string"
+    }
+  },
+  "required": [
+    "schema_version",
+    "plan_id",
+    "plan_relative_path",
+    "created_at",
+    "compiled_plan_sha256",
+    "receipt_sha256",
+    "immutable_status",
+    "operator_confirmation_status",
+    "protocol_execution_performed",
+    "hardware_io_performed",
+    "formal_eligible",
+    "experimental_result",
+    "safety_marker"
+  ],
+  "title": "ProtocolPlanRecord",
+  "type": "object"
+}

@@ -47,6 +47,12 @@ from acoustic_ladder.domain.models import (
     ReassemblyRecord,
     SessionRecord,
 )
+from acoustic_ladder.protocol.planning_models import (
+    CompiledDevelopmentProtocolPlan,
+    DevelopmentProtocolPlanSpec,
+    ProtocolPlanReceipt,
+    ProtocolPlanRecord,
+)
 
 SCHEMA_MODELS: dict[str, type[BaseModel]] = {
     "audio_config.schema.json": AudioConfig,
@@ -97,6 +103,12 @@ CONDITION_BASELINE_SCHEMA_MODELS: dict[str, type[BaseModel]] = {
     "provisional_baseline_difference_metrics.schema.json": (ProvisionalBaselineDifferenceMetrics),
     "provisional_baseline_difference_receipt.schema.json": (ProvisionalBaselineDifferenceReceipt),
 }
+PROTOCOL_PLAN_SCHEMA_MODELS: dict[str, type[BaseModel]] = {
+    "development_protocol_plan_spec.schema.json": DevelopmentProtocolPlanSpec,
+    "compiled_protocol_plan.schema.json": CompiledDevelopmentProtocolPlan,
+    "protocol_plan_receipt.schema.json": ProtocolPlanReceipt,
+    "protocol_plan_record.schema.json": ProtocolPlanRecord,
+}
 ALL_GENERATED_SCHEMA_MODELS = (
     GENERATED_SCHEMA_MODELS
     | ESS_SCHEMA_MODELS
@@ -105,6 +117,7 @@ ALL_GENERATED_SCHEMA_MODELS = (
     | PROVISIONAL_QC_SCHEMA_MODELS
     | REPEATABILITY_SCHEMA_MODELS
     | CONDITION_BASELINE_SCHEMA_MODELS
+    | PROTOCOL_PLAN_SCHEMA_MODELS
 )
 
 

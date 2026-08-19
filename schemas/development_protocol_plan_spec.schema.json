@@ -1,0 +1,119 @@
+{
+  "additionalProperties": false,
+  "properties": {
+    "continuous_repeats_per_condition": {
+      "exclusiveMinimum": 0,
+      "title": "Continuous Repeats Per Condition",
+      "type": "integer"
+    },
+    "experimental_result": {
+      "const": false,
+      "title": "Experimental Result",
+      "type": "boolean"
+    },
+    "formal_eligible": {
+      "const": false,
+      "title": "Formal Eligible",
+      "type": "boolean"
+    },
+    "hardware_io_authorized": {
+      "const": false,
+      "title": "Hardware Io Authorized",
+      "type": "boolean"
+    },
+    "max_planned_measurements": {
+      "exclusiveMinimum": 0,
+      "title": "Max Planned Measurements",
+      "type": "integer"
+    },
+    "operator_confirmation_required": {
+      "const": true,
+      "title": "Operator Confirmation Required",
+      "type": "boolean"
+    },
+    "plan_spec_id": {
+      "pattern": "^[A-Za-z0-9_-]+$",
+      "title": "Plan Spec Id",
+      "type": "string"
+    },
+    "protocol_execution_authorized": {
+      "const": false,
+      "title": "Protocol Execution Authorized",
+      "type": "boolean"
+    },
+    "random_seed": {
+      "anyOf": [
+        {
+          "pattern": "^[A-Za-z0-9_-]+$",
+          "type": "string"
+        },
+        {
+          "type": "null"
+        }
+      ],
+      "title": "Random Seed"
+    },
+    "randomization_enabled": {
+      "title": "Randomization Enabled",
+      "type": "boolean"
+    },
+    "reassemblies_per_session": {
+      "exclusiveMinimum": 0,
+      "title": "Reassemblies Per Session",
+      "type": "integer"
+    },
+    "schema_version": {
+      "const": "1.0.0",
+      "title": "Schema Version",
+      "type": "string"
+    },
+    "selected_nodes": {
+      "anyOf": [
+        {
+          "items": {
+            "type": "string"
+          },
+          "type": "array"
+        },
+        {
+          "type": "null"
+        }
+      ],
+      "title": "Selected Nodes"
+    },
+    "session_count": {
+      "exclusiveMinimum": 0,
+      "title": "Session Count",
+      "type": "integer"
+    },
+    "source_protocol_reference": {
+      "title": "Source Protocol Reference",
+      "type": "string"
+    },
+    "usage_scope": {
+      "const": "development_fixture",
+      "title": "Usage Scope",
+      "type": "string"
+    }
+  },
+  "required": [
+    "schema_version",
+    "plan_spec_id",
+    "usage_scope",
+    "source_protocol_reference",
+    "session_count",
+    "reassemblies_per_session",
+    "continuous_repeats_per_condition",
+    "randomization_enabled",
+    "random_seed",
+    "selected_nodes",
+    "max_planned_measurements",
+    "operator_confirmation_required",
+    "protocol_execution_authorized",
+    "hardware_io_authorized",
+    "formal_eligible",
+    "experimental_result"
+  ],
+  "title": "DevelopmentProtocolPlanSpec",
+  "type": "object"
+}

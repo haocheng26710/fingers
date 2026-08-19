@@ -84,6 +84,12 @@ from acoustic_ladder.domain.models import (
     RunMode,
     SessionRecord,
 )
+from acoustic_ladder.protocol.planning import load_development_protocol_plan_spec
+from acoustic_ladder.protocol.planning_persistence import (
+    DevelopmentProtocolPlanStore,
+    publish_development_protocol_plan,
+    validate_development_protocol_plan,
+)
 from acoustic_ladder.storage.io import atomic_write_bytes
 from acoustic_ladder.storage.store import (
     DataRoots,
@@ -185,6 +191,13 @@ def _parser() -> argparse.ArgumentParser:
     schemas = commands.add_parser("export-schemas")
     schemas.add_argument("--output-dir", default="schemas")
     schemas.add_argument("--check", action="store_true")
+
+    for command_name in ("protocol-plan-compile", "protocol-plan-validate"):
+        protocol_plan = commands.add_parser(command_name)
+        _add_bundle_arguments(protocol_plan)
+        protocol_plan.add_argument("--plan-spec", required=True)
+        protocol_plan.add_argument("--development-plan-root", required=True)
+        protocol_plan.add_argument("--plan-id", required=True)
 
     session = commands.add_parser("create-synthetic-session")
     _add_bundle_arguments(session)
@@ -444,6 +457,56 @@ def _all_blocked_states(manifest: dict[str, object], overrides: list[str]) -> di
 
 def main(argv: list[str] | None = None) -> None:
     args = _parser().parse_args(argv)
+    if args.command in {"protocol-plan-compile", "protocol-plan-validate"}:
+        project_root = Path(args.project_root).resolve()
+        plan_bundle = _load_bundle(args)
+        spec_path = Path(args.plan_spec)
+        if not spec_path.is_absolute():
+            spec_path = project_root / spec_path
+        plan_spec = load_development_protocol_plan_spec(
+            spec_path,
+            project_root=project_root,
+            bundle=plan_bundle,
+        )
+        plan_store = DevelopmentProtocolPlanStore(args.development_plan_root)
+        arguments = {
+            "store": plan_store,
+            "bundle": plan_bundle,
+            "spec": plan_spec,
+            "plan_id": args.plan_id,
+        }
+        if args.command == "protocol-plan-compile":
+            protocol_plan = publish_development_protocol_plan(**arguments, now=_now)
+            label = "PASS development protocol plan compile"
+        else:
+            protocol_plan = validate_development_protocol_plan(**arguments)
+            label = "PASS development protocol plan validation"
+        plan_receipt = protocol_plan.receipt
+        print(
+            f"{label}: plan_path={protocol_plan.plan_path} plan_id={plan_receipt.plan_id} "
+            f"experiment_stage={plan_receipt.experiment_stage} "
+            f"condition_count={plan_receipt.condition_count} "
+            f"planned_measurement_count={plan_receipt.planned_measurement_count} "
+            f"session_count={plan_receipt.session_count} "
+            f"reassemblies_per_session={plan_receipt.reassemblies_per_session} "
+            "continuous_repeats_per_condition="
+            f"{plan_receipt.continuous_repeats_per_condition} "
+            f"randomization_algorithm={plan_receipt.randomization_algorithm_id}:"
+            f"{plan_receipt.randomization_algorithm_version} "
+            f"plan_sha256={protocol_plan.plan_sha256} "
+            f"receipt_sha256={protocol_plan.receipt_sha256}"
+        )
+        print("protocol_execution_performed=false")
+        print("hardware_io_performed=false")
+        print("formal_eligible=false")
+        print("experimental_result=false")
+        print(f"safety_marker={plan_receipt.safety_marker}")
+        print("DEVELOPMENT_PLAN_ONLY")
+        print("PROTOCOL_NOT_EXECUTED")
+        print("OPERATOR_CONFIRMATION_PENDING")
+        print("NO_HARDWARE_AUDIO_IO_PERFORMED")
+        print("NOT_AN_EXPERIMENTAL_RESULT")
+        return
     if args.command == "audio-list":
         snapshot = collect_inventory(_audio_backend(), now=_now())
         print("DEVICE_NAME_ENCODING=JSON_ASCII_ESCAPED")

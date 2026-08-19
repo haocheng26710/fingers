@@ -1,0 +1,681 @@
+{
+  "$defs": {
+    "CompiledProtocolCondition": {
+      "additionalProperties": false,
+      "properties": {
+        "active_node_count": {
+          "minimum": 0,
+          "title": "Active Node Count",
+          "type": "integer"
+        },
+        "condition_id": {
+          "pattern": "^[A-Za-z0-9_-]+$",
+          "title": "Condition Id",
+          "type": "string"
+        },
+        "condition_label": {
+          "title": "Condition Label",
+          "type": "string"
+        },
+        "condition_role": {
+          "title": "Condition Role",
+          "type": "string"
+        },
+        "experiment_stage": {
+          "enum": [
+            1,
+            2,
+            3,
+            4
+          ],
+          "title": "Experiment Stage",
+          "type": "integer"
+        },
+        "experimental_result": {
+          "const": false,
+          "title": "Experimental Result",
+          "type": "boolean"
+        },
+        "formal_eligible": {
+          "const": false,
+          "title": "Formal Eligible",
+          "type": "boolean"
+        },
+        "hardware_io_performed": {
+          "const": false,
+          "title": "Hardware Io Performed",
+          "type": "boolean"
+        },
+        "node_state_sha256": {
+          "pattern": "^[0-9a-f]{64}$",
+          "title": "Node State Sha256",
+          "type": "string"
+        },
+        "node_states": {
+          "additionalProperties": {
+            "$ref": "#/$defs/NodeState"
+          },
+          "title": "Node States",
+          "type": "object"
+        },
+        "operator_confirmation_required": {
+          "const": true,
+          "title": "Operator Confirmation Required",
+          "type": "boolean"
+        },
+        "operator_confirmation_requirements": {
+          "items": {
+            "type": "string"
+          },
+          "minItems": 1,
+          "title": "Operator Confirmation Requirements",
+          "type": "array"
+        },
+        "operator_confirmation_status": {
+          "const": "pending",
+          "title": "Operator Confirmation Status",
+          "type": "string"
+        },
+        "protocol_execution_performed": {
+          "const": false,
+          "title": "Protocol Execution Performed",
+          "type": "boolean"
+        },
+        "proxy_experiment": {
+          "title": "Proxy Experiment",
+          "type": "boolean"
+        },
+        "proxy_state": {
+          "title": "Proxy State",
+          "type": "boolean"
+        },
+        "selected_modules": {
+          "items": {
+            "type": "string"
+          },
+          "title": "Selected Modules",
+          "type": "array"
+        },
+        "selected_nodes": {
+          "items": {
+            "type": "string"
+          },
+          "title": "Selected Nodes",
+          "type": "array"
+        },
+        "source_protocol_reference": {
+          "title": "Source Protocol Reference",
+          "type": "string"
+        },
+        "source_state_ids": {
+          "items": {
+            "type": "string"
+          },
+          "title": "Source State Ids",
+          "type": "array"
+        }
+      },
+      "required": [
+        "condition_id",
+        "experiment_stage",
+        "condition_role",
+        "condition_label",
+        "selected_nodes",
+        "selected_modules",
+        "node_states",
+        "node_state_sha256",
+        "active_node_count",
+        "proxy_experiment",
+        "proxy_state",
+        "source_protocol_reference",
+        "source_state_ids",
+        "operator_confirmation_requirements",
+        "operator_confirmation_required",
+        "operator_confirmation_status",
+        "protocol_execution_performed",
+        "hardware_io_performed",
+        "formal_eligible",
+        "experimental_result"
+      ],
+      "title": "CompiledProtocolCondition",
+      "type": "object"
+    },
+    "LoadingDirection": {
+      "enum": [
+        "loading",
+        "unloading",
+        "not_applicable",
+        "unknown"
+      ],
+      "title": "LoadingDirection",
+      "type": "string"
+    },
+    "NodeState": {
+      "additionalProperties": false,
+      "properties": {
+        "continuous_value": {
+          "anyOf": [
+            {
+              "type": "number"
+            },
+            {
+              "type": "null"
+            }
+          ],
+          "title": "Continuous Value"
+        },
+        "discrete_label": {
+          "anyOf": [
+            {
+              "type": "string"
+            },
+            {
+              "type": "null"
+            }
+          ],
+          "title": "Discrete Label"
+        },
+        "loading_direction": {
+          "$ref": "#/$defs/LoadingDirection"
+        },
+        "module_id": {
+          "title": "Module Id",
+          "type": "string"
+        },
+        "node_id": {
+          "title": "Node Id",
+          "type": "string"
+        },
+        "notes": {
+          "anyOf": [
+            {
+              "type": "string"
+            },
+            {
+              "type": "null"
+            }
+          ],
+          "title": "Notes"
+        },
+        "provenance": {
+          "anyOf": [
+            {
+              "type": "string"
+            },
+            {
+              "type": "null"
+            }
+          ],
+          "title": "Provenance"
+        },
+        "proxy_state": {
+          "title": "Proxy State",
+          "type": "boolean"
+        },
+        "state_id": {
+          "title": "State Id",
+          "type": "string"
+        },
+        "state_type": {
+          "title": "State Type",
+          "type": "string"
+        },
+        "unit": {
+          "anyOf": [
+            {
+              "type": "string"
+            },
+            {
+              "type": "null"
+            }
+          ],
+          "title": "Unit"
+        }
+      },
+      "required": [
+        "node_id",
+        "state_id",
+        "module_id",
+        "state_type",
+        "discrete_label",
+        "continuous_value",
+        "unit",
+        "loading_direction",
+        "proxy_state",
+        "provenance",
+        "notes"
+      ],
+      "title": "NodeState",
+      "type": "object"
+    },
+    "PlannedMeasurement": {
+      "additionalProperties": false,
+      "properties": {
+        "condition_block_order": {
+          "exclusiveMinimum": 0,
+          "title": "Condition Block Order",
+          "type": "integer"
+        },
+        "condition_id": {
+          "pattern": "^[A-Za-z0-9_-]+$",
+          "title": "Condition Id",
+          "type": "string"
+        },
+        "continuous_repeat_index": {
+          "exclusiveMinimum": 0,
+          "title": "Continuous Repeat Index",
+          "type": "integer"
+        },
+        "experimental_result": {
+          "const": false,
+          "title": "Experimental Result",
+          "type": "boolean"
+        },
+        "formal_eligible": {
+          "const": false,
+          "title": "Formal Eligible",
+          "type": "boolean"
+        },
+        "global_planned_ordinal": {
+          "exclusiveMinimum": 0,
+          "title": "Global Planned Ordinal",
+          "type": "integer"
+        },
+        "hardware_io_performed": {
+          "const": false,
+          "title": "Hardware Io Performed",
+          "type": "boolean"
+        },
+        "node_states": {
+          "additionalProperties": {
+            "$ref": "#/$defs/NodeState"
+          },
+          "title": "Node States",
+          "type": "object"
+        },
+        "operator_confirmation_status": {
+          "const": "pending",
+          "title": "Operator Confirmation Status",
+          "type": "string"
+        },
+        "protocol_execution_performed": {
+          "const": false,
+          "title": "Protocol Execution Performed",
+          "type": "boolean"
+        },
+        "reassembly_index": {
+          "exclusiveMinimum": 0,
+          "title": "Reassembly Index",
+          "type": "integer"
+        },
+        "session_index": {
+          "exclusiveMinimum": 0,
+          "title": "Session Index",
+          "type": "integer"
+        },
+        "session_local_measurement_order": {
+          "exclusiveMinimum": 0,
+          "title": "Session Local Measurement Order",
+          "type": "integer"
+        }
+      },
+      "required": [
+        "global_planned_ordinal",
+        "session_local_measurement_order",
+        "session_index",
+        "reassembly_index",
+        "condition_block_order",
+        "continuous_repeat_index",
+        "condition_id",
+        "node_states",
+        "operator_confirmation_status",
+        "protocol_execution_performed",
+        "hardware_io_performed",
+        "formal_eligible",
+        "experimental_result"
+      ],
+      "title": "PlannedMeasurement",
+      "type": "object"
+    },
+    "ProtocolConditionBlock": {
+      "additionalProperties": false,
+      "properties": {
+        "canonical_condition_index": {
+          "exclusiveMinimum": 0,
+          "title": "Canonical Condition Index",
+          "type": "integer"
+        },
+        "condition_block_order": {
+          "exclusiveMinimum": 0,
+          "title": "Condition Block Order",
+          "type": "integer"
+        },
+        "condition_id": {
+          "pattern": "^[A-Za-z0-9_-]+$",
+          "title": "Condition Id",
+          "type": "string"
+        },
+        "measurements": {
+          "items": {
+            "$ref": "#/$defs/PlannedMeasurement"
+          },
+          "minItems": 1,
+          "title": "Measurements",
+          "type": "array"
+        }
+      },
+      "required": [
+        "condition_block_order",
+        "canonical_condition_index",
+        "condition_id",
+        "measurements"
+      ],
+      "title": "ProtocolConditionBlock",
+      "type": "object"
+    },
+    "ProtocolReassemblySlot": {
+      "additionalProperties": false,
+      "properties": {
+        "condition_blocks": {
+          "items": {
+            "$ref": "#/$defs/ProtocolConditionBlock"
+          },
+          "minItems": 1,
+          "title": "Condition Blocks",
+          "type": "array"
+        },
+        "reassembly_index": {
+          "exclusiveMinimum": 0,
+          "title": "Reassembly Index",
+          "type": "integer"
+        }
+      },
+      "required": [
+        "reassembly_index",
+        "condition_blocks"
+      ],
+      "title": "ProtocolReassemblySlot",
+      "type": "object"
+    },
+    "ProtocolSessionSlot": {
+      "additionalProperties": false,
+      "properties": {
+        "reassembly_slots": {
+          "items": {
+            "$ref": "#/$defs/ProtocolReassemblySlot"
+          },
+          "minItems": 1,
+          "title": "Reassembly Slots",
+          "type": "array"
+        },
+        "session_index": {
+          "exclusiveMinimum": 0,
+          "title": "Session Index",
+          "type": "integer"
+        }
+      },
+      "required": [
+        "session_index",
+        "reassembly_slots"
+      ],
+      "title": "ProtocolSessionSlot",
+      "type": "object"
+    }
+  },
+  "additionalProperties": false,
+  "properties": {
+    "all_node_states_complete": {
+      "const": true,
+      "title": "All Node States Complete",
+      "type": "boolean"
+    },
+    "bundle_content_sha256": {
+      "pattern": "^[0-9a-f]{64}$",
+      "title": "Bundle Content Sha256",
+      "type": "string"
+    },
+    "compiler_algorithm_id": {
+      "const": "development_protocol_matrix_compiler",
+      "title": "Compiler Algorithm Id",
+      "type": "string"
+    },
+    "compiler_algorithm_version": {
+      "const": "1.0.0",
+      "title": "Compiler Algorithm Version",
+      "type": "string"
+    },
+    "condition_count": {
+      "exclusiveMinimum": 0,
+      "title": "Condition Count",
+      "type": "integer"
+    },
+    "condition_matrix": {
+      "items": {
+        "$ref": "#/$defs/CompiledProtocolCondition"
+      },
+      "title": "Condition Matrix",
+      "type": "array"
+    },
+    "condition_matrix_sha256": {
+      "pattern": "^[0-9a-f]{64}$",
+      "title": "Condition Matrix Sha256",
+      "type": "string"
+    },
+    "continuous_repeats_per_condition": {
+      "exclusiveMinimum": 0,
+      "title": "Continuous Repeats Per Condition",
+      "type": "integer"
+    },
+    "development_fixture": {
+      "const": true,
+      "title": "Development Fixture",
+      "type": "boolean"
+    },
+    "experiment_stage": {
+      "enum": [
+        1,
+        2,
+        3,
+        4
+      ],
+      "title": "Experiment Stage",
+      "type": "integer"
+    },
+    "experimental_result": {
+      "const": false,
+      "title": "Experimental Result",
+      "type": "boolean"
+    },
+    "formal_eligible": {
+      "const": false,
+      "title": "Formal Eligible",
+      "type": "boolean"
+    },
+    "hardware_io_performed": {
+      "const": false,
+      "title": "Hardware Io Performed",
+      "type": "boolean"
+    },
+    "manifest_reference": {
+      "title": "Manifest Reference",
+      "type": "string"
+    },
+    "manifest_sha256": {
+      "pattern": "^[0-9a-f]{64}$",
+      "title": "Manifest Sha256",
+      "type": "string"
+    },
+    "model_package_sha256": {
+      "pattern": "^[0-9a-f]{64}$",
+      "title": "Model Package Sha256",
+      "type": "string"
+    },
+    "operator_confirmation_required": {
+      "const": true,
+      "title": "Operator Confirmation Required",
+      "type": "boolean"
+    },
+    "operator_confirmation_status": {
+      "const": "pending",
+      "title": "Operator Confirmation Status",
+      "type": "string"
+    },
+    "plan_id": {
+      "pattern": "^[A-Za-z0-9_-]+$",
+      "title": "Plan Id",
+      "type": "string"
+    },
+    "plan_spec_id": {
+      "title": "Plan Spec Id",
+      "type": "string"
+    },
+    "plan_spec_normalized_sha256": {
+      "pattern": "^[0-9a-f]{64}$",
+      "title": "Plan Spec Normalized Sha256",
+      "type": "string"
+    },
+    "plan_spec_raw_sha256": {
+      "pattern": "^[0-9a-f]{64}$",
+      "title": "Plan Spec Raw Sha256",
+      "type": "string"
+    },
+    "plan_spec_reference": {
+      "title": "Plan Spec Reference",
+      "type": "string"
+    },
+    "planned_measurement_count": {
+      "exclusiveMinimum": 0,
+      "title": "Planned Measurement Count",
+      "type": "integer"
+    },
+    "protocol_execution_performed": {
+      "const": false,
+      "title": "Protocol Execution Performed",
+      "type": "boolean"
+    },
+    "protocol_id": {
+      "title": "Protocol Id",
+      "type": "string"
+    },
+    "protocol_normalized_sha256": {
+      "pattern": "^[0-9a-f]{64}$",
+      "title": "Protocol Normalized Sha256",
+      "type": "string"
+    },
+    "protocol_raw_sha256": {
+      "pattern": "^[0-9a-f]{64}$",
+      "title": "Protocol Raw Sha256",
+      "type": "string"
+    },
+    "protocol_reference": {
+      "title": "Protocol Reference",
+      "type": "string"
+    },
+    "protocol_version": {
+      "title": "Protocol Version",
+      "type": "string"
+    },
+    "random_seed": {
+      "anyOf": [
+        {
+          "type": "string"
+        },
+        {
+          "type": "null"
+        }
+      ],
+      "title": "Random Seed"
+    },
+    "randomization_algorithm_id": {
+      "const": "sha256_ranked_condition_blocks",
+      "title": "Randomization Algorithm Id",
+      "type": "string"
+    },
+    "randomization_algorithm_version": {
+      "const": "1.0.0",
+      "title": "Randomization Algorithm Version",
+      "type": "string"
+    },
+    "randomization_enabled": {
+      "title": "Randomization Enabled",
+      "type": "boolean"
+    },
+    "reassemblies_per_session": {
+      "exclusiveMinimum": 0,
+      "title": "Reassemblies Per Session",
+      "type": "integer"
+    },
+    "safety_marker": {
+      "const": "DEVELOPMENT_PROTOCOL_PLAN_NOT_EXECUTED_NOT_AN_EXPERIMENTAL_RESULT",
+      "title": "Safety Marker",
+      "type": "string"
+    },
+    "schedule_sha256": {
+      "pattern": "^[0-9a-f]{64}$",
+      "title": "Schedule Sha256",
+      "type": "string"
+    },
+    "schema_version": {
+      "const": "1.0.0",
+      "title": "Schema Version",
+      "type": "string"
+    },
+    "session_count": {
+      "exclusiveMinimum": 0,
+      "title": "Session Count",
+      "type": "integer"
+    },
+    "session_slots": {
+      "items": {
+        "$ref": "#/$defs/ProtocolSessionSlot"
+      },
+      "minItems": 1,
+      "title": "Session Slots",
+      "type": "array"
+    }
+  },
+  "required": [
+    "schema_version",
+    "compiler_algorithm_id",
+    "compiler_algorithm_version",
+    "plan_id",
+    "plan_spec_id",
+    "plan_spec_reference",
+    "plan_spec_raw_sha256",
+    "plan_spec_normalized_sha256",
+    "protocol_reference",
+    "protocol_raw_sha256",
+    "protocol_normalized_sha256",
+    "protocol_id",
+    "protocol_version",
+    "experiment_stage",
+    "manifest_reference",
+    "manifest_sha256",
+    "model_package_sha256",
+    "bundle_content_sha256",
+    "condition_count",
+    "condition_matrix",
+    "condition_matrix_sha256",
+    "planned_measurement_count",
+    "session_count",
+    "reassemblies_per_session",
+    "continuous_repeats_per_condition",
+    "randomization_enabled",
+    "randomization_algorithm_id",
+    "randomization_algorithm_version",
+    "random_seed",
+    "session_slots",
+    "schedule_sha256",
+    "all_node_states_complete",
+    "operator_confirmation_required",
+    "operator_confirmation_status",
+    "development_fixture",
+    "protocol_execution_performed",
+    "hardware_io_performed",
+    "formal_eligible",
+    "experimental_result",
+    "safety_marker"
+  ],
+  "title": "CompiledDevelopmentProtocolPlan",
+  "type": "object"
+}

@@ -1,6 +1,6 @@
 # Acoustic Ladder
 
-本仓库当前实现到 `DEV-04.04`：除模型包、配置、不可变存储、synthetic 接口数据和只读音频清单外，现提供严格的离线 ESS 开发夹具、确定性虚拟全双工采集、离线 ESS processing、provisional QC、同一 reassembly 的 provisional repeatability，以及 Stage 1 development condition plan 所约束的全 BLK 对单桥 synthetic baseline-difference 连续指标。该能力不执行 protocol、不应用阈值、不输出 pass/fail、effect、classification 或 drift 判决，也不声明硬件或实验就绪，不增加真实硬件接入或正式实验功能。
+本仓库当前实现到 `DEV-05.01`：除模型包、配置、不可变存储、synthetic 接口数据和只读音频清单外，现提供严格的离线 ESS 开发夹具、确定性虚拟全双工采集、离线 ESS processing、provisional QC、repeatability、Stage 1 synthetic baseline difference，以及阶段 1–4 development-only 协议矩阵编译器。编译器只生成不可变计划，不执行 protocol、不创建采集 run、不访问真实音频硬件，也不应用阈值或输出实验判决。
 
 当前状态固定为：
 
@@ -201,6 +201,18 @@ acoustic-ladder baseline-difference-validate @bundle --synthetic-root $synthetic
 ```
 
 comparison 位于 `processed/baseline_differences/comparison_<comparison_id>/` 的 exact 11-file create-only envelope。保存 raw/aligned 复传递函数均值、加性差、稳定除法 ratio、分段 phase unwrap、raw/aligned IR 差分与连续指标；invalid bin 为零并另存 mask。这里的 synthetic 非零差分不是实验效应、装置可检测性或统计显著性结论。CLI 的 `PASS` 只表示 compute/validate 软件操作及完整性重放成功。
+
+## DEV-05.01 development 协议计划
+
+四个 `tests/fixtures/protocol/stage*_protocol_plan.development.yaml` 只为软件测试补充 `2 sessions × 2 reassemblies × 2 continuous repeats` 和 seed `dev0501-test-seed-v1`。这些数值不是正式实验建议，正式协议中的 repeats/reassemblies/sessions/seed 仍未确认，`execution_ready=false`。
+
+```powershell
+$planRoot = Join-Path $env:TEMP 'acoustic-ladder-dev0501-plans'
+acoustic-ladder protocol-plan-compile --project-root . --protocol config/protocols/stage1_single_bridge.yaml --audio tests/fixtures/audio/ess_offline_development.yaml --plan-spec tests/fixtures/protocol/stage1_protocol_plan.development.yaml --development-plan-root $planRoot --plan-id stage1-example
+acoustic-ladder protocol-plan-validate --project-root . --protocol config/protocols/stage1_single_bridge.yaml --audio tests/fixtures/audio/ess_offline_development.yaml --plan-spec tests/fixtures/protocol/stage1_protocol_plan.development.yaml --development-plan-root $planRoot --plan-id stage1-example
+```
+
+当前 fixture 的 condition counts 为 19/4/4/16，planned measurements 为 152/32/32/128。随机化只排列 condition blocks，continuous repeats 始终相邻；算法为 `sha256_ranked_condition_blocks` `1.0.0`。Stage 2 固定孔径只是 proxy，Stage 3 不计算 interaction residual，Stage 4 不执行 classification。operator confirmation 仍为 pending，计划产物不是实验结果；DEV-05.02 尚未实施。详见 `docs/architecture/protocol-planning.md`。
 
 详细契约见 `docs/architecture/`；数据根目录政策见 `data/README.md`。
 
