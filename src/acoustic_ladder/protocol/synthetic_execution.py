@@ -11,6 +11,7 @@ import tempfile
 from collections.abc import Callable
 from dataclasses import dataclass
 from datetime import datetime
+from functools import partial
 from pathlib import Path
 
 from pydantic import ValidationError
@@ -702,6 +703,87 @@ def _replay_events(
     return state
 
 
+def _validate_target_event_publication(
+    *,
+    root: Path,
+    execution_id: str,
+    published: PublishedDevelopmentProtocolPlan,
+    work_orders: list[SyntheticProtocolWorkOrder],
+    session_store: ImmutableSessionStore,
+    bundle: LoadedBundle,
+    scenario: LoadedConditionedVirtualCaptureScenario,
+    ess_artifact_root: str | Path,
+    expected: SyntheticProtocolExecutionEvent,
+) -> None:
+    """Prove a target event is complete and authoritative without writing."""
+
+    replayed = _replay_events(
+        root=root,
+        execution_id=execution_id,
+        published=published,
+        work_orders=work_orders,
+        session_store=session_store,
+        bundle=bundle,
+        scenario=scenario,
+        ess_artifact_root=ess_artifact_root,
+    )
+    path = root / "events" / f"event_{expected.event_sequence:08d}.json"
+    stored = SyntheticProtocolExecutionEvent.model_validate_json(path.read_bytes())
+    digest = hashlib.sha256(path.read_bytes()).hexdigest()
+    if (
+        stored != expected
+        or replayed.event_sequence != expected.event_sequence
+        or replayed.head_sha256 != digest
+    ):
+        raise SyntheticProtocolExecutionError(
+            "target execution event is not the verified ledger head"
+        )
+
+
+def _probe_publication(probe: Callable[[], object] | None) -> bool:
+    if probe is None:
+        return False
+    try:
+        probe()
+    except Exception:
+        return False
+    return True
+
+
+def _normalized_publication_error(
+    exc: Exception,
+    *,
+    capture_probe: Callable[[], object] | None = None,
+    event_probe: Callable[[], object] | None = None,
+    completion_probe: Callable[[], object] | None = None,
+) -> SyntheticProtocolExecutionError:
+    capture_published = _probe_publication(capture_probe)
+    event_published = _probe_publication(event_probe)
+    completion_published = _probe_publication(completion_probe)
+    unproven = [
+        label
+        for label, verified, requested in (
+            ("capture", capture_published, capture_probe is not None),
+            ("ledger event", event_published, event_probe is not None),
+            ("completion", completion_published, completion_probe is not None),
+        )
+        if requested and not verified
+    ]
+    requested = any(probe is not None for probe in (capture_probe, event_probe, completion_probe))
+    if unproven:
+        suffix = f"; publication state not proven for: {', '.join(unproven)}"
+    elif requested:
+        suffix = "; publication state verified from persistent storage"
+    else:
+        suffix = "; no target publication was proven"
+    return SyntheticProtocolExecutionError(
+        f"{exc}{suffix}",
+        capture_published=capture_published,
+        ledger_event_published=event_published,
+        completion_published=completion_published,
+    )
+
+
 def _completion(
     *,
     execution_id: str,
@@ -778,6 +860,44 @@ def _validate_completion(
     )
     if stored != expected or body != canonical_json_bytes(expected.model_dump(mode="json")):
         raise SyntheticProtocolExecutionError("execution completion differs from replay")
+
+
+def _validate_target_completion_publication(
+    *,
+    store: DevelopmentSyntheticProtocolExecutionStore,
+    session_store: ImmutableSessionStore,
+    plan_store: DevelopmentProtocolPlanStore,
+    bundle: LoadedBundle,
+    spec: LoadedDevelopmentProtocolPlanSpec,
+    plan_id: str,
+    execution_id: str,
+    scenario: LoadedConditionedVirtualCaptureScenario,
+    ess_artifact_root: str | Path,
+    expected: SyntheticProtocolExecutionCompletion,
+) -> None:
+    """Prove the completion and all ledger/run bindings without writing."""
+
+    status = read_synthetic_protocol_execution_status(
+        store=store,
+        session_store=session_store,
+        plan_store=plan_store,
+        bundle=bundle,
+        spec=spec,
+        plan_id=plan_id,
+        execution_id=execution_id,
+        scenario=scenario,
+        ess_artifact_root=ess_artifact_root,
+    )
+    root = store.execution_path(execution_id)
+    stored = SyntheticProtocolExecutionCompletion.model_validate_json(
+        (root / COMPLETION_NAME).read_bytes()
+    )
+    if (
+        status.execution_state != "complete"
+        or status.recovery_kind is not None
+        or stored != expected
+    ):
+        raise SyntheticProtocolExecutionError("target execution completion is not fully validated")
 
 
 def _ensure_session(
@@ -977,6 +1097,17 @@ def _token_matches(
         raise SyntheticProtocolExecutionError("stale or foreign execution concurrency token")
 
 
+def _acquire_mutation_lock(lock: Path, operation: str) -> int:
+    try:
+        return os.open(lock, os.O_CREAT | os.O_EXCL | os.O_WRONLY)
+    except FileExistsError as exc:
+        raise SyntheticProtocolExecutionError(
+            f"synthetic execution {operation} is already in progress"
+        ) from exc
+    except Exception as exc:
+        raise SyntheticProtocolExecutionError(str(exc)) from exc
+
+
 def _state_from_verified_status(
     root: Path, status: SyntheticProtocolExecutionStatus
 ) -> _ReplayState:
@@ -1022,9 +1153,11 @@ def apply_synthetic_protocol_execution_control(
 ) -> SyntheticProtocolExecutionStatus:
     root = store.execution_path(execution_id)
     lock = root.parent / f".{execution_id}.transition.lock"
-    descriptor: int | None = None
+    descriptor = _acquire_mutation_lock(lock, "transition")
+    published: PublishedDevelopmentProtocolPlan | None = None
+    work_orders: list[SyntheticProtocolWorkOrder] | None = None
+    event_target: SyntheticProtocolExecutionEvent | None = None
     try:
-        descriptor = os.open(lock, os.O_CREAT | os.O_EXCL | os.O_WRONLY)
         status = read_synthetic_protocol_execution_status(
             store=store,
             session_store=session_store,
@@ -1070,6 +1203,7 @@ def apply_synthetic_protocol_execution_control(
             capture=None,
             total=len(work_orders),
         )
+        event_target = event
         digest = _publish_event_pair(root, event)
         after = _ReplayState(
             after.execution_state,
@@ -1080,14 +1214,27 @@ def apply_synthetic_protocol_execution_control(
             (*state.event_digests, digest),
         )
         return _status(execution_id, work_orders, after)
-    except FileExistsError as exc:
-        raise SyntheticProtocolExecutionError(
-            "synthetic execution transition is already in progress"
-        ) from exc
+    except Exception as exc:
+        if isinstance(exc, SyntheticProtocolExecutionError) and event_target is None:
+            raise
+        event_probe = None
+        if published is not None and work_orders is not None and event_target is not None:
+            event_probe = partial(
+                _validate_target_event_publication,
+                root=root,
+                execution_id=execution_id,
+                published=published,
+                work_orders=work_orders,
+                session_store=session_store,
+                bundle=bundle,
+                scenario=scenario,
+                ess_artifact_root=ess_artifact_root,
+                expected=event_target,
+            )
+        raise _normalized_publication_error(exc, event_probe=event_probe) from exc
     finally:
-        if descriptor is not None:
-            os.close(descriptor)
-            lock.unlink(missing_ok=True)
+        os.close(descriptor)
+        lock.unlink(missing_ok=True)
 
 
 def recover_current_synthetic_protocol_work_order(
@@ -1108,11 +1255,13 @@ def recover_current_synthetic_protocol_work_order(
     _identifier(actor_id, "actor_id")
     root = store.execution_path(execution_id)
     lock = root.parent / f".{execution_id}.transition.lock"
-    descriptor: int | None = None
-    event_published = False
-    completion_published = False
+    descriptor = _acquire_mutation_lock(lock, "recovery")
+    published: PublishedDevelopmentProtocolPlan | None = None
+    work_orders: list[SyntheticProtocolWorkOrder] | None = None
+    capture_target: SyntheticProtocolWorkOrder | None = None
+    event_target: SyntheticProtocolExecutionEvent | None = None
+    completion_target: SyntheticProtocolExecutionCompletion | None = None
     try:
-        descriptor = os.open(lock, os.O_CREAT | os.O_EXCL | os.O_WRONLY)
         status = read_synthetic_protocol_execution_status(
             store=store,
             session_store=session_store,
@@ -1134,6 +1283,7 @@ def recover_current_synthetic_protocol_work_order(
         state = _state_from_verified_status(root, status)
         if status.recovery_kind == "capture":
             current = work_orders[state.cursor]
+            capture_target = current
             capture = _capture_for_event(
                 session_store=session_store,
                 bundle=bundle,
@@ -1154,8 +1304,8 @@ def recover_current_synthetic_protocol_work_order(
                 capture=capture,
                 total=len(work_orders),
             )
+            event_target = event
             digest = _publish_event_pair(root, event)
-            event_published = True
             state = _ReplayState(
                 after.execution_state,
                 after.cursor,
@@ -1164,6 +1314,12 @@ def recover_current_synthetic_protocol_work_order(
                 after.successful_run_ids,
                 (*after.event_digests, digest),
             )
+        else:
+            capture_target = work_orders[state.cursor - 1]
+            event_path = root / "events" / f"event_{state.event_sequence:08d}.json"
+            event_target = SyntheticProtocolExecutionEvent.model_validate_json(
+                event_path.read_bytes()
+            )
         if state.execution_state == "complete":
             completion = _completion(
                 execution_id=execution_id,
@@ -1171,28 +1327,59 @@ def recover_current_synthetic_protocol_work_order(
                 state=state,
                 completed_at=now(),
             )
+            completion_target = completion
             _publish_completion(root, completion)
-            completion_published = True
         return _status(execution_id, work_orders, state)
-    except FileExistsError as exc:
-        raise SyntheticProtocolExecutionError(
-            "synthetic execution recovery is already in progress",
-            ledger_event_published=event_published,
-            completion_published=completion_published,
+    except Exception as exc:
+        capture_probe = None
+        event_probe = None
+        completion_probe = None
+        if capture_target is not None:
+            capture_probe = partial(
+                _capture_for_event,
+                session_store=session_store,
+                bundle=bundle,
+                scenario=scenario,
+                ess_artifact_root=ess_artifact_root,
+                work_order=capture_target,
+                semantic_replay=True,
+            )
+        if published is not None and work_orders is not None and event_target is not None:
+            event_probe = partial(
+                _validate_target_event_publication,
+                root=root,
+                execution_id=execution_id,
+                published=published,
+                work_orders=work_orders,
+                session_store=session_store,
+                bundle=bundle,
+                scenario=scenario,
+                ess_artifact_root=ess_artifact_root,
+                expected=event_target,
+            )
+        if completion_target is not None:
+            completion_probe = partial(
+                _validate_target_completion_publication,
+                store=store,
+                session_store=session_store,
+                plan_store=plan_store,
+                bundle=bundle,
+                spec=spec,
+                plan_id=plan_id,
+                execution_id=execution_id,
+                scenario=scenario,
+                ess_artifact_root=ess_artifact_root,
+                expected=completion_target,
+            )
+        raise _normalized_publication_error(
+            exc,
+            capture_probe=capture_probe,
+            event_probe=event_probe,
+            completion_probe=completion_probe,
         ) from exc
-    except SyntheticProtocolExecutionError as exc:
-        if event_published or completion_published:
-            raise SyntheticProtocolExecutionError(
-                str(exc),
-                capture_published=status.recovery_kind == "capture",
-                ledger_event_published=event_published,
-                completion_published=completion_published,
-            ) from exc
-        raise
     finally:
-        if descriptor is not None:
-            os.close(descriptor)
-            lock.unlink(missing_ok=True)
+        os.close(descriptor)
+        lock.unlink(missing_ok=True)
 
 
 def validate_synthetic_protocol_execution(
@@ -1258,7 +1445,7 @@ def execute_next_synthetic_protocol_work_order(
     _identifier(actor_id, "actor_id")
     root = store.execution_path(execution_id)
     lock = root.parent / f".{execution_id}.transition.lock"
-    descriptor: int | None = None
+    descriptor = _acquire_mutation_lock(lock, "transition")
     capture_published = False
     event_published = False
     completion_published = False
@@ -1267,7 +1454,6 @@ def execute_next_synthetic_protocol_work_order(
     current: SyntheticProtocolWorkOrder | None = None
     state: _ReplayState | None = None
     try:
-        descriptor = os.open(lock, os.O_CREAT | os.O_EXCL | os.O_WRONLY)
         status = read_synthetic_protocol_execution_status(
             store=store,
             session_store=session_store,
@@ -1332,7 +1518,31 @@ def execute_next_synthetic_protocol_work_order(
             capture=capture,
             total=len(work_orders),
         )
-        digest = _publish_event_pair(root, event)
+        try:
+            digest = _publish_event_pair(root, event)
+        except Exception as exc:
+            raise _normalized_publication_error(
+                exc,
+                capture_probe=lambda: _capture_for_event(
+                    session_store=session_store,
+                    bundle=bundle,
+                    scenario=scenario,
+                    ess_artifact_root=ess_artifact_root,
+                    work_order=current,
+                    semantic_replay=True,
+                ),
+                event_probe=lambda: _validate_target_event_publication(
+                    root=root,
+                    execution_id=execution_id,
+                    published=published,
+                    work_orders=work_orders,
+                    session_store=session_store,
+                    bundle=bundle,
+                    scenario=scenario,
+                    ess_artifact_root=ess_artifact_root,
+                    expected=event,
+                ),
+            ) from exc
         event_published = True
         after = _ReplayState(
             after.execution_state,
@@ -1351,10 +1561,48 @@ def execute_next_synthetic_protocol_work_order(
                 state=after,
                 completed_at=now(),
             )
-            _publish_completion(root, completion)
+            try:
+                _publish_completion(root, completion)
+            except Exception as exc:
+                raise _normalized_publication_error(
+                    exc,
+                    capture_probe=lambda: _capture_for_event(
+                        session_store=session_store,
+                        bundle=bundle,
+                        scenario=scenario,
+                        ess_artifact_root=ess_artifact_root,
+                        work_order=current,
+                        semantic_replay=True,
+                    ),
+                    event_probe=lambda: _validate_target_event_publication(
+                        root=root,
+                        execution_id=execution_id,
+                        published=published,
+                        work_orders=work_orders,
+                        session_store=session_store,
+                        bundle=bundle,
+                        scenario=scenario,
+                        ess_artifact_root=ess_artifact_root,
+                        expected=event,
+                    ),
+                    completion_probe=lambda: _validate_target_completion_publication(
+                        store=store,
+                        session_store=session_store,
+                        plan_store=plan_store,
+                        bundle=bundle,
+                        spec=spec,
+                        plan_id=plan_id,
+                        execution_id=execution_id,
+                        scenario=scenario,
+                        ess_artifact_root=ess_artifact_root,
+                        expected=completion,
+                    ),
+                ) from exc
             completion_published = True
         return _status(execution_id, work_orders, after)
     except SyntheticProtocolExecutionError as exc:
+        if exc.capture_published or exc.ledger_event_published or exc.completion_published:
+            raise
         if capture_published or event_published or completion_published:
             raise SyntheticProtocolExecutionError(
                 str(exc),
@@ -1404,9 +1652,8 @@ def execute_next_synthetic_protocol_work_order(
             completion_published=completion_published,
         ) from exc
     finally:
-        if descriptor is not None:
-            os.close(descriptor)
-            lock.unlink(missing_ok=True)
+        os.close(descriptor)
+        lock.unlink(missing_ok=True)
 
 
 __all__ = [

@@ -40,7 +40,9 @@ The session/run tree and execution ledger cannot be committed atomically togethe
 4. success event with missing/tampered run: read/status/validate reject;
 5. final success without completion: status returns completion `recovery_required`; explicit recovery publishes only the validated completion.
 
-Errors separately report `capture_published`, `ledger_event_published` and `completion_published`. Read-only entry points create no roots, locks, staging, events, completion or capture and never repair bytes.
+Errors separately report `capture_published`, `ledger_event_published` and `completion_published`. These are persisted-state claims at the instant the exception returns, not in-memory records that a publisher was called or returned. A field is true only when a narrow read-only probe proves the complete target: semantic capture/run replay for capture, full ledger replay with the target event as the verified head for an event, and complete public status/ledger/run/envelope replay plus exact target comparison for completion. A publication helper may finish its create-only files and then raise; that case reports true. A missing sidecar, partial/non-canonical file, mismatched target or failed probe reports false and says the state was not proven. Valid capture/event publications that existed before explicit recovery are still reported true.
+
+The probe never writes, deletes, cleans, completes or repairs storage. Original ordinary exceptions remain the error cause, while `KeyboardInterrupt`, `SystemExit` and other `BaseException` values are not swallowed. Lock acquisition is a separate boundary, so only failure to acquire an existing transition lock is reported as concurrency; a publisher's later `FileExistsError` is evaluated as a publication failure. Control events never claim capture or completion publication for that control operation. Read-only entry points create no roots, locks, staging, events, completion or capture and never repair bytes.
 
 ## Development fixture result and limits
 
