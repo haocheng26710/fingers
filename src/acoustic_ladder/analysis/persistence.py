@@ -8,9 +8,7 @@ import shutil
 import stat
 import tempfile
 from collections import Counter
-from collections.abc import Callable
 from dataclasses import dataclass
-from datetime import UTC, datetime
 from pathlib import Path
 from typing import Literal, cast
 
@@ -248,6 +246,7 @@ def _source_binding(computed: ComputedMeasurementMatrix, analysis_id: str) -> An
                 execution_id=execution.source.execution_id,
                 execution_manifest_sha256=execution.execution_manifest_sha256,
                 execution_completion_sha256=execution.execution_completion_sha256,
+                execution_completed_at_utc=execution.execution_completed_at_utc,
                 ordered_work_order_sha256=sha256_bytes(
                     canonical_json_bytes(
                         [row.work_order.work_order_sha256 for row in execution.rows]
@@ -271,7 +270,7 @@ def _source_binding(computed: ComputedMeasurementMatrix, analysis_id: str) -> An
         )
     reference = spec.source_path.relative_to(spec.project_root).as_posix()
     return AnalysisSourceBinding(
-        schema_version="1.0.0",
+        schema_version="1.1.0",
         analysis_id=analysis_id,
         analysis_spec_reference=reference,
         analysis_spec_raw_sha256=spec.raw_sha256,
@@ -328,10 +327,7 @@ def _payloads(
     sources: tuple[AnalysisExecutionSource, ...] | list[AnalysisExecutionSource],
     analysis_spec: LoadedDevelopmentAnalysisMatrixSpec,
     analysis_id: str,
-    created_at: datetime,
 ) -> _Payloads:
-    if created_at.tzinfo is None or created_at.utcoffset() is None:
-        raise AnalysisPersistenceError("analysis created_at must be timezone-aware")
     try:
         validated = validate_synthetic_analysis_sources(
             sources=sources, analysis_spec=analysis_spec
@@ -353,45 +349,53 @@ def _payloads(
         }
         digests = {name: sha256_bytes(payload) for name, payload in core.items()}
         state = provisional_state()
+        evidence = {
+            "analysis_id": analysis_id,
+            "analysis_evidence_time": validated.analysis_evidence_time,
+            "analysis_evidence_time_basis": validated.analysis_evidence_time_basis,
+            "ordered_source_aggregate_sha256": validated.ordered_source_aggregate_sha256,
+        }
+        metadata = AnalysisMetadata.model_validate(
+            {
+                **state,
+                **evidence,
+                "schema_version": "1.1.0",
+            }
+        )
+        record = AnalysisRecord.model_validate(
+            {
+                **state,
+                **evidence,
+                "schema_version": "1.1.0",
+                "analysis_relative_path": f"analyses/analysis_{analysis_id}",
+                "immutable_status": "complete",
+            }
+        )
+        metadata_bytes = canonical_json_bytes(metadata.model_dump(mode="json"))
+        record_bytes = canonical_json_bytes(record.model_dump(mode="json"))
         receipt = AnalysisReceipt.model_validate(
             {
                 **state,
-                "schema_version": "1.0.0",
+                "schema_version": "1.1.0",
                 "algorithm_id": "plan_bound_synthetic_measurement_matrix",
-                "algorithm_version": "1.0.0",
-                "analysis_id": analysis_id,
+                "algorithm_version": "1.1.0",
+                **evidence,
                 "analysis_source_binding_sha256": digests["analysis_source_binding.json"],
                 "measurement_row_index_sha256": digests["measurement_row_index.json"],
                 "feature_schema_sha256": digests["feature_schema.json"],
                 "split_plan_sha256": digests["split_plan.json"],
                 "measurement_matrix_npz_sha256": digests["measurement_matrix.npz"],
-                "ordered_source_aggregate_sha256": validated.ordered_source_aggregate_sha256,
+                "analysis_metadata_sha256": sha256_bytes(metadata_bytes),
+                "analysis_record_sha256": sha256_bytes(record_bytes),
+                "analysis_evidence_time_derivation_version": (
+                    validated.analysis_evidence_time_derivation_version
+                ),
                 "feature_count": 16,
                 "split_fold_count": 24,
             }
         )
         receipt_bytes = canonical_json_bytes(receipt.model_dump(mode="json"))
         receipt_digest = sha256_bytes(receipt_bytes)
-        metadata = AnalysisMetadata.model_validate(
-            {
-                **state,
-                "schema_version": "1.0.0",
-                "analysis_id": analysis_id,
-                "created_at": created_at,
-                "receipt_sha256": receipt_digest,
-            }
-        )
-        record = AnalysisRecord.model_validate(
-            {
-                **state,
-                "schema_version": "1.0.0",
-                "analysis_id": analysis_id,
-                "analysis_relative_path": f"analyses/analysis_{analysis_id}",
-                "created_at": created_at,
-                "receipt_sha256": receipt_digest,
-                "immutable_status": "complete",
-            }
-        )
     except AnalysisPersistenceError:
         raise
     except (AnalysisSourceError, OSError, ValueError, ValidationError) as exc:
@@ -404,8 +408,8 @@ def _payloads(
         files[sidecar] = _sidecar(digest, filename)
     files["analysis_receipt.json"] = receipt_bytes
     files["analysis_receipt.sha256"] = _sidecar(receipt_digest, "analysis_receipt.json")
-    files["analysis_metadata.json"] = canonical_json_bytes(metadata.model_dump(mode="json"))
-    files["analysis_record.json"] = canonical_json_bytes(record.model_dump(mode="json"))
+    files["analysis_metadata.json"] = metadata_bytes
+    files["analysis_record.json"] = record_bytes
     files[COMPLETE_NAME] = COMPLETE_BYTES
     if set(files) != ENVELOPE_NAMES:
         raise AnalysisPersistenceError("internal analysis envelope schema differs from 15 files")
@@ -458,7 +462,6 @@ def compute_synthetic_measurement_matrix(
     sources: tuple[AnalysisExecutionSource, ...] | list[AnalysisExecutionSource],
     analysis_spec: LoadedDevelopmentAnalysisMatrixSpec,
     analysis_id: str,
-    now: Callable[[], datetime] = lambda: datetime.now(UTC),
 ) -> PublishedSyntheticMeasurementMatrix:
     """Compute and immutably publish one plan-bound synthetic measurement matrix."""
 
@@ -475,7 +478,6 @@ def compute_synthetic_measurement_matrix(
         sources=sources,
         analysis_spec=analysis_spec,
         analysis_id=analysis_id,
-        created_at=now(),
     )
     _prepare_parent(store)
     lock_fd: int | None = None
@@ -545,15 +547,10 @@ def validate_synthetic_measurement_matrix(
     ):
         raise AnalysisPersistenceError("incomplete analysis envelope")
     try:
-        metadata_bytes = (target / "analysis_metadata.json").read_bytes()
-        metadata = AnalysisMetadata.model_validate_json(metadata_bytes)
-        if canonical_json_bytes(metadata.model_dump(mode="json")) != metadata_bytes:
-            raise ValueError("analysis metadata bytes are not canonical")
         payloads = _payloads(
             sources=sources,
             analysis_spec=analysis_spec,
             analysis_id=analysis_id,
-            created_at=metadata.created_at,
         )
         for name, expected in payloads.files.items():
             path = target / name

@@ -28,6 +28,7 @@ class SourceExecutionBinding(AnalysisModel):
     execution_id: str = Field(pattern=r"^[A-Za-z0-9_-]+$")
     execution_manifest_sha256: str = Field(pattern=SHA256_PATTERN)
     execution_completion_sha256: str = Field(pattern=SHA256_PATTERN)
+    execution_completed_at_utc: AwareDatetime
     ordered_work_order_sha256: str = Field(pattern=SHA256_PATTERN)
     row_count: int = Field(gt=0)
     bundle_content_sha256: str = Field(pattern=SHA256_PATTERN)
@@ -46,7 +47,7 @@ class SourceExecutionBinding(AnalysisModel):
 
 
 class AnalysisSourceBinding(AnalysisModel):
-    schema_version: Literal["1.0.0"]
+    schema_version: Literal["1.1.0"]
     analysis_id: str = Field(pattern=r"^[A-Za-z0-9_-]+$")
     analysis_spec_reference: str
     analysis_spec_raw_sha256: str = Field(pattern=SHA256_PATTERN)
@@ -141,33 +142,40 @@ class AnalysisState(AnalysisModel):
 
 
 class AnalysisReceipt(AnalysisState):
-    schema_version: Literal["1.0.0"]
+    schema_version: Literal["1.1.0"]
     algorithm_id: Literal["plan_bound_synthetic_measurement_matrix"]
-    algorithm_version: Literal["1.0.0"]
+    algorithm_version: Literal["1.1.0"]
     analysis_id: str = Field(pattern=r"^[A-Za-z0-9_-]+$")
     analysis_source_binding_sha256: str = Field(pattern=SHA256_PATTERN)
     measurement_row_index_sha256: str = Field(pattern=SHA256_PATTERN)
     feature_schema_sha256: str = Field(pattern=SHA256_PATTERN)
     split_plan_sha256: str = Field(pattern=SHA256_PATTERN)
     measurement_matrix_npz_sha256: str = Field(pattern=SHA256_PATTERN)
+    analysis_metadata_sha256: str = Field(pattern=SHA256_PATTERN)
+    analysis_record_sha256: str = Field(pattern=SHA256_PATTERN)
     ordered_source_aggregate_sha256: str = Field(pattern=SHA256_PATTERN)
+    analysis_evidence_time: AwareDatetime
+    analysis_evidence_time_basis: Literal["latest_verified_execution_completion_utc"]
+    analysis_evidence_time_derivation_version: Literal["1.0.0"]
     feature_count: Literal[16]
     split_fold_count: Literal[24]
 
 
 class AnalysisMetadata(AnalysisState):
-    schema_version: Literal["1.0.0"]
+    schema_version: Literal["1.1.0"]
     analysis_id: str = Field(pattern=r"^[A-Za-z0-9_-]+$")
-    created_at: AwareDatetime
-    receipt_sha256: str = Field(pattern=SHA256_PATTERN)
+    analysis_evidence_time: AwareDatetime
+    analysis_evidence_time_basis: Literal["latest_verified_execution_completion_utc"]
+    ordered_source_aggregate_sha256: str = Field(pattern=SHA256_PATTERN)
 
 
 class AnalysisRecord(AnalysisState):
-    schema_version: Literal["1.0.0"]
+    schema_version: Literal["1.1.0"]
     analysis_id: str = Field(pattern=r"^[A-Za-z0-9_-]+$")
     analysis_relative_path: str
-    created_at: AwareDatetime
-    receipt_sha256: str = Field(pattern=SHA256_PATTERN)
+    analysis_evidence_time: AwareDatetime
+    analysis_evidence_time_basis: Literal["latest_verified_execution_completion_utc"]
+    ordered_source_aggregate_sha256: str = Field(pattern=SHA256_PATTERN)
     immutable_status: Literal["complete"]
 
 

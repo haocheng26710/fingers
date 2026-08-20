@@ -1,4 +1,5 @@
 import hashlib
+import json
 from datetime import UTC, datetime
 from pathlib import Path
 
@@ -38,6 +39,30 @@ def _tree(root: Path) -> dict[str, bytes]:
         for path in root.rglob("*")
         if path.is_file()
     }
+
+
+def _tree_digest(tree: dict[str, bytes]) -> str:
+    return hashlib.sha256(
+        canonical_json_bytes(
+            [
+                {"path": path, "sha256": hashlib.sha256(payload).hexdigest()}
+                for path, payload in sorted(tree.items())
+            ]
+        )
+    ).hexdigest()
+
+
+def _canonical_update(
+    payload: bytes,
+    updates: dict[str, object] | None = None,
+    *,
+    remove: tuple[str, ...] = (),
+) -> bytes:
+    document = json.loads(payload)
+    document.update(updates or {})
+    for field in remove:
+        document.pop(field)
+    return canonical_json_bytes(document)
 
 
 def _execute_all_stages(
@@ -150,14 +175,12 @@ def test_all_four_stages_execute_deterministically_in_two_independent_roots(
         sources=left_sources,
         analysis_spec=analysis_spec,
         analysis_id="stages-1-4",
-        now=lambda: FIXED_TIME,
     )
     right = compute_synthetic_measurement_matrix(
         store=right_store,
         sources=tuple(reversed(right_sources)),
         analysis_spec=analysis_spec,
         analysis_id="stages-1-4",
-        now=lambda: FIXED_TIME,
     )
     assert left.receipt == right.receipt
     assert left.receipt.measurement_row_count == 344
@@ -190,13 +213,213 @@ def test_all_four_stages_execute_deterministically_in_two_independent_roots(
         == right.receipt
     )
 
+    left_analysis = Path(left.analysis_path)
+    metadata_path = left_analysis / "analysis_metadata.json"
+    record_path = left_analysis / "analysis_record.json"
+    receipt_path = left_analysis / "analysis_receipt.json"
+    receipt_sidecar_path = left_analysis / "analysis_receipt.sha256"
+    original_metadata = metadata_path.read_bytes()
+    original_record = record_path.read_bytes()
+    original_receipt = receipt_path.read_bytes()
+    original_receipt_sidecar = receipt_sidecar_path.read_bytes()
+    original_left_tree = _tree(left_store.analyses_root)
+    original_right_tree = _tree(right_store.analyses_root)
+
+    def assert_attack_rejected(mutations: dict[str, bytes]) -> None:
+        originals = {name: (left_analysis / name).read_bytes() for name in mutations}
+        try:
+            for name, payload in mutations.items():
+                (left_analysis / name).write_bytes(payload)
+            before_tree = _tree(left_store.analyses_root)
+            before_digest = _tree_digest(before_tree)
+            before_stats = {
+                path.relative_to(left_store.analyses_root).as_posix(): (
+                    path.stat().st_size,
+                    path.stat().st_mtime_ns,
+                )
+                for path in left_store.analyses_root.rglob("*")
+                if path.is_file()
+            }
+            with pytest.raises(AnalysisPersistenceError, match="full replay"):
+                validate_synthetic_measurement_matrix(
+                    store=left_store,
+                    sources=left_sources,
+                    analysis_spec=analysis_spec,
+                    analysis_id="stages-1-4",
+                )
+            after_tree = _tree(left_store.analyses_root)
+            after_stats = {
+                path.relative_to(left_store.analyses_root).as_posix(): (
+                    path.stat().st_size,
+                    path.stat().st_mtime_ns,
+                )
+                for path in left_store.analyses_root.rglob("*")
+                if path.is_file()
+            }
+            assert after_tree == before_tree
+            assert _tree_digest(after_tree) == before_digest
+            assert after_stats == before_stats
+            assert not list(left_store.analyses_root.glob("*.lock"))
+            assert not list(left_store.analyses_root.glob("*.staging-*"))
+            assert _tree(right_store.analyses_root) == original_right_tree
+        finally:
+            for name, payload in originals.items():
+                (left_analysis / name).write_bytes(payload)
+
+    next_day = "2026-08-21T11:00:00Z"
+    same_instant_offset = "2026-08-20T12:00:00+01:00"
+    changed_metadata_time = _canonical_update(
+        original_metadata, {"analysis_evidence_time": next_day}
+    )
+    changed_record_time = _canonical_update(original_record, {"analysis_evidence_time": next_day})
+    assert_attack_rejected({"analysis_metadata.json": changed_metadata_time})
+    assert_attack_rejected({"analysis_record.json": changed_record_time})
+    assert_attack_rejected(
+        {
+            "analysis_metadata.json": changed_metadata_time,
+            "analysis_record.json": changed_record_time,
+        }
+    )
+    assert_attack_rejected(
+        {
+            "analysis_metadata.json": _canonical_update(
+                original_metadata, {"analysis_evidence_time": same_instant_offset}
+            ),
+            "analysis_record.json": _canonical_update(
+                original_record, {"analysis_evidence_time": same_instant_offset}
+            ),
+        }
+    )
+    assert_attack_rejected(
+        {
+            "analysis_metadata.json": _canonical_update(
+                original_metadata, {"analysis_evidence_time": "2026-08-20T11:00:00"}
+            )
+        }
+    )
+    assert_attack_rejected(
+        {
+            "analysis_metadata.json": _canonical_update(
+                original_metadata, {"analysis_evidence_time": "not-a-datetime"}
+            )
+        }
+    )
+    assert_attack_rejected(
+        {
+            "analysis_metadata.json": _canonical_update(
+                original_metadata, {"analysis_evidence_time_basis": "runtime_now"}
+            )
+        }
+    )
+    assert_attack_rejected(
+        {
+            "analysis_metadata.json": changed_metadata_time,
+            "analysis_record.json": _canonical_update(
+                original_record, {"analysis_evidence_time": "2026-08-22T11:00:00Z"}
+            ),
+        }
+    )
+
+    for field, value in (
+        ("formal_eligible", True),
+        ("experimental_result", True),
+        ("hardware_io_performed", True),
+        ("thresholds_applied", True),
+        ("classification_performed", True),
+        ("analysis_status", "tampered"),
+        ("ordered_source_aggregate_sha256", "f" * 64),
+    ):
+        assert_attack_rejected(
+            {"analysis_metadata.json": _canonical_update(original_metadata, {field: value})}
+        )
+    assert_attack_rejected(
+        {
+            "analysis_record.json": _canonical_update(
+                original_record, {"immutable_status": "partial"}
+            )
+        }
+    )
+    assert_attack_rejected(
+        {
+            "analysis_record.json": _canonical_update(
+                original_record, {"analysis_relative_path": "analyses/analysis_foreign"}
+            )
+        }
+    )
+
+    changed_metadata_state = _canonical_update(original_metadata, {"formal_eligible": True})
+    changed_record_state = _canonical_update(original_record, {"formal_eligible": True})
+    assert_attack_rejected(
+        {
+            "analysis_metadata.json": changed_metadata_state,
+            "analysis_record.json": changed_record_state,
+        }
+    )
+    receipt_with_changed_hashes = _canonical_update(
+        original_receipt,
+        {
+            "analysis_metadata_sha256": hashlib.sha256(changed_metadata_state).hexdigest(),
+            "analysis_record_sha256": hashlib.sha256(changed_record_state).hexdigest(),
+        },
+    )
+    assert_attack_rejected(
+        {
+            "analysis_metadata.json": changed_metadata_state,
+            "analysis_record.json": changed_record_state,
+            "analysis_receipt.json": receipt_with_changed_hashes,
+        }
+    )
+    changed_receipt_digest = hashlib.sha256(receipt_with_changed_hashes).hexdigest()
+    assert_attack_rejected(
+        {
+            "analysis_metadata.json": changed_metadata_state,
+            "analysis_record.json": changed_record_state,
+            "analysis_receipt.json": receipt_with_changed_hashes,
+            "analysis_receipt.sha256": (
+                f"{changed_receipt_digest}  analysis_receipt.json\n".encode("ascii")
+            ),
+        }
+    )
+    assert_attack_rejected(
+        {
+            "analysis_receipt.json": _canonical_update(
+                original_receipt,
+                {"schema_version": "1.0.0", "algorithm_version": "1.0.0"},
+            )
+        }
+    )
+    assert_attack_rejected(
+        {
+            "analysis_receipt.json": _canonical_update(
+                original_receipt, remove=("analysis_metadata_sha256",)
+            )
+        }
+    )
+    assert_attack_rejected(
+        {"analysis_receipt.json": _canonical_update(original_receipt, {"unexpected": "extra"})}
+    )
+    parsed_receipt = json.loads(original_receipt)
+    assert_attack_rejected(
+        {
+            "analysis_receipt.json": _canonical_update(
+                original_receipt,
+                {
+                    "analysis_metadata_sha256": parsed_receipt["analysis_record_sha256"],
+                    "analysis_record_sha256": parsed_receipt["analysis_metadata_sha256"],
+                },
+            )
+        }
+    )
+    assert _tree(left_store.analyses_root) == original_left_tree
+    assert receipt_path.read_bytes() == original_receipt
+    assert receipt_sidecar_path.read_bytes() == original_receipt_sidecar
+
     with pytest.raises(AnalysisPersistenceError, match="already exists"):
         compute_synthetic_measurement_matrix(
             store=left_store,
             sources=left_sources,
             analysis_spec=analysis_spec,
             analysis_id="stages-1-4",
-            now=lambda: FIXED_TIME,
         )
     stale_lock = left_store.analyses_root / ".analysis_stale.lock"
     stale_lock.write_bytes(b"")
@@ -206,7 +429,6 @@ def test_all_four_stages_execute_deterministically_in_two_independent_roots(
             sources=left_sources,
             analysis_spec=analysis_spec,
             analysis_id="stale",
-            now=lambda: FIXED_TIME,
         )
     assert stale_lock.read_bytes() == b""
     stale_lock.unlink()

@@ -70,6 +70,11 @@
           "title": "Device Manifest Sha256",
           "type": "string"
         },
+        "execution_completed_at_utc": {
+          "format": "date-time",
+          "title": "Execution Completed At Utc",
+          "type": "string"
+        },
         "execution_completion_sha256": {
           "pattern": "^[0-9a-f]{64}$",
           "title": "Execution Completion Sha256",
@@ -154,6 +159,7 @@
         "execution_id",
         "execution_manifest_sha256",
         "execution_completion_sha256",
+        "execution_completed_at_utc",
         "ordered_work_order_sha256",
         "row_count",
         "bundle_content_sha256",
@@ -220,7 +226,7 @@
       "type": "string"
     },
     "schema_version": {
-      "const": "1.0.0",
+      "const": "1.1.0",
       "title": "Schema Version",
       "type": "string"
     },

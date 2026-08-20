@@ -4,7 +4,9 @@ from __future__ import annotations
 
 import hashlib
 from dataclasses import dataclass
+from datetime import UTC, datetime
 from pathlib import Path
+from typing import Literal
 
 from acoustic_ladder.audio.conditioned_virtual_capture_models import (
     LoadedConditionedVirtualCaptureScenario,
@@ -24,7 +26,10 @@ from acoustic_ladder.protocol.synthetic_execution import (
     derive_synthetic_protocol_work_orders,
     validate_synthetic_protocol_execution,
 )
-from acoustic_ladder.protocol.synthetic_execution_models import SyntheticProtocolWorkOrder
+from acoustic_ladder.protocol.synthetic_execution_models import (
+    SyntheticProtocolExecutionCompletion,
+    SyntheticProtocolWorkOrder,
+)
 from acoustic_ladder.storage.store import ImmutableSessionStore
 
 from .spec import LoadedDevelopmentAnalysisMatrixSpec
@@ -32,6 +37,28 @@ from .spec import LoadedDevelopmentAnalysisMatrixSpec
 
 class AnalysisSourceError(ValueError):
     """Raised when execution sources cannot authorize an analysis matrix."""
+
+
+ANALYSIS_EVIDENCE_TIME_BASIS: Literal["latest_verified_execution_completion_utc"] = (
+    "latest_verified_execution_completion_utc"
+)
+ANALYSIS_EVIDENCE_TIME_DERIVATION_VERSION: Literal["1.0.0"] = "1.0.0"
+
+
+def derive_latest_verified_execution_completion_utc(
+    completion_times: tuple[datetime, ...],
+) -> tuple[tuple[datetime, ...], datetime]:
+    """Normalize verified completion instants to UTC and select the latest."""
+
+    if not completion_times:
+        raise AnalysisSourceError("analysis requires at least one verified completion time")
+    normalized: list[datetime] = []
+    for completed_at in completion_times:
+        if completed_at.tzinfo is None or completed_at.utcoffset() is None:
+            raise AnalysisSourceError("source execution completed_at must be timezone-aware")
+        normalized.append(completed_at.astimezone(UTC))
+    completed_at_utc = tuple(normalized)
+    return completed_at_utc, max(completed_at_utc)
 
 
 @dataclass(frozen=True)
@@ -59,6 +86,8 @@ class ValidatedAnalysisExecution:
     stage: int
     execution_manifest_sha256: str
     execution_completion_sha256: str
+    execution_completed_at: datetime
+    execution_completed_at_utc: datetime
     rows: tuple[ValidatedAnalysisRowSource, ...]
 
 
@@ -68,6 +97,10 @@ class ValidatedSyntheticAnalysisSources:
     executions: tuple[ValidatedAnalysisExecution, ...]
     rows: tuple[ValidatedAnalysisRowSource, ...]
     ordered_source_aggregate_sha256: str
+    execution_completed_at_utc: tuple[datetime, ...]
+    analysis_evidence_time: datetime
+    analysis_evidence_time_basis: Literal["latest_verified_execution_completion_utc"]
+    analysis_evidence_time_derivation_version: Literal["1.0.0"]
 
 
 def _validate_one(source: AnalysisExecutionSource) -> ValidatedAnalysisExecution:
@@ -155,13 +188,19 @@ def _validate_one(source: AnalysisExecutionSource) -> ValidatedAnalysisExecution
     stage = work_orders[0].experiment_stage
     if any(row.work_order.experiment_stage != stage for row in rows):
         raise AnalysisSourceError("one execution cannot mix experiment stages")
+    completion_bytes = (root / COMPLETION_NAME).read_bytes()
+    completion = SyntheticProtocolExecutionCompletion.model_validate_json(completion_bytes)
+    completed_at = completion.completed_at
+    if completed_at.tzinfo is None or completed_at.utcoffset() is None:
+        raise AnalysisSourceError("source execution completed_at must be timezone-aware")
+    completed_at_utc = completed_at.astimezone(UTC)
     return ValidatedAnalysisExecution(
         source=source,
         stage=stage,
         execution_manifest_sha256=hashlib.sha256((root / MANIFEST_NAME).read_bytes()).hexdigest(),
-        execution_completion_sha256=hashlib.sha256(
-            (root / COMPLETION_NAME).read_bytes()
-        ).hexdigest(),
+        execution_completion_sha256=hashlib.sha256(completion_bytes).hexdigest(),
+        execution_completed_at=completed_at,
+        execution_completed_at_utc=completed_at_utc,
         rows=tuple(rows),
     )
 
@@ -208,19 +247,29 @@ def validate_synthetic_analysis_sources(
             ]
         )
     ).hexdigest()
+    completed_at_utc, evidence_time = derive_latest_verified_execution_completion_utc(
+        tuple(execution.execution_completed_at for execution in executions)
+    )
     return ValidatedSyntheticAnalysisSources(
         analysis_spec=analysis_spec,
         executions=executions,
         rows=rows,
         ordered_source_aggregate_sha256=aggregate,
+        execution_completed_at_utc=completed_at_utc,
+        analysis_evidence_time=evidence_time,
+        analysis_evidence_time_basis=ANALYSIS_EVIDENCE_TIME_BASIS,
+        analysis_evidence_time_derivation_version=ANALYSIS_EVIDENCE_TIME_DERIVATION_VERSION,
     )
 
 
 __all__ = [
+    "ANALYSIS_EVIDENCE_TIME_BASIS",
+    "ANALYSIS_EVIDENCE_TIME_DERIVATION_VERSION",
     "AnalysisExecutionSource",
     "AnalysisSourceError",
     "ValidatedAnalysisExecution",
     "ValidatedAnalysisRowSource",
     "ValidatedSyntheticAnalysisSources",
+    "derive_latest_verified_execution_completion_utc",
     "validate_synthetic_analysis_sources",
 ]

@@ -8,7 +8,9 @@ from pathlib import Path
 from pydantic import BaseModel
 
 from acoustic_ladder.analysis.models import (
+    AnalysisMetadata,
     AnalysisReceipt,
+    AnalysisRecord,
     AnalysisSourceBinding,
     FeatureColumnSchema,
     MeasurementRow,
@@ -151,6 +153,8 @@ ANALYSIS_MATRIX_SCHEMA_MODELS: dict[str, type[BaseModel]] = {
     "analysis_split_fold.schema.json": SplitFold,
     "analysis_split_plan.schema.json": SplitPlan,
     "analysis_receipt.schema.json": AnalysisReceipt,
+    "analysis_metadata.schema.json": AnalysisMetadata,
+    "analysis_record.schema.json": AnalysisRecord,
 }
 ALL_GENERATED_SCHEMA_MODELS = (
     GENERATED_SCHEMA_MODELS

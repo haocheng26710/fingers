@@ -249,6 +249,8 @@ acoustic-ladder synthetic-protocol-execution-validate @bundle --plan-spec tests/
 
 结果位于 analysis synthetic root 的 `analyses/analysis_<id>/` exact 15-file create-only envelope；`analysis-matrix-validate` 重验四个 execution、重做 processing/QC、基线、feature、split 和 deterministic NPZ，并逐字节比较且不写回。CLI 的四组 `--protocol`、`--plan-spec`、plan/execution/synthetic/ESS roots、execution/plan IDs 必须按 stage 各提供四次；`--analysis-root` 是专用 synthetic analysis storage root，其下自动派生 `analyses/`。
 
+DEV-06.01R 将 `analysis_evidence_time` 固定为四个 verified execution completion 中最新的 UTC instant，basis 为 `latest_verified_execution_completion_utc`。它是可重放的来源证据时间，不是 wall-clock publication timestamp、可信时间戳或外部 witness；compute 接口不接受 `now`。1.1 receipt 单向绑定 metadata 和 record 的 SHA256，二者不再反向保存 receipt SHA。validator 只从 verified sources、analysis spec 和 analysis ID 重建 expected bytes，不信任已发布 metadata/record/receipt 提供 expected 时间、路径或状态。旧 1.0 envelope 必须重新生成，不能原地迁移；SHA256 仍不是数字签名。
+
 这里的 feature extraction 仅是 development fixture 的确定性软件产物：没有模型拟合、预测、分类、interaction analysis、normalization fitting、阈值或真实 QC PASS/FAIL，也没有硬件枚举/I/O、播放、录音、校准或实验结论。详见 `docs/architecture/synthetic-measurement-matrix.md`。
 
 详细契约见 `docs/architecture/`；数据根目录政策见 `data/README.md`。

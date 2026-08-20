@@ -1381,7 +1381,7 @@ def main(argv: list[str] | None = None) -> None:
             "analysis_id": args.analysis_id,
         }
         if args.command == "analysis-matrix-compute":
-            published_matrix = compute_synthetic_measurement_matrix(**arguments, now=_now)
+            published_matrix = compute_synthetic_measurement_matrix(**arguments)
             label = "PASS synthetic analysis matrix"
         else:
             published_matrix = validate_synthetic_measurement_matrix(**arguments)
@@ -1405,8 +1405,12 @@ def main(argv: list[str] | None = None) -> None:
             f"feature_schema_sha256={matrix_receipt.feature_schema_sha256} "
             f"split_plan_sha256={matrix_receipt.split_plan_sha256} "
             f"matrix_npz_sha256={matrix_receipt.measurement_matrix_npz_sha256} "
+            f"metadata_sha256={matrix_receipt.analysis_metadata_sha256} "
+            f"record_sha256={matrix_receipt.analysis_record_sha256} "
             f"receipt_sha256={published_matrix.receipt_sha256}"
         )
+        print(f"analysis_evidence_time={matrix_receipt.analysis_evidence_time.isoformat()}")
+        print(f"analysis_evidence_time_basis={matrix_receipt.analysis_evidence_time_basis}")
         print(f"rows_excluded={matrix_receipt.rows_excluded}")
         print(f"thresholds_applied={str(matrix_receipt.thresholds_applied).lower()}")
         print(f"model_fit_performed={str(matrix_receipt.model_fit_performed).lower()}")

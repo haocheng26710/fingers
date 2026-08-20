@@ -781,3 +781,76 @@
 - 首次普通 `git fetch origin main` 与 `git ls-remote` 在受限sandbox内因 `Failed to connect to github.com:443` 失败，未计远程验证；随后按执行环境要求用同一非force命令获得网络授权，fetch成功且GitHub main仍为 `e8edafac3e78f1ddff76818d2c0a3e1031f79a40`。本地HEAD与origin/main亦为同一基线，branch main、remote正确。
 - 最终文件范围为新增analysis配置/10个source模块/7个Schema/8个DEV-06测试文件/prompt/report/architecture，以及CLI/Schema registry/README/data/storage/protocol doc、完整双根测试和两处纯Schema数量断言；log仅追加。无删除文件，protected reference/config/device/history diff为空，无WAV/NPZ/cache/lock/staging/test roots待提交。
 - 本条落盘时尚未执行 `git add`、commit或push，故没有预写提交SHA。下一步仅允许staged diff审计、最终轻量check、唯一普通提交 `DEV-06.01: add plan-bound synthetic measurement matrices`、普通push与fetch/三端一致性复核。
+
+## DEV-06.01R：分析 Envelope 时间来源与 Metadata/Record 防篡改闭环
+
+### DEV-06.01R-00 — 仓库、远程、工作区和指令检查
+
+- 实际状态/时间：PASS，2026-08-20 21:30:44 +01:00；真实仓库根 `D:/Bristol course/extra try for fingers/program`，分支 `main`，工作区开始时干净。
+- 实际输入/命令：读取 Git root/status/branch/HEAD/HEAD^/title/remote，使用 `rg --files -uu` 扫描 `AGENTS.md`、`CLAUDE.md`、`CODEX.md`、`.agents/**`、`.codex/**`；普通 `git fetch origin main`，随后读取 local HEAD、origin/main、FETCH_HEAD，并用 `git ls-remote https://github.com/haocheng26710/fingers.git refs/heads/main` 查询 GitHub main。
+- 真实结果：local HEAD、origin/main、FETCH_HEAD、GitHub main 均为 `7ec44c2b0904d26627f7c15b0ad021881bda71bc`；父提交为 `e8edafac3e78f1ddff76818d2c0a3e1031f79a40`，标题 `DEV-06.01: add plan-bound synthetic measurement matrices`；origin fetch/push URL 均为 `https://github.com/haocheng26710/fingers.git`；未发现项目级指令文件。
+- 修改/测试/临时目录/限制：本序列检查时未修改仓库文件、未运行产品测试、未创建测试临时根；未访问、枚举或操作真实音频设备，未实施 DEV-06.02。
+
+### DEV-06.01R-01 — 提示词归档与日志冻结
+
+- 实际状态/时间：PASS，2026-08-20 21:30:44 +01:00。
+- 实际输入/命令：完整分块读取 attachment 原文；完整读取 diagnose skill 及 TDD skill、tests/mocking/deep-modules/interface-design/refactoring 指南；读取原始 attachment 字节并用 `Copy-Item` 逐字节复制到 `docs/prompts/DEV-06.01R.md`，再验证 byte count、SHA256、换行和 `SequenceEqual`；读取 `.gitattributes` 并追加 binary 规则。
+- 真实结果：来源与归档均为 23557 bytes、848 CRLF、无末尾换行，SHA256 `9486cb0709c8fa783a2e081e6c7537244a32e8012453c8626530f66189082996`，`SequenceEqual=True`。
+- 日志冻结：首次追加前 `docs/IMPLEMENTATION_LOG.md` 为 218309 bytes、完整 SHA256 `4bf6de9eeb37166837cb0b939c4824f3ca435dc3af684408b85b6f8ff1876276`；既有 202796-byte 历史冻结前缀 SHA256 为 `af4412e920ab2204b4e136f828976d47b328e0b18408751aaa625a47bdd54f57`，与要求一致。
+- 修改/测试/临时目录/限制：仅新增 prompt 并修改 `.gitattributes`、只追加日志；尚未修改源码或测试，尚未运行 RED；后续按公共 validator 纵向 RED→GREEN→REFACTOR。未执行硬件操作、模型、分类、阈值或 DEV-06.02。
+
+### DEV-06.01R-02 — metadata/record 双文件篡改 RED
+
+- 实际状态/时间：RED 已复现，2026-08-20；生产代码仍保持 DEV-06.01 缺陷基线。
+- 测试改动：在既有 `tests/dev05/test_synthetic_protocol_execution_full.py` 双根完整测试内复用已经发布的左侧 15-file envelope；保存 metadata/record 原始 bytes，通过 JSON 解析后把二者 `created_at` 同时改为 canonical aware UTC 字符串 `2026-08-21T11:00:00Z`，写回 canonical bytes。未修改核心五项、receipt、receipt sidecar 或 completion marker；调用真实公共 `validate_synthetic_measurement_matrix(...)` 并期望领域拒绝。
+- 实际命令/结果：`.\.venv\Scripts\python.exe -m pytest tests/dev05/test_synthetic_protocol_execution_full.py --basetemp=.d601rred -q` 得到 `1 failed in 967.83s (0:16:07)`；失败位置为 `tests/dev05/test_synthetic_protocol_execution_full.py:207`，精确表现为 `Failed: DID NOT RAISE AnalysisPersistenceError`。
+- 根因结论：公共 validator 先信任待验证 `analysis_metadata.json` 的 `created_at`，再以它驱动 `_payloads(...)`；metadata/record 又未被 receipt 单向哈希绑定，因此一致双篡改被重新生成为“expected”并错误接受。RED 使用真实 filesystem/public API/full replay，未 mock validator 或私有比较函数，且未生成第三套矩阵。
+- 临时目录/限制：测试根 `.d601rred` 当前保留供后续明确审计/清理；测试使用 synthetic conditioned virtual backend，未访问真实音频设备，未实施 DEV-06.02。
+
+### DEV-06.01R-03 — 确定性 source-completion 时间派生
+
+- 纵向 RED：在既有 Stage 2 完成 execution 的公共 source capability 测试中要求 raw verified completion time、canonical UTC time、capability completion tuple、evidence time、固定 basis/version。命令 `.\.venv\Scripts\python.exe -m pytest tests/dev06/test_analysis_sources.py::test_completed_plan_bound_run_reuses_processing_and_qc_without_publishing_children --basetemp=.d601rsource -q` 得到 `1 failed in 14.48s`，精确为 `ValidatedAnalysisExecution` 缺少 `execution_completed_at`。
+- 最小实现：`ValidatedAnalysisExecution` 新增 typed `execution_completed_at`、`execution_completed_at_utc`；仅在公共 execution full replay 成功后解析 canonical completion，显式拒绝无 timezone，使用 `astimezone(UTC)` 规范化。`ValidatedSyntheticAnalysisSources` 按 canonical stage 顺序保存 completion UTC tuple，使用 `max(...)` 派生 evidence time，并固定 basis `latest_verified_execution_completion_utc`、derivation version `1.0.0`；调用者接口没有这些字段。
+- GREEN：同一选择器使用 `.d601gsource` 重跑得到 `1 passed in 14.93s`。当前 fixture 的 source completion 与 evidence time 均为 `2026-08-20T11:00:00Z`；后续完整四 stage/不同时区与 persisted binding 尚待相应测试。
+- 边界：未改 measurement math、feature/split、execution completion 契约或硬件状态；未访问真实音频设备，未实施 DEV-06.02。
+
+### DEV-06.01R-04 — 无循环 receipt→metadata/record 哈希绑定
+
+- 模型 RED：新增快速 contract 测试，要求 1.1 metadata/record 在无 `receipt_sha256` 的情况下先独立 canonical 化，再由 1.1 receipt 保存二者 SHA。命令 `.\.venv\Scripts\python.exe -m pytest tests/dev06/test_analysis_envelope_contract.py --basetemp=.d601rcontract -q` 得到 `1 failed in 0.54s`：旧模型要求 `created_at`/`receipt_sha256`、只接受1.0.0并拒绝 evidence 字段。
+- 最小 GREEN：`AnalysisMetadata`/`AnalysisRecord` 升级1.1.0，移除 `created_at` 与 `receipt_sha256`，新增 source-derived `analysis_evidence_time`、固定 basis 和 ordered source aggregate；record继续保存可重建 relative path与immutable status。`AnalysisReceipt` 升级 schema/algorithm 1.1.0，新增 metadata/record SHA、evidence time/basis/derivation version；构造顺序改为 core→metadata→record→二者SHA→receipt→receipt sidecar。同一 contract 首次 GREEN 为 `1 passed in 0.32s`。
+- 后续快速时间/旧版本切片：新增四个不同时区 instant 的UTC规范化/max、空/naïve拒绝和旧1.0 metadata拒绝；首次因派生函数尚不存在 collection RED，随后复用 capability 的公共纯派生函数后 `4 passed in 0.36s`。metadata/record 与 receipt 不存在双向引用，exact envelope仍15项。
+
+### DEV-06.01R-05 — 只读 validator authority 修复
+
+- API/实现：公开 `compute_synthetic_measurement_matrix(...)` 移除 `now`，CLI及完整双根测试机械移除该参数；persisted bytes只依赖 verified sources、analysis spec、analysis ID。`_payloads(...)` 不再接收外部时间。validator 删除读取/解析 metadata 作为 expected authority 的路径，直接完整验证 sources并从 completion times重建core、metadata、record、receipt、sidecar，再逐文件比较；不从待验证 record/receipt读取时间、路径或状态。
+- 快速回归：source capability + contract 合并选择器得到 `3 passed in 15.43s`；之后时区/旧版本扩展为 contract `4 passed in 0.36s`。
+- 公共端到端 GREEN：原 RED 的同一完整 Stage 1–4 双根命令改用 `--basetemp=.d601green` 重跑，得到 `1 passed in 933.76s (0:15:33)`。正常两根15项逐字节一致，反序 sources不改变结果；metadata/record evidence time一致改到 `2026-08-21T11:00:00Z` 后公共 validator 现已拒绝，测试还证明 validator 前后攻击 tree逐字节不变；existing target/stale lock/既有receipt篡改回归继续通过。
+- 边界：未生成第三套矩阵，未修改344行/16 features/24 folds数学代码，未访问真实硬件，未实施DEV-06.02。
+
+### DEV-06.01R-06 — 篡改矩阵、双根和版本迁移测试
+
+- 测试组织：扩展既有 Stage 1–4 双根测试，在同一个已生成左 envelope 上串行执行24个唯一 public-validator攻击场景；此前 commentary 中“27”是运行前估计，实际唯一调用按代码/执行为24。8项时间攻击覆盖 metadata only、record only、二者同改、同 instant 不同 offset、naïve、非法字符串、basis、metadata/record不一致；9项状态攻击覆盖提示词列出的安全状态、aggregate、immutable status与relative path；hash攻击的9项要求与前三类时间修改有重叠，额外覆盖双文件状态同改、更新receipt两hash、再更新sidecar、旧1.0 receipt、删字段、extra字段、交换hash。
+- 只读证明：每次攻击前后比较15个文件的完整bytes、tree digest、size和`mtime_ns`，确认无`.lock`/`.staging-*`，并逐次确认右根完整tree不变；测试fixture仅在validator返回后恢复下一次攻击所需原bytes，validator自身不修复/删除/清理。完整命令 `.\.venv\Scripts\python.exe -m pytest tests/dev05/test_synthetic_protocol_execution_full.py --basetemp=.d601attacks -q` 得到 `1 passed in 1444.44s (0:24:04)`。
+- 双根/版本/时间：source正序与反序两根15项逐字节一致，正常full replay通过，旧1.0 receipt明确拒绝。四个source completion canonical times均为 `2026-08-20T11:00:00Z`，派生evidence time同为 `2026-08-20T11:00:00Z`，basis `latest_verified_execution_completion_utc`，derivation version `1.0.0`。
+- 实际新hash：source binding `202547ac4d9b5c6ec8a5aa08c66bc55ed084d66c0089f60debd27e1ef4c931a0`；metadata `12a577c0479c798f02289c6705704441ce737aae50a8b00d7d9974346460d1ee`；record `0fb337d16da433674926a5bc9a741f95c6871261f45cdda8b1e0c3808dcc6b73`；receipt `49421dd32099b229581f01415e00968f5655d7eaf25113d5c4d56fd35a9198bf`；receipt sidecar文件SHA `f82f9649761fd41a85271f7e6853eae45f13cfc2970a7b342794635a92652047`。四个completion文件SHA按stage为 `226fbd5967f4fa2b30da3d131a1b72bf1f902b6cd9f46409fcc6f14667018f69` / `4188d4031892d1a3977644e5a47e2a2208d2c2d9cc1e1e775e6eb28a66557602` / `4bde33065fcbc4748b2670094f04837a878715c2ddbae6056eebb3da1803fb8d` / `c12df24c10bf6d22c77a020b8c19ccc43c4580dfb1b679f4a322693c727ca70f`。
+- 稳定core：ordered source aggregate `39640ff09910541ba09f56e08a388ce161602d6dbc867a7eecb850745db96893`；row index `229c3f96d7976c9a95adbe7847a4f0d88e947f722d5cd63b3fd31f3b548c5d78`；feature schema `3d7858e931dd8938b9ebc269d0f84a5f3fae1a685cd150e66f083dfd76bd27c1`；split `02e606080c599d6ea3ae5563a6a9a80f6603af87f862e46b6dd50eccb799df1b`；1,126,675,730-byte NPZ `9529e178c2a719ad473137681fc209ef3597f1a538c682dd0e4f5d40d9387a93`，全部与DEV-06.01保持。
+- 预检查真实结果：Ruff首次在format后报告2个排序项（`__all__`、test import），strict mypy核心3 source当次PASS；只修排序后7个相关文件format/lint PASS，DEV-06快速组为 `14 passed in 15.35s`。未访问真实音频设备，未实施DEV-06.02。
+
+### DEV-06.01R-07 — Schema、CLI、文档和完整门禁（进行中实录）
+
+- Schema/CLI：registry新增 active `AnalysisMetadata`/`AnalysisRecord`，总数47→49、schemas目录48→50；source binding/receipt亦升级。CLI compute机械移除`now`并输出 evidence time/basis、metadata/record hashes。首次 `export-schemas --check` 真实RED为4个missing/stale；export后 `PASS exported 49 schemas`、`PASS schema consistency`。一次误写不存在的 `test_committed_generated_schemas_are_current` selector得到no tests ran，未计PASS；查阅函数名后正确两个Schema selectors为 `2 passed in 0.48s`。
+- 文档：更新README、data README、synthetic measurement matrix与storage layout，明确latest verified completion UTC并非publication/trusted timestamp，单向receipt绑定、validator authority、旧1.0重生成、SHA非签名，以及数学/模型/硬件/DEV-06.02边界。
+- 当前静态：文档/Schema后全仓 Ruff format `191 files already formatted`（包含尚未清理测试根中的可发现文件）、lint PASS、strict mypy `76 source files` PASS、Schema consistency和`git diff --check` PASS；最终清理后将重跑权威计数。
+- 当前分组测试：既有DEV-06源码测试 `7 passed in 14.55s`，新contract `4 passed in 0.32s`；DEV-06.01原“10项”口径由该7项、完整双根1项和Schema2项组成，三组均已实际通过。DEV-05.03R/R2 publication/lock-cleanup两个文件 `27 passed in 93.04s (0:01:33)`。DEV-05全组、DEV-04全组、locked/golden与完整suite尚未执行，不能计PASS。
+- 分组门禁补充：全部DEV-05 `223 passed in 2533.42s (0:42:13)`；全部DEV-04 `290 passed in 171.60s (0:02:51)`；ESS smoke、DEV-04.01R2 processing golden、DEV-04.02 processing protection、四阶段完整rehearsal四个精确locked/golden selectors为 `4 passed in 876.73s (0:14:36)`。完整suite尚未执行，不能计PASS。
+- 完整suite：最终代码使用短 `--basetemp=.d601all` 得到 `896 passed in 2799.00s (0:46:39)`，DEV-06.01基线892项全部保留并新增4个快速contract测试函数，无skip/xfail摘要；既有完整双根测试内另覆盖24个唯一DEV-06.01R攻击场景。
+- 保护/扫描：直接复算ZIP/manifest/inventory/context/summary/contextual-preflight/hardware精确保持 `1bf3cc17a46cac8552b8eb80d543cec5880afef7f8c716fd8f029636899d688b` / `bd69f27305681e6552e61d402571300c2eea340a6d7878dc2b93531c8b6608b0` / `8a68d714a86fa8228e17b7f751da8060c558f79f881fb55994e5130caf199de2` / `10472424e35958bc6cef156fe8b48c9b927f13b041414b2125b53dbec7d5e67c` / `84879af2f2229bbbd4511b0f6985db6adedc6b9e2764262721bebec71756a159` / `e47678644a36ddc7d4e8d1fad06ba0cb0ec3a02a179de2816d2d8ba767e35e15` / `013fd2b10df23569a8998dad1c36fa5793146df29fdb4fa19210d26bbe3c0ac1`；locked测试产物再次核对WAV/metadata及测试内raw为 `608311700bb64350c9eecc428fb78e1e82d30edea404dbb9d6d3a79b38c422e0` / `e581731a06f0951594f73f5d62c7b1d8291027cb64973723a045f92e05d1c25a` / `eabd87614dd0d204ee948b13561298c879539af82258809f1d35dc5ed8ac70ca`。DEV-06.01 prompt保持38674 bytes/SHA `731683abb9c3fb983c39c462f420d06c9e76d3666e85e9681008de0fb561ef54`；DEV-06.01R prompt为23557 bytes/SHA `9486cb0709c8fa783a2e081e6c7537244a32e8012453c8626530f66189082996`且attachment `SequenceEqual=True`。log 218309-byte初始冻结前缀SHA保持 `4bf6de9eeb37166837cb0b939c4824f3ca435dc3af684408b85b6f8ff1876276`，202796-byte历史前缀亦保持。protected diff为空。
+- changed/new tests suppression、相关U+FFFD、本机路径、credential/private-key/secret assignment、production真实audio/device/stream/play/record/calibration API扫描均0。13个workspace直属`.d601*`测试根先逐项验证resolved parent精确等于workspace且name满足允许模式，再仅以PowerShell `Remove-Item -LiteralPath -Recurse -Force`删除，结果 `REMOVED=13`、`REMAINING=0`；这些临时产物不可恢复但可由已记录命令重建，未删除其他路径。
+
+### DEV-06.01R-08 — 报告、最终日志、提交和条件式推送
+
+- 报告：创建 `docs/reports/DEV-06.01R.md`，记录真实RED/GREEN、时间派生、无循环构造、1.1版本、四completion/evidence time、payload/core hashes、24攻击场景、只读tree/mtime证明、双根、分组/完整测试、Schema/静态/保护/扫描/清理、文件与限制。正常15-file tree digest按测试同算法从实际读取的文件hash重建为 `992168040f04cddc0b20ebd27d9a630bc984248201ead12b024112ca599dc056`，正常validator前后相同；每个攻击的各自digest亦在测试运行时前后相等但pytest未逐项打印具体值。
+- 实际主要命令范围：Git root/status/branch/HEAD/parent/title/remote、fetch/ls-remote与指令扫描；prompt byte-copy/hash/SequenceEqual及log freeze；代码/测试/domain docs读取；公共双篡改RED；source/time/model/receipt/validator纵向RED→GREEN；快速/攻击双根/DEV-05.03R/R2/DEV-05/DEV-04/locked-golden/完整pytest；Ruff/mypy/Schema/diff；保护hash、prompt/log prefix、suppression/U+FFFD/secret/path/audio API扫描；精确临时根清理与tree digest审计。未调用生产audio-list/inventory或真实设备API。
+- 失败/纠正保留：除预期RED外，Ruff首次报告2个排序问题后仅修排序；Schema首次check报告4个stale/missing后由exporter生成；一次pytest Schema selector名称误写得到no tests ran后查明正确函数并重跑2项PASS。所有未通过命令均未冒充PASS。
+- 当前提交状态：本条落盘时尚未执行最终报告后静态/扫描、最终远端fetch、`git add`、commit或push，不能预写提交SHA。下一步只有这些轻量门禁全部通过且GitHub main仍为起始 `7ec44c2b0904d26627f7c15b0ad021881bda71bc` 时，才允许唯一普通提交 `DEV-06.01R: bind analysis audit metadata to verified sources` 和普通push；无amend/rebase/force。
+- 报告/清理后最终轻量门禁：Ruff format `192 files already formatted`、lint PASS、strict mypy `76 source files` PASS、Schema consistency PASS、`git diff --check` PASS；changed/new suppression及相关U+FFFD扫描0，workspace直属`.d601*`根0。完整suite后仅修改报告/日志审计文本，未改生产代码或测试逻辑，因此最终生产代码完整suite仍为896项PASS。最终远端复核、stage/commit/push仍未执行。

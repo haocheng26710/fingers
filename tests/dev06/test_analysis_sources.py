@@ -53,6 +53,13 @@ def test_completed_plan_bound_run_reuses_processing_and_qc_without_publishing_ch
         sources=[AnalysisExecutionSource(**common)], analysis_spec=analysis_spec
     )
 
+    assert capability.executions[0].execution_completed_at == FIXED_TIME
+    assert capability.executions[0].execution_completed_at_utc == FIXED_TIME
+    assert capability.execution_completed_at_utc == (FIXED_TIME,)
+    assert capability.analysis_evidence_time == FIXED_TIME
+    assert capability.analysis_evidence_time_basis == "latest_verified_execution_completion_utc"
+    assert capability.analysis_evidence_time_derivation_version == "1.0.0"
+
     processed = process_validated_analysis_row(capability.executions[0], capability.rows[0])
 
     assert processed.work_order.global_planned_ordinal == 1

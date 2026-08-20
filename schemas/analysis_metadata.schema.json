@@ -6,16 +6,6 @@
       "title": "Absolute Spl Verified",
       "type": "boolean"
     },
-    "algorithm_id": {
-      "const": "plan_bound_synthetic_measurement_matrix",
-      "title": "Algorithm Id",
-      "type": "string"
-    },
-    "algorithm_version": {
-      "const": "1.1.0",
-      "title": "Algorithm Version",
-      "type": "string"
-    },
     "analysis_decision": {
       "const": "not_evaluated",
       "title": "Analysis Decision",
@@ -31,29 +21,9 @@
       "title": "Analysis Evidence Time Basis",
       "type": "string"
     },
-    "analysis_evidence_time_derivation_version": {
-      "const": "1.0.0",
-      "title": "Analysis Evidence Time Derivation Version",
-      "type": "string"
-    },
     "analysis_id": {
       "pattern": "^[A-Za-z0-9_-]+$",
       "title": "Analysis Id",
-      "type": "string"
-    },
-    "analysis_metadata_sha256": {
-      "pattern": "^[0-9a-f]{64}$",
-      "title": "Analysis Metadata Sha256",
-      "type": "string"
-    },
-    "analysis_record_sha256": {
-      "pattern": "^[0-9a-f]{64}$",
-      "title": "Analysis Record Sha256",
-      "type": "string"
-    },
-    "analysis_source_binding_sha256": {
-      "pattern": "^[0-9a-f]{64}$",
-      "title": "Analysis Source Binding Sha256",
       "type": "string"
     },
     "analysis_status": {
@@ -86,20 +56,10 @@
       "title": "Experimental Result",
       "type": "boolean"
     },
-    "feature_count": {
-      "const": 16,
-      "title": "Feature Count",
-      "type": "integer"
-    },
     "feature_extraction_performed": {
       "const": true,
       "title": "Feature Extraction Performed",
       "type": "boolean"
-    },
-    "feature_schema_sha256": {
-      "pattern": "^[0-9a-f]{64}$",
-      "title": "Feature Schema Sha256",
-      "type": "string"
     },
     "formal_eligible": {
       "const": false,
@@ -121,20 +81,10 @@
       "title": "Interaction Analysis Performed",
       "type": "boolean"
     },
-    "measurement_matrix_npz_sha256": {
-      "pattern": "^[0-9a-f]{64}$",
-      "title": "Measurement Matrix Npz Sha256",
-      "type": "string"
-    },
     "measurement_row_count": {
       "const": 344,
       "title": "Measurement Row Count",
       "type": "integer"
-    },
-    "measurement_row_index_sha256": {
-      "pattern": "^[0-9a-f]{64}$",
-      "title": "Measurement Row Index Sha256",
-      "type": "string"
     },
     "model_fit_performed": {
       "const": false,
@@ -201,20 +151,10 @@
       "title": "Source Execution Validated",
       "type": "boolean"
     },
-    "split_fold_count": {
-      "const": 24,
-      "title": "Split Fold Count",
-      "type": "integer"
-    },
     "split_plan_generated": {
       "const": true,
       "title": "Split Plan Generated",
       "type": "boolean"
-    },
-    "split_plan_sha256": {
-      "pattern": "^[0-9a-f]{64}$",
-      "title": "Split Plan Sha256",
-      "type": "string"
     },
     "stage_1_row_count": {
       "const": 152,
@@ -281,23 +221,11 @@
     "day_group_status",
     "safety_marker",
     "schema_version",
-    "algorithm_id",
-    "algorithm_version",
     "analysis_id",
-    "analysis_source_binding_sha256",
-    "measurement_row_index_sha256",
-    "feature_schema_sha256",
-    "split_plan_sha256",
-    "measurement_matrix_npz_sha256",
-    "analysis_metadata_sha256",
-    "analysis_record_sha256",
-    "ordered_source_aggregate_sha256",
     "analysis_evidence_time",
     "analysis_evidence_time_basis",
-    "analysis_evidence_time_derivation_version",
-    "feature_count",
-    "split_fold_count"
+    "ordered_source_aggregate_sha256"
   ],
-  "title": "AnalysisReceipt",
+  "title": "AnalysisMetadata",
   "type": "object"
 }
