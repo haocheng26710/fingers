@@ -241,7 +241,7 @@ acoustic-ladder synthetic-protocol-execution-status @bundle --plan-spec tests/fi
 acoustic-ladder synthetic-protocol-execution-validate @bundle --plan-spec tests/fixtures/protocol/stage1_protocol_plan.development.yaml --development-plan-root $planRoot --plan-id stage1-example --development-execution-root $executionRoot --synthetic-root $syntheticRoot --execution-id stage1-synthetic --scenario tests/fixtures/audio/conditioned_virtual_duplex_development.yaml --ess-artifact-root $essRoot
 ```
 
-如果 capture 已完整发布而 success event 尚未发布，或最后 success event 已发布而 completion 尚未发布，status 返回 `recovery_required`，只有显式 `recover-current` 才会在完整重验后采用已有产物。mutation 错误中的 capture/event/completion publication 字段由异常返回时的只读持久化重放决定：publisher 完整发布后再抛错会报告 true，部分或无法证明的发布保守报告 false，探测不会修复或删除字节。CLI `PASS` 只表示 development synthetic 操作/完整性验证通过；所有 hardware、playback、recording、formal execution、measurement 与 experimental-result 状态保持 false。Stage 2 条件仍只是 proxy states，Stage 3 不计算 interaction residual，Stage 4 不执行分类。详见 `docs/architecture/protocol-synthetic-execution.md`。
+如果 capture 已完整发布而 success event 尚未发布，或最后 success event 已发布而 completion 尚未发布，status 返回 `recovery_required`，只有显式 `recover-current` 才会在完整重验后采用已有产物。mutation 错误中的 capture/event/completion publication 字段由异常返回时的只读持久化重放决定：publisher 完整发布后再抛错会报告 true，部分、语义验证失败或无法探测的发布保守报告 false，旧内存布尔值不能覆盖该结果。lock close/unlink 失败也返回同一领域错误契约并重新探测持久化事实；unlink 失败会保留 stale lock，status/validator 不自动清理，后续 mutation 被拒绝。探测不会修复或删除字节。CLI `PASS` 只表示 development synthetic 操作/完整性验证通过；所有 hardware、playback、recording、formal execution、measurement 与 experimental-result 状态保持 false。Stage 2 条件仍只是 proxy states，Stage 3 不计算 interaction residual，Stage 4 不执行分类。详见 `docs/architecture/protocol-synthetic-execution.md`。
 
 详细契约见 `docs/architecture/`；数据根目录政策见 `data/README.md`。
 

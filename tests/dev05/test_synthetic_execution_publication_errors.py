@@ -586,3 +586,87 @@ def test_execute_next_detects_event_published_before_publisher_raises(
     assert len(list((execution_root / "events").glob("event_*.json"))) == 1
     raw = session_store.session_path(DataOrigin.SYNTHETIC, first.session_id) / "raw"
     assert [path.name for path in raw.iterdir()] == [f"run_{first.run_id}"]
+
+
+def test_execute_next_does_not_override_unproven_capture_with_memory_state(
+    tmp_path: Path, monkeypatch: pytest.MonkeyPatch
+) -> None:
+    common, session_store = _execution_setup(tmp_path, execution_id="capture-probe-denied")
+    active = initialize_synthetic_protocol_execution(**common, now=lambda: FIXED_TIME)
+    first = active.current_work_order
+    assert first is not None
+    execution_root = common["store"].execution_path("capture-probe-denied")
+    session_root = session_store.session_path(DataOrigin.SYNTHETIC, first.session_id)
+    original_capture = execution_module._capture_for_event
+    semantic_replays = 0
+
+    def semantic_replay_then_deny(*args: object, **kwargs: object):
+        nonlocal semantic_replays
+        semantic_replays += 1
+        if semantic_replays == 2:
+            raise PermissionError("injected capture durability probe denial")
+        return original_capture(*args, **kwargs)
+
+    def fail_event_publish(*_args: object, **_kwargs: object) -> str:
+        raise OSError("injected event publication failure")
+
+    monkeypatch.setattr(execution_module, "_capture_for_event", semantic_replay_then_deny)
+    monkeypatch.setattr(execution_module, "_publish_event_pair", fail_event_publish)
+    with pytest.raises(SyntheticProtocolExecutionError) as raised:
+        execute_next_synthetic_protocol_work_order(
+            **common,
+            concurrency_token=active.concurrency_token,
+            actor_id="synthetic-runner",
+            now=lambda: FIXED_TIME,
+        )
+
+    assert isinstance(raised.value.__cause__, OSError)
+    assert "publication state not proven for: capture, ledger event" in str(raised.value)
+    assert raised.value.capture_published is False
+    assert raised.value.ledger_event_published is False
+    assert raised.value.completion_published is False
+    assert len(list((execution_root / "events").iterdir())) == 0
+    assert (session_root / "raw" / f"run_{first.run_id}" / "RUN_COMPLETE").is_file()
+
+
+def test_execute_next_does_not_treat_existing_invalid_capture_as_published(
+    tmp_path: Path, monkeypatch: pytest.MonkeyPatch
+) -> None:
+    common, session_store = _execution_setup(tmp_path, execution_id="invalid-capture-probe")
+    active = initialize_synthetic_protocol_execution(**common, now=lambda: FIXED_TIME)
+    first = active.current_work_order
+    assert first is not None
+    execution_root = common["store"].execution_path("invalid-capture-probe")
+    run_root = (
+        session_store.session_path(DataOrigin.SYNTHETIC, first.session_id)
+        / "raw"
+        / f"run_{first.run_id}"
+    )
+
+    def corrupt_capture_then_fail_event(*_args: object, **_kwargs: object) -> str:
+        (run_root / "capture_receipt.json").write_bytes(b"{}\n")
+        raise OSError("injected event failure after capture corruption")
+
+    monkeypatch.setattr(execution_module, "_publish_event_pair", corrupt_capture_then_fail_event)
+    with pytest.raises(SyntheticProtocolExecutionError) as raised:
+        execute_next_synthetic_protocol_work_order(
+            **common,
+            concurrency_token=active.concurrency_token,
+            actor_id="synthetic-runner",
+            now=lambda: FIXED_TIME,
+        )
+
+    assert isinstance(raised.value.__cause__, OSError)
+    assert "publication state not proven for: capture, ledger event" in str(raised.value)
+    assert raised.value.capture_published is False
+    assert raised.value.ledger_event_published is False
+    assert raised.value.completion_published is False
+    assert (run_root / "RUN_COMPLETE").is_file()
+    assert (run_root / "capture_receipt.json").is_file()
+    assert list((execution_root / "events").iterdir()) == []
+    before = _file_tree(execution_root, run_root)
+    with pytest.raises(SyntheticProtocolExecutionError):
+        read_synthetic_protocol_execution_status(**common)
+    with pytest.raises(SyntheticProtocolExecutionError):
+        read_synthetic_protocol_execution_status(**common)
+    assert _file_tree(execution_root, run_root) == before
