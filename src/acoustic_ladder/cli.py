@@ -101,6 +101,19 @@ from acoustic_ladder.protocol.rehearsal_models import (
     ProtocolRehearsalConcurrencyToken,
     ProtocolRehearsalTransitionCommand,
 )
+from acoustic_ladder.protocol.synthetic_execution import (
+    DevelopmentSyntheticProtocolExecutionStore,
+    apply_synthetic_protocol_execution_control,
+    execute_next_synthetic_protocol_work_order,
+    initialize_synthetic_protocol_execution,
+    read_synthetic_protocol_execution_status,
+    recover_current_synthetic_protocol_work_order,
+    validate_synthetic_protocol_execution,
+)
+from acoustic_ladder.protocol.synthetic_execution_models import (
+    SyntheticProtocolExecutionConcurrencyToken,
+    SyntheticProtocolExecutionControl,
+)
 from acoustic_ladder.storage.io import atomic_write_bytes
 from acoustic_ladder.storage.store import (
     DataRoots,
@@ -244,6 +257,42 @@ def _parser() -> argparse.ArgumentParser:
             rehearsal.add_argument("--expected-work-order-sha256", required=True)
             rehearsal.add_argument("--reason-code")
             rehearsal.add_argument("--detail")
+
+    execution_commands = (
+        "synthetic-protocol-execution-init",
+        "synthetic-protocol-execution-status",
+        "synthetic-protocol-execution-execute-next",
+        "synthetic-protocol-execution-pause",
+        "synthetic-protocol-execution-resume",
+        "synthetic-protocol-execution-retry",
+        "synthetic-protocol-execution-recover-current",
+        "synthetic-protocol-execution-abort",
+        "synthetic-protocol-execution-validate",
+    )
+    for command_name in execution_commands:
+        execution = commands.add_parser(command_name)
+        _add_bundle_arguments(execution)
+        execution.add_argument("--plan-spec", required=True)
+        execution.add_argument("--development-plan-root", required=True)
+        execution.add_argument("--plan-id", required=True)
+        execution.add_argument("--development-execution-root", required=True)
+        execution.add_argument("--synthetic-root", required=True)
+        execution.add_argument("--execution-id", required=True)
+        execution.add_argument("--scenario", required=True)
+        execution.add_argument("--ess-artifact-root", required=True)
+        if command_name not in {
+            "synthetic-protocol-execution-init",
+            "synthetic-protocol-execution-status",
+            "synthetic-protocol-execution-validate",
+        }:
+            execution.add_argument("--actor-id", required=True)
+            execution.add_argument("--expected-event-sequence", required=True, type=int)
+            execution.add_argument("--expected-head-sha256", required=True)
+            execution.add_argument("--expected-work-order-sha256", required=True)
+            execution.add_argument("--expected-cursor", required=True, type=int)
+            execution.add_argument("--expected-recovery-run-id")
+        if command_name == "synthetic-protocol-execution-abort":
+            execution.add_argument("--reason-code", required=True)
 
     session = commands.add_parser("create-synthetic-session")
     _add_bundle_arguments(session)
@@ -503,6 +552,110 @@ def _all_blocked_states(manifest: dict[str, object], overrides: list[str]) -> di
 
 def main(argv: list[str] | None = None) -> None:
     args = _parser().parse_args(argv)
+    if args.command.startswith("synthetic-protocol-execution-"):
+        project_root = Path(args.project_root).resolve()
+        execution_bundle = _load_bundle(args)
+        spec_path = Path(args.plan_spec)
+        if not spec_path.is_absolute():
+            spec_path = project_root / spec_path
+        execution_spec = load_development_protocol_plan_spec(
+            spec_path,
+            project_root=project_root,
+            bundle=execution_bundle,
+        )
+        scenario_path = Path(args.scenario)
+        if not scenario_path.is_absolute():
+            scenario_path = project_root / scenario_path
+        execution_scenario = load_conditioned_virtual_capture_scenario(
+            scenario_path, project_root=project_root
+        )
+        execution_store = DevelopmentSyntheticProtocolExecutionStore(
+            args.development_execution_root
+        )
+        execution_session_store = _synthetic_store(args.synthetic_root)
+        execution_plan_store = DevelopmentProtocolPlanStore(args.development_plan_root)
+        common = {
+            "store": execution_store,
+            "session_store": execution_session_store,
+            "plan_store": execution_plan_store,
+            "bundle": execution_bundle,
+            "spec": execution_spec,
+            "plan_id": args.plan_id,
+            "execution_id": args.execution_id,
+            "scenario": execution_scenario,
+            "ess_artifact_root": args.ess_artifact_root,
+        }
+        suffix = args.command.removeprefix("synthetic-protocol-execution-")
+        if suffix == "init":
+            execution_status = initialize_synthetic_protocol_execution(**common, now=_now)
+        elif suffix == "status":
+            execution_status = read_synthetic_protocol_execution_status(**common)
+        elif suffix == "validate":
+            execution_status = validate_synthetic_protocol_execution(**common)
+        else:
+            execution_token = SyntheticProtocolExecutionConcurrencyToken(
+                execution_id=args.execution_id,
+                event_sequence=args.expected_event_sequence,
+                head_event_sha256=args.expected_head_sha256,
+                current_work_order_sha256=args.expected_work_order_sha256,
+                cursor=args.expected_cursor,
+                recovery_run_id=args.expected_recovery_run_id,
+            )
+            if suffix == "execute-next":
+                execution_status = execute_next_synthetic_protocol_work_order(
+                    **common,
+                    concurrency_token=execution_token,
+                    actor_id=args.actor_id,
+                    now=_now,
+                )
+            elif suffix == "recover-current":
+                execution_status = recover_current_synthetic_protocol_work_order(
+                    **common,
+                    concurrency_token=execution_token,
+                    actor_id=args.actor_id,
+                    now=_now,
+                )
+            else:
+                execution_command = SyntheticProtocolExecutionControl(
+                    action=suffix,
+                    actor_id=args.actor_id,
+                    expected_event_sequence=args.expected_event_sequence,
+                    expected_head_sha256=args.expected_head_sha256,
+                    expected_current_work_order_sha256=args.expected_work_order_sha256,
+                    expected_cursor=args.expected_cursor,
+                    reason_code=(args.reason_code if suffix == "abort" else None),
+                )
+                execution_status = apply_synthetic_protocol_execution_control(
+                    **common,
+                    command=execution_command,
+                    concurrency_token=execution_token,
+                    now=_now,
+                )
+        execution_output_token = execution_status.concurrency_token
+        current = execution_status.current_work_order
+        print(
+            "PASS development synthetic protocol execution: "
+            f"execution_id={execution_status.execution_id} "
+            f"state={execution_status.execution_state} cursor={execution_status.cursor} "
+            f"total_work_order_count={execution_status.total_work_order_count} "
+            f"event_sequence={execution_output_token.event_sequence} "
+            f"head_event_sha256={execution_output_token.head_event_sha256} "
+            f"current_work_order_sha256={execution_output_token.current_work_order_sha256} "
+            f"current_ordinal={current.global_planned_ordinal if current else 'none'} "
+            f"recovery_kind={execution_status.recovery_kind or 'none'}"
+        )
+        print("data_origin=synthetic")
+        print("development_synthetic_run=true")
+        print("physical_operator_confirmation_performed=false")
+        print("formal_protocol_execution_performed=false")
+        print("measurement_performed=false")
+        print("hardware_io_performed=false")
+        print("playback_performed=false")
+        print("recording_performed=false")
+        print("formal_eligible=false")
+        print("experimental_result=false")
+        print(f"safety_marker={execution_status.safety_marker}")
+        return
     if args.command in {
         "protocol-rehearsal-init",
         "protocol-rehearsal-status",
@@ -550,26 +703,26 @@ def main(argv: list[str] | None = None) -> None:
                     "detail": args.detail,
                 }
             )
-            token = ProtocolRehearsalConcurrencyToken(
+            rehearsal_token = ProtocolRehearsalConcurrencyToken(
                 rehearsal_id=args.rehearsal_id,
                 event_sequence=args.expected_event_sequence,
                 head_event_sha256=args.expected_head_sha256,
                 current_work_order_sha256=args.expected_work_order_sha256,
             )
             rehearsal_status = apply_protocol_rehearsal_transition(
-                **common, command=command, token=token, now=_now
+                **common, command=command, token=rehearsal_token, now=_now
             )
             label = "PASS development protocol rehearsal transition"
-        token = rehearsal_status.concurrency_token
+        rehearsal_output_token = rehearsal_status.concurrency_token
         print(
             f"{label}: rehearsal_id={rehearsal_status.rehearsal_id} "
             f"state={rehearsal_status.rehearsal_state} "
             f"phase={rehearsal_status.current_work_order_phase} "
             f"cursor={rehearsal_status.cursor} "
             f"total_work_order_count={rehearsal_status.total_work_order_count} "
-            f"event_sequence={token.event_sequence} "
-            f"head_event_sha256={token.head_event_sha256} "
-            f"current_work_order_sha256={token.current_work_order_sha256}"
+            f"event_sequence={rehearsal_output_token.event_sequence} "
+            f"head_event_sha256={rehearsal_output_token.head_event_sha256} "
+            f"current_work_order_sha256={rehearsal_output_token.current_work_order_sha256}"
         )
         print("development_rehearsal=true")
         print(

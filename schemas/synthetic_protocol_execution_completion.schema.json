@@ -1,0 +1,219 @@
+{
+  "additionalProperties": false,
+  "properties": {
+    "absolute_spl_calibrated": {
+      "const": false,
+      "title": "Absolute Spl Calibrated",
+      "type": "boolean"
+    },
+    "calibration_applied": {
+      "const": false,
+      "title": "Calibration Applied",
+      "type": "boolean"
+    },
+    "calibration_file_verified": {
+      "const": false,
+      "title": "Calibration File Verified",
+      "type": "boolean"
+    },
+    "channel_mapping_verified": {
+      "const": false,
+      "title": "Channel Mapping Verified",
+      "type": "boolean"
+    },
+    "compiled_plan_sha256": {
+      "pattern": "^[0-9a-f]{64}$",
+      "title": "Compiled Plan Sha256",
+      "type": "string"
+    },
+    "completed_at": {
+      "format": "date-time",
+      "title": "Completed At",
+      "type": "string"
+    },
+    "completed_work_order_count": {
+      "exclusiveMinimum": 0,
+      "title": "Completed Work Order Count",
+      "type": "integer"
+    },
+    "completion_state": {
+      "const": "complete",
+      "title": "Completion State",
+      "type": "string"
+    },
+    "data_origin": {
+      "const": "synthetic",
+      "title": "Data Origin",
+      "type": "string"
+    },
+    "development_synthetic_run": {
+      "const": true,
+      "title": "Development Synthetic Run",
+      "type": "boolean"
+    },
+    "execution_id": {
+      "maxLength": 32,
+      "pattern": "^[A-Za-z0-9_-]+$",
+      "title": "Execution Id",
+      "type": "string"
+    },
+    "expected_work_order_count": {
+      "exclusiveMinimum": 0,
+      "title": "Expected Work Order Count",
+      "type": "integer"
+    },
+    "experimental_result": {
+      "const": false,
+      "title": "Experimental Result",
+      "type": "boolean"
+    },
+    "final_event_sequence": {
+      "exclusiveMinimum": 0,
+      "title": "Final Event Sequence",
+      "type": "integer"
+    },
+    "final_event_sha256": {
+      "pattern": "^[0-9a-f]{64}$",
+      "title": "Final Event Sha256",
+      "type": "string"
+    },
+    "formal_eligible": {
+      "const": false,
+      "title": "Formal Eligible",
+      "type": "boolean"
+    },
+    "formal_protocol_execution_performed": {
+      "const": false,
+      "title": "Formal Protocol Execution Performed",
+      "type": "boolean"
+    },
+    "full_duplex_verified": {
+      "const": false,
+      "title": "Full Duplex Verified",
+      "type": "boolean"
+    },
+    "hardware_io_performed": {
+      "const": false,
+      "title": "Hardware Io Performed",
+      "type": "boolean"
+    },
+    "hardware_ready": {
+      "const": false,
+      "title": "Hardware Ready",
+      "type": "boolean"
+    },
+    "measurement_performed": {
+      "const": false,
+      "title": "Measurement Performed",
+      "type": "boolean"
+    },
+    "operator_confirmation_status": {
+      "const": "pending",
+      "title": "Operator Confirmation Status",
+      "type": "string"
+    },
+    "ordered_event_sha256": {
+      "pattern": "^[0-9a-f]{64}$",
+      "title": "Ordered Event Sha256",
+      "type": "string"
+    },
+    "ordered_successful_run_sha256": {
+      "pattern": "^[0-9a-f]{64}$",
+      "title": "Ordered Successful Run Sha256",
+      "type": "string"
+    },
+    "physical_operator_confirmation_performed": {
+      "const": false,
+      "title": "Physical Operator Confirmation Performed",
+      "type": "boolean"
+    },
+    "plan_id": {
+      "title": "Plan Id",
+      "type": "string"
+    },
+    "playback_performed": {
+      "const": false,
+      "title": "Playback Performed",
+      "type": "boolean"
+    },
+    "protocol_plan_receipt_sha256": {
+      "pattern": "^[0-9a-f]{64}$",
+      "title": "Protocol Plan Receipt Sha256",
+      "type": "string"
+    },
+    "recording_performed": {
+      "const": false,
+      "title": "Recording Performed",
+      "type": "boolean"
+    },
+    "run_mode": {
+      "const": "development",
+      "title": "Run Mode",
+      "type": "string"
+    },
+    "safety_marker": {
+      "const": "SYNTHETIC_PROTOCOL_EXECUTION_NOT_AN_EXPERIMENTAL_RESULT",
+      "title": "Safety Marker",
+      "type": "string"
+    },
+    "schedule_sha256": {
+      "pattern": "^[0-9a-f]{64}$",
+      "title": "Schedule Sha256",
+      "type": "string"
+    },
+    "schema_version": {
+      "const": "1.0.0",
+      "title": "Schema Version",
+      "type": "string"
+    },
+    "shared_clock_verified": {
+      "const": false,
+      "title": "Shared Clock Verified",
+      "type": "boolean"
+    },
+    "synthetic_capture_performed": {
+      "const": true,
+      "title": "Synthetic Capture Performed",
+      "type": "boolean"
+    }
+  },
+  "required": [
+    "schema_version",
+    "execution_id",
+    "plan_id",
+    "compiled_plan_sha256",
+    "protocol_plan_receipt_sha256",
+    "schedule_sha256",
+    "expected_work_order_count",
+    "completed_work_order_count",
+    "final_event_sequence",
+    "final_event_sha256",
+    "ordered_successful_run_sha256",
+    "ordered_event_sha256",
+    "completed_at",
+    "completion_state",
+    "synthetic_capture_performed",
+    "development_synthetic_run",
+    "data_origin",
+    "run_mode",
+    "physical_operator_confirmation_performed",
+    "operator_confirmation_status",
+    "formal_protocol_execution_performed",
+    "measurement_performed",
+    "hardware_io_performed",
+    "playback_performed",
+    "recording_performed",
+    "hardware_ready",
+    "full_duplex_verified",
+    "shared_clock_verified",
+    "channel_mapping_verified",
+    "calibration_file_verified",
+    "calibration_applied",
+    "absolute_spl_calibrated",
+    "formal_eligible",
+    "experimental_result",
+    "safety_marker"
+  ],
+  "title": "SyntheticProtocolExecutionCompletion",
+  "type": "object"
+}

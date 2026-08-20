@@ -1,6 +1,6 @@
 # Acoustic Ladder
 
-本仓库当前实现到 `DEV-05.02`：除模型包、配置、不可变存储、synthetic 接口数据和只读音频清单外，现提供严格的离线 ESS 开发夹具、确定性虚拟全双工采集、离线 ESS processing、provisional QC、repeatability、Stage 1 synthetic baseline difference、阶段 1–4 development-only 协议矩阵编译器，以及由计划派生的可恢复离线协议排练账本。排练只推进软件工作单状态，不执行 protocol、不创建采集 run、不访问真实音频硬件，也不应用阈值或输出实验判决。
+本仓库当前实现到 `DEV-05.03`：除模型包、配置、不可变存储、synthetic 接口数据和只读音频清单外，现提供严格的离线 ESS 开发夹具、确定性虚拟全双工采集、离线 ESS processing、provisional QC、repeatability、Stage 1 synthetic baseline difference、阶段 1–4 development-only 协议矩阵编译器、离线协议排练账本，以及由已验证计划驱动的可恢复 synthetic execution 账本。该执行器只生成 development synthetic session/run；不访问真实音频硬件，不执行正式 protocol，不应用阈值或输出实验判决。
 
 当前状态固定为：
 
@@ -226,7 +226,22 @@ acoustic-ladder protocol-rehearsal-step @bundle --plan-spec tests/fixtures/proto
 acoustic-ladder protocol-rehearsal-validate @bundle --plan-spec tests/fixtures/protocol/stage1_protocol_plan.development.yaml --development-plan-root $planRoot --plan-id stage1-example --development-rehearsal-root $rehearsalRoot --rehearsal-id stage1-dry-run
 ```
 
-正常工作单路径为 `present-requirements → claim → mark-rehearsed`；也支持 pause/resume、mark-failed/retry 和 abort。所有持久化安全状态继续声明未执行协议、未测量、未访问硬件、operator confirmation pending，CLI 的 `PASS` 仅表示软件排练或完整性重放成功。哈希链不是签名、外部 witness 或可信时间戳；活动账本尚未被后续记录引用的最后尾部删除没有外部可证明性。DEV-05.03 尚未实施。详见 `docs/architecture/protocol-rehearsal.md`。
+正常工作单路径为 `present-requirements → claim → mark-rehearsed`；也支持 pause/resume、mark-failed/retry 和 abort。所有持久化安全状态继续声明未执行协议、未测量、未访问硬件、operator confirmation pending，CLI 的 `PASS` 仅表示软件排练或完整性重放成功。哈希链不是签名、外部 witness 或可信时间戳；活动账本尚未被后续记录引用的最后尾部删除没有外部可证明性。详见 `docs/architecture/protocol-rehearsal.md`。
+
+## DEV-05.03 阶段 1–4 synthetic execution
+
+execution root、plan root 与 synthetic session root 必须相互独立。初始化只派生工作项并发布 immutable base envelope，不创建 session；`execute-next` 每次最多执行当前一项，从 replay-validated compiled plan 派生完整 NodeState、condition、session/reassembly/run/capture ID，使用离线 ESS、manifest/config-derived synthetic IR 和虚拟双工调度发布一个 create-only run。调用者不能提供 condition、ordinal、NodeState、run identity、waveform、IR、real root 或设备参数。
+
+```powershell
+$executionRoot = Join-Path $env:TEMP 'acoustic-ladder-dev0503-executions'
+$syntheticRoot = Join-Path $env:TEMP 'acoustic-ladder-dev0503-synthetic'
+acoustic-ladder synthetic-protocol-execution-init @bundle --plan-spec tests/fixtures/protocol/stage1_protocol_plan.development.yaml --development-plan-root $planRoot --plan-id stage1-example --development-execution-root $executionRoot --synthetic-root $syntheticRoot --execution-id stage1-synthetic --scenario tests/fixtures/audio/conditioned_virtual_duplex_development.yaml --ess-artifact-root $essRoot
+acoustic-ladder synthetic-protocol-execution-status @bundle --plan-spec tests/fixtures/protocol/stage1_protocol_plan.development.yaml --development-plan-root $planRoot --plan-id stage1-example --development-execution-root $executionRoot --synthetic-root $syntheticRoot --execution-id stage1-synthetic --scenario tests/fixtures/audio/conditioned_virtual_duplex_development.yaml --ess-artifact-root $essRoot
+# execute-next/pause/resume/retry/recover-current/abort also require the complete token printed by status.
+acoustic-ladder synthetic-protocol-execution-validate @bundle --plan-spec tests/fixtures/protocol/stage1_protocol_plan.development.yaml --development-plan-root $planRoot --plan-id stage1-example --development-execution-root $executionRoot --synthetic-root $syntheticRoot --execution-id stage1-synthetic --scenario tests/fixtures/audio/conditioned_virtual_duplex_development.yaml --ess-artifact-root $essRoot
+```
+
+如果 capture 已完整发布而 success event 尚未发布，或最后 success event 已发布而 completion 尚未发布，status 返回 `recovery_required`，只有显式 `recover-current` 才会在完整重验后采用已有产物。CLI `PASS` 只表示 development synthetic 操作/完整性验证通过；所有 hardware、playback、recording、formal execution、measurement 与 experimental-result 状态保持 false。Stage 2 条件仍只是 proxy states，Stage 3 不计算 interaction residual，Stage 4 不执行分类。详见 `docs/architecture/protocol-synthetic-execution.md`。
 
 详细契约见 `docs/architecture/`；数据根目录政策见 `data/README.md`。
 

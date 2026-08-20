@@ -59,6 +59,13 @@ from acoustic_ladder.protocol.rehearsal_models import (
     ProtocolRehearsalManifest,
     ProtocolRehearsalRecord,
 )
+from acoustic_ladder.protocol.synthetic_execution_models import (
+    PlanBoundSyntheticCaptureReceipt,
+    SyntheticProtocolExecutionCompletion,
+    SyntheticProtocolExecutionEvent,
+    SyntheticProtocolExecutionManifest,
+    SyntheticProtocolExecutionRecord,
+)
 
 SCHEMA_MODELS: dict[str, type[BaseModel]] = {
     "audio_config.schema.json": AudioConfig,
@@ -121,6 +128,13 @@ PROTOCOL_REHEARSAL_SCHEMA_MODELS: dict[str, type[BaseModel]] = {
     "protocol_rehearsal_event.schema.json": ProtocolRehearsalEvent,
     "protocol_rehearsal_completion.schema.json": ProtocolRehearsalCompletion,
 }
+SYNTHETIC_PROTOCOL_EXECUTION_SCHEMA_MODELS: dict[str, type[BaseModel]] = {
+    "synthetic_protocol_execution_manifest.schema.json": SyntheticProtocolExecutionManifest,
+    "synthetic_protocol_execution_record.schema.json": SyntheticProtocolExecutionRecord,
+    "synthetic_protocol_execution_event.schema.json": SyntheticProtocolExecutionEvent,
+    "synthetic_protocol_execution_completion.schema.json": SyntheticProtocolExecutionCompletion,
+    "plan_bound_synthetic_capture_receipt.schema.json": PlanBoundSyntheticCaptureReceipt,
+}
 ALL_GENERATED_SCHEMA_MODELS = (
     GENERATED_SCHEMA_MODELS
     | ESS_SCHEMA_MODELS
@@ -131,6 +145,7 @@ ALL_GENERATED_SCHEMA_MODELS = (
     | CONDITION_BASELINE_SCHEMA_MODELS
     | PROTOCOL_PLAN_SCHEMA_MODELS
     | PROTOCOL_REHEARSAL_SCHEMA_MODELS
+    | SYNTHETIC_PROTOCOL_EXECUTION_SCHEMA_MODELS
 )
 
 

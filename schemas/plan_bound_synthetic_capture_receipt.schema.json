@@ -1,0 +1,839 @@
+{
+  "$defs": {
+    "BlockTraceRecord": {
+      "additionalProperties": false,
+      "properties": {
+        "input_frame_count": {
+          "minimum": 0,
+          "title": "Input Frame Count",
+          "type": "integer"
+        },
+        "output_frame_count": {
+          "minimum": 0,
+          "title": "Output Frame Count",
+          "type": "integer"
+        },
+        "requested_frame_count": {
+          "exclusiveMinimum": 0,
+          "title": "Requested Frame Count",
+          "type": "integer"
+        },
+        "sequence": {
+          "exclusiveMinimum": 0,
+          "title": "Sequence",
+          "type": "integer"
+        },
+        "start_frame": {
+          "minimum": 0,
+          "title": "Start Frame",
+          "type": "integer"
+        },
+        "status_flags": {
+          "items": {
+            "type": "string"
+          },
+          "title": "Status Flags",
+          "type": "array"
+        }
+      },
+      "required": [
+        "sequence",
+        "start_frame",
+        "requested_frame_count",
+        "output_frame_count",
+        "input_frame_count",
+        "status_flags"
+      ],
+      "title": "BlockTraceRecord",
+      "type": "object"
+    },
+    "CaptureFaultCounters": {
+      "additionalProperties": false,
+      "properties": {
+        "clipping_count": {
+          "minimum": 0,
+          "title": "Clipping Count",
+          "type": "integer"
+        },
+        "dropout_count": {
+          "minimum": 0,
+          "title": "Dropout Count",
+          "type": "integer"
+        },
+        "error_count": {
+          "minimum": 0,
+          "title": "Error Count",
+          "type": "integer"
+        },
+        "short_read_count": {
+          "minimum": 0,
+          "title": "Short Read Count",
+          "type": "integer"
+        },
+        "xrun_count": {
+          "minimum": 0,
+          "title": "Xrun Count",
+          "type": "integer"
+        }
+      },
+      "required": [
+        "xrun_count",
+        "dropout_count",
+        "short_read_count",
+        "clipping_count",
+        "error_count"
+      ],
+      "title": "CaptureFaultCounters",
+      "type": "object"
+    },
+    "CaptureState": {
+      "enum": [
+        "created",
+        "prepared",
+        "armed",
+        "running",
+        "completed",
+        "failed",
+        "aborted"
+      ],
+      "title": "CaptureState",
+      "type": "string"
+    },
+    "LoadingDirection": {
+      "enum": [
+        "loading",
+        "unloading",
+        "not_applicable",
+        "unknown"
+      ],
+      "title": "LoadingDirection",
+      "type": "string"
+    },
+    "NodeState": {
+      "additionalProperties": false,
+      "properties": {
+        "continuous_value": {
+          "anyOf": [
+            {
+              "type": "number"
+            },
+            {
+              "type": "null"
+            }
+          ],
+          "title": "Continuous Value"
+        },
+        "discrete_label": {
+          "anyOf": [
+            {
+              "type": "string"
+            },
+            {
+              "type": "null"
+            }
+          ],
+          "title": "Discrete Label"
+        },
+        "loading_direction": {
+          "$ref": "#/$defs/LoadingDirection"
+        },
+        "module_id": {
+          "title": "Module Id",
+          "type": "string"
+        },
+        "node_id": {
+          "title": "Node Id",
+          "type": "string"
+        },
+        "notes": {
+          "anyOf": [
+            {
+              "type": "string"
+            },
+            {
+              "type": "null"
+            }
+          ],
+          "title": "Notes"
+        },
+        "provenance": {
+          "anyOf": [
+            {
+              "type": "string"
+            },
+            {
+              "type": "null"
+            }
+          ],
+          "title": "Provenance"
+        },
+        "proxy_state": {
+          "title": "Proxy State",
+          "type": "boolean"
+        },
+        "state_id": {
+          "title": "State Id",
+          "type": "string"
+        },
+        "state_type": {
+          "title": "State Type",
+          "type": "string"
+        },
+        "unit": {
+          "anyOf": [
+            {
+              "type": "string"
+            },
+            {
+              "type": "null"
+            }
+          ],
+          "title": "Unit"
+        }
+      },
+      "required": [
+        "node_id",
+        "state_id",
+        "module_id",
+        "state_type",
+        "discrete_label",
+        "continuous_value",
+        "unit",
+        "loading_direction",
+        "proxy_state",
+        "provenance",
+        "notes"
+      ],
+      "title": "NodeState",
+      "type": "object"
+    },
+    "StateTransitionRecord": {
+      "additionalProperties": false,
+      "properties": {
+        "completed_block_count": {
+          "minimum": 0,
+          "title": "Completed Block Count",
+          "type": "integer"
+        },
+        "from_state": {
+          "$ref": "#/$defs/CaptureState"
+        },
+        "reason": {
+          "title": "Reason",
+          "type": "string"
+        },
+        "sample_cursor": {
+          "minimum": 0,
+          "title": "Sample Cursor",
+          "type": "integer"
+        },
+        "sequence": {
+          "exclusiveMinimum": 0,
+          "title": "Sequence",
+          "type": "integer"
+        },
+        "to_state": {
+          "$ref": "#/$defs/CaptureState"
+        }
+      },
+      "required": [
+        "sequence",
+        "from_state",
+        "to_state",
+        "reason",
+        "sample_cursor",
+        "completed_block_count"
+      ],
+      "title": "StateTransitionRecord",
+      "type": "object"
+    }
+  },
+  "additionalProperties": false,
+  "properties": {
+    "absolute_spl_calibrated": {
+      "const": false,
+      "title": "Absolute Spl Calibrated",
+      "type": "boolean"
+    },
+    "actual_block_count": {
+      "exclusiveMinimum": 0,
+      "title": "Actual Block Count",
+      "type": "integer"
+    },
+    "all_finite": {
+      "const": true,
+      "title": "All Finite",
+      "type": "boolean"
+    },
+    "backend_id": {
+      "const": "deterministic_plan_bound_virtual_duplex",
+      "title": "Backend Id",
+      "type": "string"
+    },
+    "backend_version": {
+      "const": "1.0.0",
+      "title": "Backend Version",
+      "type": "string"
+    },
+    "block_size_frames": {
+      "exclusiveMinimum": 0,
+      "title": "Block Size Frames",
+      "type": "integer"
+    },
+    "block_trace": {
+      "items": {
+        "$ref": "#/$defs/BlockTraceRecord"
+      },
+      "title": "Block Trace",
+      "type": "array"
+    },
+    "bundle_content_sha256": {
+      "pattern": "^[0-9a-f]{64}$",
+      "title": "Bundle Content Sha256",
+      "type": "string"
+    },
+    "calibration_applied": {
+      "const": false,
+      "title": "Calibration Applied",
+      "type": "boolean"
+    },
+    "calibration_file_verified": {
+      "const": false,
+      "title": "Calibration File Verified",
+      "type": "boolean"
+    },
+    "capture_id": {
+      "pattern": "^[A-Za-z0-9_-]+$",
+      "title": "Capture Id",
+      "type": "string"
+    },
+    "capture_receipt_sha256": {
+      "anyOf": [
+        {
+          "pattern": "^[0-9a-f]{64}$",
+          "type": "string"
+        },
+        {
+          "type": "null"
+        }
+      ],
+      "default": null,
+      "title": "Capture Receipt Sha256"
+    },
+    "capture_sample_count": {
+      "exclusiveMinimum": 0,
+      "title": "Capture Sample Count",
+      "type": "integer"
+    },
+    "capture_tail_sample_count": {
+      "minimum": 0,
+      "title": "Capture Tail Sample Count",
+      "type": "integer"
+    },
+    "channel_mapping_verified": {
+      "const": false,
+      "title": "Channel Mapping Verified",
+      "type": "boolean"
+    },
+    "compiled_plan_sha256": {
+      "pattern": "^[0-9a-f]{64}$",
+      "title": "Compiled Plan Sha256",
+      "type": "string"
+    },
+    "condition_block_order": {
+      "exclusiveMinimum": 0,
+      "title": "Condition Block Order",
+      "type": "integer"
+    },
+    "condition_id": {
+      "pattern": "^[A-Za-z0-9_-]+$",
+      "title": "Condition Id",
+      "type": "string"
+    },
+    "condition_node_state_sha256": {
+      "pattern": "^[0-9a-f]{64}$",
+      "title": "Condition Node State Sha256",
+      "type": "string"
+    },
+    "condition_role": {
+      "title": "Condition Role",
+      "type": "string"
+    },
+    "continuous_repeat_index": {
+      "exclusiveMinimum": 0,
+      "title": "Continuous Repeat Index",
+      "type": "integer"
+    },
+    "create_only": {
+      "const": true,
+      "title": "Create Only",
+      "type": "boolean"
+    },
+    "data_origin": {
+      "const": "synthetic",
+      "title": "Data Origin",
+      "type": "string"
+    },
+    "development_synthetic_run": {
+      "const": true,
+      "title": "Development Synthetic Run",
+      "type": "boolean"
+    },
+    "device_manifest_sha256": {
+      "pattern": "^[0-9a-f]{64}$",
+      "title": "Device Manifest Sha256",
+      "type": "string"
+    },
+    "electrical_loopback_available": {
+      "const": false,
+      "title": "Electrical Loopback Available",
+      "type": "boolean"
+    },
+    "ess_sample_count": {
+      "exclusiveMinimum": 0,
+      "title": "Ess Sample Count",
+      "type": "integer"
+    },
+    "execution_id": {
+      "maxLength": 32,
+      "pattern": "^[A-Za-z0-9_-]+$",
+      "title": "Execution Id",
+      "type": "string"
+    },
+    "experiment_stage": {
+      "enum": [
+        1,
+        2,
+        3,
+        4
+      ],
+      "title": "Experiment Stage",
+      "type": "integer"
+    },
+    "experimental_result": {
+      "const": false,
+      "title": "Experimental Result",
+      "type": "boolean"
+    },
+    "fault_counters": {
+      "$ref": "#/$defs/CaptureFaultCounters"
+    },
+    "final_state": {
+      "const": "completed",
+      "title": "Final State",
+      "type": "string"
+    },
+    "formal_eligible": {
+      "const": false,
+      "title": "Formal Eligible",
+      "type": "boolean"
+    },
+    "formal_protocol_execution_performed": {
+      "const": false,
+      "title": "Formal Protocol Execution Performed",
+      "type": "boolean"
+    },
+    "full_duplex_verified": {
+      "const": false,
+      "title": "Full Duplex Verified",
+      "type": "boolean"
+    },
+    "global_planned_ordinal": {
+      "exclusiveMinimum": 0,
+      "title": "Global Planned Ordinal",
+      "type": "integer"
+    },
+    "hardware_io_performed": {
+      "const": false,
+      "title": "Hardware Io Performed",
+      "type": "boolean"
+    },
+    "hardware_ready": {
+      "const": false,
+      "title": "Hardware Ready",
+      "type": "boolean"
+    },
+    "immutable": {
+      "const": true,
+      "title": "Immutable",
+      "type": "boolean"
+    },
+    "input_dtype": {
+      "const": "float32",
+      "title": "Input Dtype",
+      "type": "string"
+    },
+    "input_raw_float32_sha256": {
+      "pattern": "^[0-9a-f]{64}$",
+      "title": "Input Raw Float32 Sha256",
+      "type": "string"
+    },
+    "input_shape": {
+      "maxItems": 2,
+      "minItems": 2,
+      "prefixItems": [
+        {
+          "const": 1,
+          "type": "integer"
+        },
+        {
+          "type": "integer"
+        }
+      ],
+      "title": "Input Shape",
+      "type": "array"
+    },
+    "input_wav_sha256": {
+      "pattern": "^[0-9a-f]{64}$",
+      "title": "Input Wav Sha256",
+      "type": "string"
+    },
+    "last_block_frame_count": {
+      "exclusiveMinimum": 0,
+      "title": "Last Block Frame Count",
+      "type": "integer"
+    },
+    "manifest_module_node_weights": {
+      "additionalProperties": {
+        "type": "number"
+      },
+      "title": "Manifest Module Node Weights",
+      "type": "object"
+    },
+    "manifest_node_delay_samples": {
+      "additionalProperties": {
+        "type": "integer"
+      },
+      "title": "Manifest Node Delay Samples",
+      "type": "object"
+    },
+    "measurement_performed": {
+      "const": false,
+      "title": "Measurement Performed",
+      "type": "boolean"
+    },
+    "node_states": {
+      "additionalProperties": {
+        "$ref": "#/$defs/NodeState"
+      },
+      "title": "Node States",
+      "type": "object"
+    },
+    "operator_confirmation_status": {
+      "const": "pending",
+      "title": "Operator Confirmation Status",
+      "type": "string"
+    },
+    "output_dtype": {
+      "const": "float32",
+      "title": "Output Dtype",
+      "type": "string"
+    },
+    "output_raw_float32_sha256": {
+      "pattern": "^[0-9a-f]{64}$",
+      "title": "Output Raw Float32 Sha256",
+      "type": "string"
+    },
+    "output_shape": {
+      "maxItems": 2,
+      "minItems": 2,
+      "prefixItems": [
+        {
+          "const": 1,
+          "type": "integer"
+        },
+        {
+          "type": "integer"
+        }
+      ],
+      "title": "Output Shape",
+      "type": "array"
+    },
+    "output_wav_sha256": {
+      "pattern": "^[0-9a-f]{64}$",
+      "title": "Output Wav Sha256",
+      "type": "string"
+    },
+    "physical_operator_confirmation_performed": {
+      "const": false,
+      "title": "Physical Operator Confirmation Performed",
+      "type": "boolean"
+    },
+    "plan_id": {
+      "pattern": "^[A-Za-z0-9_-]+$",
+      "title": "Plan Id",
+      "type": "string"
+    },
+    "planned_block_count": {
+      "exclusiveMinimum": 0,
+      "title": "Planned Block Count",
+      "type": "integer"
+    },
+    "playback_performed": {
+      "const": false,
+      "title": "Playback Performed",
+      "type": "boolean"
+    },
+    "protocol_execution_performed": {
+      "const": false,
+      "title": "Protocol Execution Performed",
+      "type": "boolean"
+    },
+    "protocol_id": {
+      "title": "Protocol Id",
+      "type": "string"
+    },
+    "protocol_plan_receipt_sha256": {
+      "pattern": "^[0-9a-f]{64}$",
+      "title": "Protocol Plan Receipt Sha256",
+      "type": "string"
+    },
+    "protocol_raw_sha256": {
+      "pattern": "^[0-9a-f]{64}$",
+      "title": "Protocol Raw Sha256",
+      "type": "string"
+    },
+    "reassembly_id": {
+      "pattern": "^[A-Za-z0-9_-]+$",
+      "title": "Reassembly Id",
+      "type": "string"
+    },
+    "reassembly_index": {
+      "exclusiveMinimum": 0,
+      "title": "Reassembly Index",
+      "type": "integer"
+    },
+    "recording_performed": {
+      "const": false,
+      "title": "Recording Performed",
+      "type": "boolean"
+    },
+    "run_id": {
+      "pattern": "^[A-Za-z0-9_-]+$",
+      "title": "Run Id",
+      "type": "string"
+    },
+    "run_mode": {
+      "const": "development",
+      "title": "Run Mode",
+      "type": "string"
+    },
+    "safety_marker": {
+      "const": "SYNTHETIC_PROTOCOL_EXECUTION_NOT_AN_EXPERIMENTAL_RESULT",
+      "title": "Safety Marker",
+      "type": "string"
+    },
+    "scenario_normalized_sha256": {
+      "pattern": "^[0-9a-f]{64}$",
+      "title": "Scenario Normalized Sha256",
+      "type": "string"
+    },
+    "scenario_raw_sha256": {
+      "pattern": "^[0-9a-f]{64}$",
+      "title": "Scenario Raw Sha256",
+      "type": "string"
+    },
+    "scenario_reference": {
+      "title": "Scenario Reference",
+      "type": "string"
+    },
+    "schedule_sha256": {
+      "pattern": "^[0-9a-f]{64}$",
+      "title": "Schedule Sha256",
+      "type": "string"
+    },
+    "schema_version": {
+      "const": "1.0.0",
+      "title": "Schema Version",
+      "type": "string"
+    },
+    "selected_modules": {
+      "items": {
+        "type": "string"
+      },
+      "title": "Selected Modules",
+      "type": "array"
+    },
+    "selected_nodes": {
+      "items": {
+        "type": "string"
+      },
+      "title": "Selected Nodes",
+      "type": "array"
+    },
+    "session_id": {
+      "pattern": "^[A-Za-z0-9_-]+$",
+      "title": "Session Id",
+      "type": "string"
+    },
+    "session_index": {
+      "exclusiveMinimum": 0,
+      "title": "Session Index",
+      "type": "integer"
+    },
+    "shared_clock_verified": {
+      "const": false,
+      "title": "Shared Clock Verified",
+      "type": "boolean"
+    },
+    "source_ess_artifact_id": {
+      "title": "Source Ess Artifact Id",
+      "type": "string"
+    },
+    "source_ess_metadata_sha256": {
+      "pattern": "^[0-9a-f]{64}$",
+      "title": "Source Ess Metadata Sha256",
+      "type": "string"
+    },
+    "source_ess_raw_float32_sha256": {
+      "pattern": "^[0-9a-f]{64}$",
+      "title": "Source Ess Raw Float32 Sha256",
+      "type": "string"
+    },
+    "source_ess_wav_sha256": {
+      "pattern": "^[0-9a-f]{64}$",
+      "title": "Source Ess Wav Sha256",
+      "type": "string"
+    },
+    "state_transition_trace": {
+      "items": {
+        "$ref": "#/$defs/StateTransitionRecord"
+      },
+      "title": "State Transition Trace",
+      "type": "array"
+    },
+    "synthetic_capture_performed": {
+      "const": true,
+      "title": "Synthetic Capture Performed",
+      "type": "boolean"
+    },
+    "synthetic_config_normalized_sha256": {
+      "pattern": "^[0-9a-f]{64}$",
+      "title": "Synthetic Config Normalized Sha256",
+      "type": "string"
+    },
+    "synthetic_config_raw_sha256": {
+      "pattern": "^[0-9a-f]{64}$",
+      "title": "Synthetic Config Raw Sha256",
+      "type": "string"
+    },
+    "synthetic_ir_raw_sha256": {
+      "pattern": "^[0-9a-f]{64}$",
+      "title": "Synthetic Ir Raw Sha256",
+      "type": "string"
+    },
+    "synthetic_response_formula_id": {
+      "const": "transparent_round_trip_delay_and_relative_aperture_coupling",
+      "title": "Synthetic Response Formula Id",
+      "type": "string"
+    },
+    "synthetic_response_formula_version": {
+      "const": "1.0.0",
+      "title": "Synthetic Response Formula Version",
+      "type": "string"
+    },
+    "virtual_duplex_scheduler_exercised": {
+      "const": true,
+      "title": "Virtual Duplex Scheduler Exercised",
+      "type": "boolean"
+    },
+    "work_order_sha256": {
+      "pattern": "^[0-9a-f]{64}$",
+      "title": "Work Order Sha256",
+      "type": "string"
+    }
+  },
+  "required": [
+    "schema_version",
+    "execution_id",
+    "plan_id",
+    "compiled_plan_sha256",
+    "protocol_plan_receipt_sha256",
+    "schedule_sha256",
+    "work_order_sha256",
+    "experiment_stage",
+    "global_planned_ordinal",
+    "session_index",
+    "reassembly_index",
+    "condition_block_order",
+    "continuous_repeat_index",
+    "condition_id",
+    "condition_role",
+    "condition_node_state_sha256",
+    "node_states",
+    "selected_nodes",
+    "selected_modules",
+    "session_id",
+    "reassembly_id",
+    "run_id",
+    "capture_id",
+    "data_origin",
+    "run_mode",
+    "backend_id",
+    "backend_version",
+    "scenario_reference",
+    "scenario_raw_sha256",
+    "scenario_normalized_sha256",
+    "bundle_content_sha256",
+    "device_manifest_sha256",
+    "protocol_id",
+    "protocol_raw_sha256",
+    "synthetic_config_raw_sha256",
+    "synthetic_config_normalized_sha256",
+    "synthetic_response_formula_id",
+    "synthetic_response_formula_version",
+    "synthetic_ir_raw_sha256",
+    "manifest_node_delay_samples",
+    "manifest_module_node_weights",
+    "source_ess_artifact_id",
+    "source_ess_metadata_sha256",
+    "source_ess_wav_sha256",
+    "source_ess_raw_float32_sha256",
+    "ess_sample_count",
+    "capture_tail_sample_count",
+    "capture_sample_count",
+    "block_size_frames",
+    "planned_block_count",
+    "actual_block_count",
+    "last_block_frame_count",
+    "output_shape",
+    "input_shape",
+    "output_dtype",
+    "input_dtype",
+    "output_raw_float32_sha256",
+    "input_raw_float32_sha256",
+    "output_wav_sha256",
+    "input_wav_sha256",
+    "block_trace",
+    "state_transition_trace",
+    "fault_counters",
+    "final_state",
+    "all_finite",
+    "create_only",
+    "immutable",
+    "synthetic_capture_performed",
+    "virtual_duplex_scheduler_exercised",
+    "development_synthetic_run",
+    "physical_operator_confirmation_performed",
+    "operator_confirmation_status",
+    "formal_protocol_execution_performed",
+    "protocol_execution_performed",
+    "measurement_performed",
+    "hardware_io_performed",
+    "playback_performed",
+    "recording_performed",
+    "hardware_ready",
+    "full_duplex_verified",
+    "shared_clock_verified",
+    "channel_mapping_verified",
+    "calibration_file_verified",
+    "calibration_applied",
+    "absolute_spl_calibrated",
+    "electrical_loopback_available",
+    "formal_eligible",
+    "experimental_result",
+    "safety_marker"
+  ],
+  "title": "PlanBoundSyntheticCaptureReceipt",
+  "type": "object"
+}
