@@ -704,3 +704,80 @@
 - DEV-05.03R2-09（保护哈希、文档和提交前审计）：同步 README 与 `protocol-synthetic-execution.md`，明确 durable evidence 优先、无法验证 false、normalized structural marker、cleanup 不掩盖 publication、stale lock/read-only 不自动清理及 hash-chain 限制；创建 `docs/reports/DEV-05.03R2.md`。Stage 1 首工作项公共 init→execute 烟雾 `1 passed in 1.33s`，直接复算 manifest/event/capture receipt/run record 为 `9c311a5ffeb739f7d15cf5cc936637de83273406ac4538fdb2984367bace6331` / `9a271886ccb9d6892c3f93b03d9fb1bc10e4dc2db946c5d9422f25e9d5f9eddc` / `e7a3574d2476e29984733455ffae53f0d5e70601b503d4449a373cdff0513ef4` / `47881cf1a563355a952793499ce6639e09d9702e4e39d831466af1f372bbff17`。ZIP/manifest/inventory/context/summary/contextual-preflight/hardware 七项 SHA 均精确保持提示词值；DEV-05.03/05.03R/05.03R2 prompts 分别为 34647/19199/22639 bytes，SHA `ea9a9a44065254bcf8669ccf12f4ebbe1d97aac7fb60966c2e6c4ee9f1a4ea29` / `48e9af1e92268778112565aead578bec76b87b861c61bf372344ca6b5fd3d0f9` / `f74c5c9ed600bddef5cde1f187164360690ab98d63021d2e864e25ce1437b9d2`。191352-byte log 冻结前缀逐字节保持，SHA `ab6f85b5b95bffc5f12f7b4678a39992ea2e976fc2f01ebb5352888ffb0fb9aa`。全部 `.r532*` 与 `.audit532` 根先解析并验证为 workspace 直属精确目标后删除，最终不存在；未删除其他路径。
 - DEV-05.03R2-10（完成报告与提交前状态）：实际创建/修改范围为 `.gitattributes`、README、执行协调器、既有 publication-error 测试、新 lock-cleanup 测试、prompt/report/architecture/log；未改公共模型、CLI、Schema、计划、配置、fixture、reference 或音频/DSP 层。已执行提示词要求的 Git baseline/fetch/ls-remote/操作标记/指令扫描、prompt byte-copy/hash/log freeze、两个真实 RED、逐片 GREEN、组合/readonly/stale/concurrency/tamper、定向/DEV-05/完整 pytest、Ruff/mypy/Schema/diff/scan/hash及精确临时根清理。未执行设备枚举/连接/播放/录音/Stream/校准/SPL/shared-clock/loopback或 DEV-06.01。本条落盘时 commit/push 尚未发生，不能在提交自身预写 SHA；下一步仅允许文档后轻量门禁、远端仍为基线的 fetch/ls-remote、staged diff 审计、唯一普通提交和 push，实际 SHA/远端一致性在提交后核验与最终回复报告。
 - DEV-05.03R2-10 文档后轻量门禁：清理全部测试根并落盘报告/日志后，Ruff format 为 `168 files already formatted`、lint PASS、strict mypy 66 source files PASS、Schema consistency PASS、`git diff --check` PASS；changed code/test suppression 扫描 0，任务临时根扫描 0。此前 `176 files` 是测试临时根仍存在时真实执行的全目录计数，保留为当时记录但不作为最终清理后计数。完整 suite 之后未再修改生产逻辑或测试，只修改报告/日志中的实际审计结果。
+
+## DEV-06.01：计划绑定的离线分析数据集与防泄漏测量矩阵
+
+### DEV-06.01-00 — 仓库、远程、工作区与项目指令检查
+
+- 实际状态/时间：PASS，2026-08-20 16:52:07 +01:00；真实仓库根 `D:/Bristol course/extra try for fingers/program`，分支 `main`，工作区开始时干净，无 merge/rebase/cherry-pick/revert/bisect 状态。
+- 实际输入/命令：读取 Git root/status/branch/HEAD/origin/main/title/remote，递归扫描 `AGENTS.md`、`CLAUDE.md`、`CODEX.md`、`.agents/**`、`.codex/**`；普通 `git fetch origin main` 后读取 origin/main，并用 `git ls-remote origin refs/heads/main` 查询 GitHub。
+- 真实结果：local HEAD、origin/main、GitHub main 均为 `e8edafac3e78f1ddff76818d2c0a3e1031f79a40`，标题 `DEV-05.03R2: preserve durable evidence across lock cleanup`，remote 为 `https://github.com/haocheng26710/fingers.git`；未发现项目级指令文件或未知冲突。
+- 修改/测试/哈希/临时目录：本序列执行时未修改文件、未运行测试、未创建临时目录；基线满足进入下一序列。未访问、枚举或操作真实音频硬件，未实施 DEV-06.02。
+
+### DEV-06.01-01 — 提示词归档与日志冻结
+
+- 实际状态/时间：PASS，2026-08-20 16:52:07 +01:00。
+- 实际输入/命令：读取 attachment `C:\Users\Firefly\.codex\attachments\ce5ffd5f-0faf-4f76-bed4-e8536a7dcfa2\pasted-text.txt` 原始字节；计算 byte count、LF/CRLF、末尾换行与 SHA256；用 `Copy-Item` byte-exact 复制到 `docs/prompts/DEV-06.01.md`，再用 `SequenceEqual` 验证；完整读取 TDD skill 及 tests/mocking/deep-modules/interface-design/refactoring 直接指南。
+- 真实结果：来源与归档均为 38674 bytes、1332 CRLF、0 lone LF、无末尾换行，SHA256 `731683abb9c3fb983c39c462f420d06c9e76d3666e85e9681008de0fb561ef54`，`SequenceEqual=True`；`.gitattributes` 加入 binary 规则。
+- 日志冻结：首次追加前 `docs/IMPLEMENTATION_LOG.md` 为 202796 bytes，SHA256 `af4412e920ab2204b4e136f828976d47b328e0b18408751aaa625a47bdd54f57`，该完整内容冻结为只追加前缀。
+- 修改/测试/临时目录/限制：修改 `.gitattributes` 和日志，新增 prompt 归档；尚未修改源码或测试、未运行产品测试、未创建测试临时根。后续按公共接口纵向 RED→最小 GREEN，不 mock 自有模块；未执行硬件操作、模型训练、分类、阈值或 DEV-06.02。
+
+### DEV-06.01-02 — analysis spec、source capability 与既有 processing/QC 适配
+
+- 新增 `config/analysis/development_measurement_matrix.yaml` 与 strict loader，绑定原始 AnalysisConfig raw/normalized hash、固定 500–8000 Hz、关闭 smoothing/threshold/model/seed，并固定 16 feature IDs 与两种 split。首次 RED 命令 `pytest tests/dev06/test_analysis_spec.py --basetemp=.d601r1 -q` 因 `acoustic_ladder.analysis` 不存在而 collection error；最小实现后原选择器 `1 passed in 0.17s`。
+- 新增一次性 `ValidatedSyntheticAnalysisSources` capability：每个 execution 公共完整 validator 只调用一次，拒绝 incomplete/recovery/lock/staging/real-root/foreign session/run，再把每行绑定到已验证 work order/capture。首次 RED `.d601r2` 因模块缺失 collection error，GREEN `.d601g2` 为 `1 passed in 1.25s`。
+- `process_validated_analysis_row` 只接受 capability 内行，复用既有 ESS artifact/WAV decode、`process_ess_waveforms` 与 `compute_provisional_qc_metrics`，不创建历史 processing/QC child envelope。Stage 2 全32行先完成 execution 后的 RED `.d601r3` 为模块缺失，GREEN `.d601g3` 为 `1 passed in 13.89s`；QC/threshold 状态保持 `not_evaluated/false`。
+
+### DEV-06.01-03 — 独立 feature Oracle、344 行标签、BLK 基线与 split
+
+- 纯 feature kernel RED `.d601r4` 因模块缺失；GREEN `.d601g4` 为 `2 passed in 0.28s`。测试内手写复数 transfer/IR 与 expected，覆盖算术均值、additive/ratio/magnitude/phase/IR、列序和 invalid denominator；未调用被测函数生成 expected。
+- 计划派生行 RED `.d601r5` 因模块缺失；首次 GREEN 暴露合法 Stage 1 all-BLK 行 `selected_nodes=()`，得到 `1 failed in 1.26s`，随后保留空 selected 列并新增完整 NodeState map/digest 后 `1 passed in 1.22s`。最终实际 344 行，Stage counts 152/32/32/128，无重复 row ID；每个 stage/session/reassembly 组两个 all-BLK repeat，candidate 用二者均值，baseline row leave-one-repeat-out，反转输入引用映射相同。
+- split RED `.d601r6` 因模块缺失，GREEN `.d601g6` 为 `1 passed in 1.45s`：逐 stage 共24 folds（8 leave-one-session-out、16 leave-one-reassembly-out），每行每 strategy 恰好测试一次，train/test row/group 零交集且反转输入结果相同。
+- matrix assembly RED `.d601r7` 因模块缺失，GREEN `.d601g7` 为 `1 passed in 0.38s`；保留 full raw/aligned source/baseline/difference/validity arrays 和 finite float64 `(row,16)` feature matrix，标签/QC 不进入 feature matrix。
+
+### DEV-06.01-04 — exact 15-file immutable publication 与 read-only replay
+
+- 公共 compute 路径逃逸 RED `.d601r8` 因 persistence 模块缺失，最小 safe-ID/root-confined gate 后 `1 passed in 0.35s`；partial/stale-lock/read-only RED `.d601r9` 因 validator 缺失，加入 exact envelope gate 后两项 `2 passed in 0.51s`。
+- 完整实现使用独立 synthetic analysis root 下 `analyses/analysis_<id>/`，固定 source-binding/row-index/feature-schema/split-plan/NPZ/receipt sidecars、metadata/record/completion 共15项；同文件系统 staging、create-only lock、completion last、no-replace rename。cleanup 普通异常归一化，原 BaseException 不吞；validator 不创建/清理/修复，重新验证 sources 并重做344行处理、基线、features、splits、NPZ和全部 canonical bytes。
+- DEV-06 初版完整组 `10 passed in 15.32s`，格式化前 Ruff 真实报告7个文件、lint 24项、strict mypy 41项；机械 format/import、Literal cast 与 strict `model_validate` state builder 修正后 analysis 18 files format、Ruff和strict mypy 10 source files均PASS，DEV-06重跑 `10 passed in 16.17s`。
+
+### DEV-06.01-05 — Stage 1–4 双根完整矩阵验收
+
+- 将 analysis 接入既有 Stage 1–4 双根完成测试，直接复用该测试创建的两套 execution roots，不生成第三套。左根 source 正序、右根反序；每根 compute 344 行并各自 full read-only validate，exact 15-file trees逐字节相同、receipt相同、rows excluded 0、model/hardware false，validator前后树相同。
+- 首轮实际命令 `pytest tests/dev05/test_synthetic_protocol_execution_full.py --basetemp=.d601full -q` 得到 `1 passed in 867.95s (0:14:27)`；无失败或内存/路径问题。随后在同一测试追加 existing target、stale analysis lock 保留和 receipt tamper 拒绝断言，这些新增断言尚待下一次该完整选择器/完整 suite 实跑，不能以首轮结果冒充。
+
+### DEV-06.01-06 — CLI、Schema 与文档阶段状态
+
+- 新增 `analysis-matrix-compute/validate`；CLI 只接收四组 bundle/plan/execution/session-root/ESS source 和 analysis spec/root/ID，不接收派生 row/baseline/feature/fold。输出 receipt 派生的 row/stage/feature/fold/hashes 与所有安全状态。
+- 新增并导出7个 strict Schema：development spec、source binding、measurement row、feature column schema、split fold/plan、analysis receipt。首次误用 `python -m acoustic_ladder.cli` 无输出且未导出；随后真实 executable 的 `--check` 正确报7个 missing/stale，执行 export 后 `PASS exported 47 schemas`、`PASS schema consistency`，Schema目录48项；仅机械更新历史数量断言 40→47、41→48。
+- 一次组合 pytest 误写不存在 selector `test_committed_generated_schemas_are_current`，得到 no tests ran，未计PASS；再次仍误写 `test_committed_schemas_are_current`，同样未计PASS；查阅实际函数名后命令 `tests/dev06 + test_schema_export_contains_all_active_models + provisional QC schema selector` 得到 `12 passed in 15.16s`。
+- 已同步 README、data root、storage layout、protocol execution 下游关系，并新增 `synthetic-measurement-matrix.md`；明确344行、同组BLK/LOO、24 folds、16 development features、无模型/阈值/QC判决/硬件/实验结论及DEV-06.02未实施。本条时完整suite、保护hash、最终扫描、报告、提交与push尚未执行。
+
+### DEV-06.01-07 — 增强双根、locked/golden 与完整 suite
+
+- 增强后的 Stage 1–4 双根命令 `pytest tests/dev05/test_synthetic_protocol_execution_full.py --basetemp=.d601full2 -q` 得到 `1 passed in 830.36s (0:13:50)`；在首轮双根相同/各自validate/tree不写回外，进一步证明已有 complete target 拒绝、stale analysis lock 拒绝且字节保留、receipt 将首个 `344` 改为 `343` 后 full replay 拒绝。无覆盖、自动清理或修复。
+- 首批10个 `.d601*` 根先逐项输出绝对路径并验证父目录精确等于workspace后，以PowerShell `Remove-Item -LiteralPath -Recurse -Force` 删除，`removed=10 remaining=0`；删除内容不可恢复但由日志命令可复刻，未删除其他路径。
+- locked/golden 命令选择 ESS smoke、DEV-04.01R2 processing、DEV-04.02 processing protection 与完整 rehearsal，得到 `4 passed in 880.22s (0:14:40)`；前三项先输出三个点，慢 rehearsal完成后第四点。完整 suite `pytest --basetemp=.d601all -q` 得到 `892 passed in 2533.53s (0:42:13)`，起始882项全部保留并新增10项，无skip/xfail摘要。
+
+### DEV-06.01-08 — 最终静态、扫描、哈希与报告
+
+- 完整suite后全仓 Ruff format `197 files already formatted`、lint PASS、strict mypy `76 source files` PASS、Schema consistency PASS、`git diff --check` PASS。changed/new tests 的 skip/skipif/xfail/pytest.skip/warning suppression/noqa/type-ignore 为0；新增analysis/config/test/architecture文件 U+FFFD、本机绝对路径、credential prefix、secret assignment均0；production新增diff中的 sounddevice/query_devices/Input/OutputStream/play/record/calibration API为0。
+- 第一次合并扫描命令因PowerShell把正则中的pipe解析为管道而出现 `ParserError: An empty pipe element is not allowed`，未计PASS；拆分并使用安全单引号正则后上述扫描全部真实为0。
+- 直接复算ZIP/manifest/inventory/context/summary/contextual-preflight/hardware依次保持 `1bf3cc17a46cac8552b8eb80d543cec5880afef7f8c716fd8f029636899d688b` / `bd69f27305681e6552e61d402571300c2eea340a6d7878dc2b93531c8b6608b0` / `8a68d714a86fa8228e17b7f751da8060c558f79f881fb55994e5130caf199de2` / `10472424e35958bc6cef156fe8b48c9b927f13b041414b2125b53dbec7d5e67c` / `84879af2f2229bbbd4511b0f6985db6adedc6b9e2764262721bebec71756a159` / `e47678644a36ddc7d4e8d1fad06ba0cb0ec3a02a179de2816d2d8ba767e35e15` / `013fd2b10df23569a8998dad1c36fa5793146df29fdb4fa19210d26bbe3c0ac1`；locked ESS WAV/metadata/raw保持 `608311700bb64350c9eecc428fb78e1e82d30edea404dbb9d6d3a79b38c422e0` / `e581731a06f0951594f73f5d62c7b1d8291027cb64973723a045f92e05d1c25a` / `eabd87614dd0d204ee948b13561298c879539af82258809f1d35dc5ed8ac70ca`。
+- Prompt再次验证 `SequenceEqual=True`、38674 bytes、SHA `731683abb9c3fb983c39c462f420d06c9e76d3666e85e9681008de0fb561ef54`；log 202796-byte冻结前缀SHA保持 `af4412e920ab2204b4e136f828976d47b328e0b18408751aaa625a47bdd54f57`。
+- 从完整suite左根读取正式 payload hashes：source aggregate `39640ff09910541ba09f56e08a388ce161602d6dbc867a7eecb850745db96893`、binding `38bf3c2cde3b8f49b08e7952aa63135ea6c272298738e51dc6af79726c367699`、row index `229c3f96d7976c9a95adbe7847a4f0d88e947f722d5cd63b3fd31f3b548c5d78`、feature schema `3d7858e931dd8938b9ebc269d0f84a5f3fae1a685cd150e66f083dfd76bd27c1`、split `02e606080c599d6ea3ae5563a6a9a80f6603af87f862e46b6dd50eccb799df1b`、1,126,675,730-byte NPZ `9529e178c2a719ad473137681fc209ef3597f1a538c682dd0e4f5d40d9387a93`、receipt `1051a137bbe8108ab1ba7d448a049d3310454c1f54384eb2a780a98856f28cc6`；左右 binding/NPZ hash相同、各15项。一次PowerShell泛型 `SequenceEqual[string]` 调用重载错误，未计通过；改用 `Compare-Object` 后 `name_diff_count=0`，测试自身已在tamper前逐字节断言完整tree相同。
+- 创建 `docs/reports/DEV-06.01.md`，记录目标、API/Schema、exact envelope、16 features、344行、24 folds、双根hash、测试/静态/保护、失败修正、文件与限制。未访问/枚举/连接/播放/录音/校准真实设备，未实施DEV-06.02。本条落盘时 `.d601all/.d601gold` 尚待精确清理，commit/push尚未发生且未预写SHA。
+
+### DEV-06.01-09 — reparse 根闭环与最终生产代码 suite
+
+- 最终差异审计发现 `SyntheticMeasurementMatrixStore` 构造时先 `.resolve()` 会跟随 supplied symlink/junction，虽resolved containment仍成立，但不满足提示词显式拒绝reparse root。新增与既有 execution/rehearsal一致的 `st_file_attributes & FILE_ATTRIBUTE_REPARSE_POINT` 检查：supplied root、analysis root、target与15个entry均拒绝symlink/reparse。该修正后 Ruff/mypy定向PASS，DEV-06 `10 passed in 19.25s`。
+- 因生产代码在完整suite后变化，没有沿用旧结果；重新执行 `pytest --basetemp=.d601all2 -q`，最终 `892 passed in 2469.87s (0:41:09)`，这是最终代码的权威完整suite结果，无skip/xfail摘要。
+- `.d601all/.d601gold` 第一次精确删除在30秒wrapper内未返回最终行，但后台原PowerShell最终删除完成；复核时二者已不存在。第二条重复删除命令如实得到两个 `Get-Item Cannot find path`、`removed=0 remaining=0`，未把错误冒充清理动作。最终代码suite后 `.d601all2/.d601post` 先列出并验证为workspace直属精确目标，再删除得到 `removed=2 remaining=0`。所有DEV-06测试根最终absent。
+- 报告补充最终reparse语义和最终suite。本条落盘时尚待文档后轻量静态、prompt/log前缀复核、远程基线fetch/ls-remote、完整diff/staged审计、提交和普通push。
+
+### DEV-06.01-10 — 文档后门禁、远程复核与提交前状态
+
+- 最终报告/日志/reparse修正后轻量门禁：Ruff format `189 files already formatted`、lint PASS、strict mypy 76 source files PASS、Schema consistency PASS、`git diff --check` PASS；prompt `SequenceEqual=True`/38674 bytes，log冻结前缀SHA保持，task temp roots=0。新增测试函数实际10个，完整suite最终892项。
+- 首次普通 `git fetch origin main` 与 `git ls-remote` 在受限sandbox内因 `Failed to connect to github.com:443` 失败，未计远程验证；随后按执行环境要求用同一非force命令获得网络授权，fetch成功且GitHub main仍为 `e8edafac3e78f1ddff76818d2c0a3e1031f79a40`。本地HEAD与origin/main亦为同一基线，branch main、remote正确。
+- 最终文件范围为新增analysis配置/10个source模块/7个Schema/8个DEV-06测试文件/prompt/report/architecture，以及CLI/Schema registry/README/data/storage/protocol doc、完整双根测试和两处纯Schema数量断言；log仅追加。无删除文件，protected reference/config/device/history diff为空，无WAV/NPZ/cache/lock/staging/test roots待提交。
+- 本条落盘时尚未执行 `git add`、commit或push，故没有预写提交SHA。下一步仅允许staged diff审计、最终轻量check、唯一普通提交 `DEV-06.01: add plan-bound synthetic measurement matrices`、普通push与fetch/三端一致性复核。

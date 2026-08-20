@@ -11,6 +11,14 @@ from pathlib import Path
 from pydantic import ValidationError
 
 from acoustic_ladder import __version__
+from acoustic_ladder.analysis.models import AnalysisSourceBinding
+from acoustic_ladder.analysis.persistence import (
+    SyntheticMeasurementMatrixStore,
+    compute_synthetic_measurement_matrix,
+    validate_synthetic_measurement_matrix,
+)
+from acoustic_ladder.analysis.source_validation import AnalysisExecutionSource
+from acoustic_ladder.analysis.spec import load_development_analysis_matrix_spec
 from acoustic_ladder.audio.backend import SoundDeviceInventoryBackend
 from acoustic_ladder.audio.baseline_difference_models import RepeatabilitySourceIdentity
 from acoustic_ladder.audio.baseline_difference_persistence import (
@@ -191,6 +199,65 @@ def _audio_safety_marker() -> None:
     print("NO_AUDIO_PLAYBACK_OR_RECORDING_PERFORMED")
 
 
+def _analysis_sources(args: argparse.Namespace) -> tuple[AnalysisExecutionSource, ...]:
+    root = Path(args.project_root).resolve()
+    fields = (
+        args.protocol,
+        args.plan_spec,
+        args.development_plan_root,
+        args.development_execution_root,
+        args.source_synthetic_root,
+        args.execution_id,
+        args.plan_id,
+        args.ess_artifact_root,
+    )
+    if any(len(values) != 4 for values in fields):
+        raise ValueError("analysis matrix requires exactly four values for every stage source")
+    scenario_path = Path(args.scenario)
+    if not scenario_path.is_absolute():
+        scenario_path = root / scenario_path
+    scenario = load_conditioned_virtual_capture_scenario(scenario_path, project_root=root)
+    sources: list[AnalysisExecutionSource] = []
+    for index in range(4):
+        bundle = load_bundle(
+            project_root=root,
+            manifest_path=root / args.manifest,
+            manifest_sidecar_path=root / args.manifest_sidecar,
+            audio_path=root / args.audio,
+            protocol_path=root / args.protocol[index],
+            analysis_path=root / args.analysis,
+            synthetic_path=root / args.synthetic,
+            now=_now,
+        )
+        spec = load_development_protocol_plan_spec(
+            root / args.plan_spec[index], project_root=root, bundle=bundle
+        )
+        synthetic_root = Path(args.source_synthetic_root[index]).resolve()
+        sources.append(
+            AnalysisExecutionSource(
+                store=DevelopmentSyntheticProtocolExecutionStore(
+                    Path(args.development_execution_root[index]).resolve()
+                ),
+                session_store=ImmutableSessionStore(
+                    DataRoots(
+                        synthetic=synthetic_root,
+                        real=synthetic_root.parent / ".real_root_unavailable_to_analysis_cli",
+                    )
+                ),
+                plan_store=DevelopmentProtocolPlanStore(
+                    Path(args.development_plan_root[index]).resolve()
+                ),
+                bundle=bundle,
+                spec=spec,
+                plan_id=args.plan_id[index],
+                execution_id=args.execution_id[index],
+                scenario=scenario,
+                ess_artifact_root=Path(args.ess_artifact_root[index]).resolve(),
+            )
+        )
+    return tuple(sources)
+
+
 def _parser() -> argparse.ArgumentParser:
     parser = argparse.ArgumentParser(prog="acoustic-ladder")
     commands = parser.add_subparsers(dest="command", required=True)
@@ -293,6 +360,29 @@ def _parser() -> argparse.ArgumentParser:
             execution.add_argument("--expected-recovery-run-id")
         if command_name == "synthetic-protocol-execution-abort":
             execution.add_argument("--reason-code", required=True)
+
+    for command_name in ("analysis-matrix-compute", "analysis-matrix-validate"):
+        matrix = commands.add_parser(command_name)
+        matrix.add_argument("--project-root", default=".")
+        matrix.add_argument("--manifest", default="config/devices/device_manifest.provisional.json")
+        matrix.add_argument(
+            "--manifest-sidecar", default="config/devices/device_manifest.provisional.sha256"
+        )
+        matrix.add_argument("--audio", required=True)
+        matrix.add_argument("--analysis", default="config/analysis/default.yaml")
+        matrix.add_argument("--synthetic", default="config/synthetic/default.yaml")
+        matrix.add_argument("--protocol", action="append", required=True)
+        matrix.add_argument("--plan-spec", action="append", required=True)
+        matrix.add_argument("--development-plan-root", action="append", required=True)
+        matrix.add_argument("--development-execution-root", action="append", required=True)
+        matrix.add_argument("--source-synthetic-root", action="append", required=True)
+        matrix.add_argument("--execution-id", action="append", required=True)
+        matrix.add_argument("--plan-id", action="append", required=True)
+        matrix.add_argument("--ess-artifact-root", action="append", required=True)
+        matrix.add_argument("--scenario", required=True)
+        matrix.add_argument("--development-analysis-spec", required=True)
+        matrix.add_argument("--analysis-root", required=True)
+        matrix.add_argument("--analysis-id", required=True)
 
     session = commands.add_parser("create-synthetic-session")
     _add_bundle_arguments(session)
@@ -1273,6 +1363,58 @@ def main(argv: list[str] | None = None) -> None:
         print("THRESHOLDS_NOT_APPLIED")
         print("NO_HARDWARE_AUDIO_IO_PERFORMED")
         print("NOT_AN_EXPERIMENTAL_RESULT")
+        return
+    if args.command in {"analysis-matrix-compute", "analysis-matrix-validate"}:
+        project_root = Path(args.project_root).resolve()
+        matrix_spec_path = Path(args.development_analysis_spec)
+        if not matrix_spec_path.is_absolute():
+            matrix_spec_path = project_root / matrix_spec_path
+        matrix_spec = load_development_analysis_matrix_spec(
+            matrix_spec_path, project_root=project_root
+        )
+        sources = _analysis_sources(args)
+        matrix_store = SyntheticMeasurementMatrixStore(Path(args.analysis_root).resolve())
+        arguments = {
+            "store": matrix_store,
+            "sources": sources,
+            "analysis_spec": matrix_spec,
+            "analysis_id": args.analysis_id,
+        }
+        if args.command == "analysis-matrix-compute":
+            published_matrix = compute_synthetic_measurement_matrix(**arguments, now=_now)
+            label = "PASS synthetic analysis matrix"
+        else:
+            published_matrix = validate_synthetic_measurement_matrix(**arguments)
+            label = "PASS synthetic analysis matrix validation"
+        matrix_receipt = published_matrix.receipt
+        binding = AnalysisSourceBinding.model_validate_json(
+            (Path(published_matrix.analysis_path) / "analysis_source_binding.json").read_bytes()
+        )
+        print(
+            f"{label}: analysis_path={published_matrix.analysis_path} "
+            f"analysis_id={published_matrix.analysis_id} "
+            f"source_execution_ids={','.join(item.execution_id for item in binding.executions)} "
+            "source_execution_completion_sha256="
+            f"{','.join(item.execution_completion_sha256 for item in binding.executions)} "
+            f"row_count={matrix_receipt.measurement_row_count} "
+            f"stage_counts=152,32,32,128 feature_count={matrix_receipt.feature_count} "
+            "split_strategies=leave_one_session_out,leave_one_reassembly_out "
+            "fold_counts=8,16 "
+            f"source_binding_sha256={matrix_receipt.analysis_source_binding_sha256} "
+            f"row_index_sha256={matrix_receipt.measurement_row_index_sha256} "
+            f"feature_schema_sha256={matrix_receipt.feature_schema_sha256} "
+            f"split_plan_sha256={matrix_receipt.split_plan_sha256} "
+            f"matrix_npz_sha256={matrix_receipt.measurement_matrix_npz_sha256} "
+            f"receipt_sha256={published_matrix.receipt_sha256}"
+        )
+        print(f"rows_excluded={matrix_receipt.rows_excluded}")
+        print(f"thresholds_applied={str(matrix_receipt.thresholds_applied).lower()}")
+        print(f"model_fit_performed={str(matrix_receipt.model_fit_performed).lower()}")
+        print(f"classification_performed={str(matrix_receipt.classification_performed).lower()}")
+        print(f"hardware_io_performed={str(matrix_receipt.hardware_io_performed).lower()}")
+        print(f"formal_eligible={str(matrix_receipt.formal_eligible).lower()}")
+        print(f"experimental_result={str(matrix_receipt.experimental_result).lower()}")
+        print(f"safety_marker={matrix_receipt.safety_marker}")
         return
     if args.command in {"validate-config", "config-hash"}:
         root = Path(args.project_root).resolve()

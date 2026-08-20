@@ -1,0 +1,139 @@
+{
+  "$defs": {
+    "SplitFold": {
+      "additionalProperties": false,
+      "properties": {
+        "experiment_stage": {
+          "enum": [
+            1,
+            2,
+            3,
+            4
+          ],
+          "title": "Experiment Stage",
+          "type": "integer"
+        },
+        "fold_id": {
+          "pattern": "^[A-Za-z0-9_-]+$",
+          "title": "Fold Id",
+          "type": "string"
+        },
+        "held_out_group_id": {
+          "pattern": "^[A-Za-z0-9_-]+$",
+          "title": "Held Out Group Id",
+          "type": "string"
+        },
+        "strategy": {
+          "enum": [
+            "leave_one_session_out",
+            "leave_one_reassembly_out"
+          ],
+          "title": "Strategy",
+          "type": "string"
+        },
+        "test_group_ids": {
+          "items": {
+            "type": "string"
+          },
+          "minItems": 1,
+          "title": "Test Group Ids",
+          "type": "array"
+        },
+        "test_row_ids": {
+          "items": {
+            "type": "string"
+          },
+          "minItems": 1,
+          "title": "Test Row Ids",
+          "type": "array"
+        },
+        "train_group_ids": {
+          "items": {
+            "type": "string"
+          },
+          "minItems": 1,
+          "title": "Train Group Ids",
+          "type": "array"
+        },
+        "train_row_ids": {
+          "items": {
+            "type": "string"
+          },
+          "minItems": 1,
+          "title": "Train Row Ids",
+          "type": "array"
+        }
+      },
+      "required": [
+        "fold_id",
+        "strategy",
+        "experiment_stage",
+        "held_out_group_id",
+        "train_group_ids",
+        "test_group_ids",
+        "train_row_ids",
+        "test_row_ids"
+      ],
+      "title": "SplitFold",
+      "type": "object"
+    }
+  },
+  "additionalProperties": false,
+  "properties": {
+    "algorithm_version": {
+      "const": "development_grouped_split_v1",
+      "title": "Algorithm Version",
+      "type": "string"
+    },
+    "day_split_used": {
+      "const": false,
+      "title": "Day Split Used",
+      "type": "boolean"
+    },
+    "folds": {
+      "items": {
+        "$ref": "#/$defs/SplitFold"
+      },
+      "minItems": 1,
+      "title": "Folds",
+      "type": "array"
+    },
+    "random_split_used": {
+      "const": false,
+      "title": "Random Split Used",
+      "type": "boolean"
+    },
+    "row_count": {
+      "exclusiveMinimum": 0,
+      "title": "Row Count",
+      "type": "integer"
+    },
+    "schema_version": {
+      "const": "1.0.0",
+      "title": "Schema Version",
+      "type": "string"
+    },
+    "strategies": {
+      "items": {
+        "enum": [
+          "leave_one_session_out",
+          "leave_one_reassembly_out"
+        ],
+        "type": "string"
+      },
+      "title": "Strategies",
+      "type": "array"
+    }
+  },
+  "required": [
+    "schema_version",
+    "algorithm_version",
+    "row_count",
+    "strategies",
+    "folds",
+    "random_split_used",
+    "day_split_used"
+  ],
+  "title": "SplitPlan",
+  "type": "object"
+}

@@ -670,11 +670,11 @@ def test_qc_cli_rejects_forbidden_authority_options(forbidden: str) -> None:
 
 
 def test_provisional_qc_schemas_are_generated_from_active_models() -> None:
-    assert len(ALL_GENERATED_SCHEMA_MODELS) == 40
+    assert len(ALL_GENERATED_SCHEMA_MODELS) == 47
     assert "provisional_qc_metrics.schema.json" in ALL_GENERATED_SCHEMA_MODELS
     assert "provisional_qc_receipt.schema.json" in ALL_GENERATED_SCHEMA_MODELS
     check_schemas(PROJECT_ROOT / "schemas")
-    assert len(list((PROJECT_ROOT / "schemas").glob("*.schema.json"))) == 41
+    assert len(list((PROJECT_ROOT / "schemas").glob("*.schema.json"))) == 48
 
 
 def test_publisher_rejects_non_null_analysis_qc_threshold(tmp_path: Path) -> None:

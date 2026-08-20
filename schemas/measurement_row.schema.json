@@ -1,0 +1,893 @@
+{
+  "$defs": {
+    "IrDifferenceMetrics": {
+      "additionalProperties": false,
+      "properties": {
+        "difference_absolute_peak": {
+          "minimum": 0,
+          "title": "Difference Absolute Peak",
+          "type": "number"
+        },
+        "difference_l2": {
+          "minimum": 0,
+          "title": "Difference L2",
+          "type": "number"
+        },
+        "difference_peak_index": {
+          "minimum": 0,
+          "title": "Difference Peak Index",
+          "type": "integer"
+        },
+        "symmetric_nrmse": {
+          "anyOf": [
+            {
+              "minimum": 0,
+              "type": "number"
+            },
+            {
+              "type": "null"
+            }
+          ],
+          "default": null,
+          "title": "Symmetric Nrmse"
+        },
+        "symmetric_nrmse_status": {
+          "enum": [
+            "computed",
+            "zero_symmetric_norm"
+          ],
+          "title": "Symmetric Nrmse Status",
+          "type": "string"
+        }
+      },
+      "required": [
+        "symmetric_nrmse_status",
+        "difference_l2",
+        "difference_absolute_peak",
+        "difference_peak_index"
+      ],
+      "title": "IrDifferenceMetrics",
+      "type": "object"
+    },
+    "LoadingDirection": {
+      "enum": [
+        "loading",
+        "unloading",
+        "not_applicable",
+        "unknown"
+      ],
+      "title": "LoadingDirection",
+      "type": "string"
+    },
+    "NodeState": {
+      "additionalProperties": false,
+      "properties": {
+        "continuous_value": {
+          "anyOf": [
+            {
+              "type": "number"
+            },
+            {
+              "type": "null"
+            }
+          ],
+          "title": "Continuous Value"
+        },
+        "discrete_label": {
+          "anyOf": [
+            {
+              "type": "string"
+            },
+            {
+              "type": "null"
+            }
+          ],
+          "title": "Discrete Label"
+        },
+        "loading_direction": {
+          "$ref": "#/$defs/LoadingDirection"
+        },
+        "module_id": {
+          "title": "Module Id",
+          "type": "string"
+        },
+        "node_id": {
+          "title": "Node Id",
+          "type": "string"
+        },
+        "notes": {
+          "anyOf": [
+            {
+              "type": "string"
+            },
+            {
+              "type": "null"
+            }
+          ],
+          "title": "Notes"
+        },
+        "provenance": {
+          "anyOf": [
+            {
+              "type": "string"
+            },
+            {
+              "type": "null"
+            }
+          ],
+          "title": "Provenance"
+        },
+        "proxy_state": {
+          "title": "Proxy State",
+          "type": "boolean"
+        },
+        "state_id": {
+          "title": "State Id",
+          "type": "string"
+        },
+        "state_type": {
+          "title": "State Type",
+          "type": "string"
+        },
+        "unit": {
+          "anyOf": [
+            {
+              "type": "string"
+            },
+            {
+              "type": "null"
+            }
+          ],
+          "title": "Unit"
+        }
+      },
+      "required": [
+        "node_id",
+        "state_id",
+        "module_id",
+        "state_type",
+        "discrete_label",
+        "continuous_value",
+        "unit",
+        "loading_direction",
+        "proxy_state",
+        "provenance",
+        "notes"
+      ],
+      "title": "NodeState",
+      "type": "object"
+    },
+    "ProvisionalBaselineDifferenceMetrics": {
+      "additionalProperties": false,
+      "properties": {
+        "aligned_ir": {
+          "$ref": "#/$defs/IrDifferenceMetrics"
+        },
+        "aligned_transfer": {
+          "$ref": "#/$defs/TransferDifferenceMetrics"
+        },
+        "raw_ir": {
+          "$ref": "#/$defs/IrDifferenceMetrics"
+        },
+        "raw_transfer": {
+          "$ref": "#/$defs/TransferDifferenceMetrics"
+        }
+      },
+      "required": [
+        "raw_transfer",
+        "aligned_transfer",
+        "raw_ir",
+        "aligned_ir"
+      ],
+      "title": "ProvisionalBaselineDifferenceMetrics",
+      "type": "object"
+    },
+    "ProvisionalQcMetrics": {
+      "additionalProperties": false,
+      "properties": {
+        "all_required_numeric_values_finite": {
+          "const": true,
+          "title": "All Required Numeric Values Finite",
+          "type": "boolean"
+        },
+        "analysis_band_bin_count": {
+          "exclusiveMinimum": 0,
+          "title": "Analysis Band Bin Count",
+          "type": "integer"
+        },
+        "captured_input": {
+          "$ref": "#/$defs/WaveformQcMetrics"
+        },
+        "estimated_latency_samples": {
+          "minimum": 0,
+          "title": "Estimated Latency Samples",
+          "type": "integer"
+        },
+        "estimated_latency_seconds": {
+          "minimum": 0,
+          "title": "Estimated Latency Seconds",
+          "type": "number"
+        },
+        "input_pre_silence_snr_proxy_db": {
+          "anyOf": [
+            {
+              "type": "number"
+            },
+            {
+              "type": "null"
+            }
+          ],
+          "title": "Input Pre Silence Snr Proxy Db"
+        },
+        "input_pre_silence_snr_proxy_status": {
+          "enum": [
+            "computed",
+            "pre_silence_absent",
+            "zero_pre_silence_rms",
+            "zero_active_sweep_rms"
+          ],
+          "title": "Input Pre Silence Snr Proxy Status",
+          "type": "string"
+        },
+        "ir_dominant_peak_abs": {
+          "exclusiveMinimum": 0,
+          "title": "Ir Dominant Peak Abs",
+          "type": "number"
+        },
+        "ir_dominant_peak_index": {
+          "minimum": 0,
+          "title": "Ir Dominant Peak Index",
+          "type": "integer"
+        },
+        "ir_dominant_peak_value": {
+          "title": "Ir Dominant Peak Value",
+          "type": "number"
+        },
+        "ir_peak_to_second_peak_ratio": {
+          "anyOf": [
+            {
+              "minimum": 0,
+              "type": "number"
+            },
+            {
+              "type": "null"
+            }
+          ],
+          "default": null,
+          "title": "Ir Peak To Second Peak Ratio"
+        },
+        "ir_peak_to_second_peak_ratio_status": {
+          "enum": [
+            "computed",
+            "single_sample_ir",
+            "zero_second_largest_abs"
+          ],
+          "title": "Ir Peak To Second Peak Ratio Status",
+          "type": "string"
+        },
+        "ir_second_largest_abs": {
+          "anyOf": [
+            {
+              "minimum": 0,
+              "type": "number"
+            },
+            {
+              "type": "null"
+            }
+          ],
+          "default": null,
+          "title": "Ir Second Largest Abs"
+        },
+        "matched_correlation_absolute": {
+          "maximum": 1,
+          "minimum": 0,
+          "title": "Matched Correlation Absolute",
+          "type": "number"
+        },
+        "matched_correlation_signed": {
+          "maximum": 1,
+          "minimum": -1,
+          "title": "Matched Correlation Signed",
+          "type": "number"
+        },
+        "output_reference": {
+          "$ref": "#/$defs/WaveformQcMetrics"
+        },
+        "reference_deconvolution_off_peak_rms": {
+          "anyOf": [
+            {
+              "minimum": 0,
+              "type": "number"
+            },
+            {
+              "type": "null"
+            }
+          ],
+          "default": null,
+          "title": "Reference Deconvolution Off Peak Rms"
+        },
+        "reference_deconvolution_peak_abs": {
+          "exclusiveMinimum": 0,
+          "title": "Reference Deconvolution Peak Abs",
+          "type": "number"
+        },
+        "reference_peak_to_off_peak_rms_ratio": {
+          "anyOf": [
+            {
+              "minimum": 0,
+              "type": "number"
+            },
+            {
+              "type": "null"
+            }
+          ],
+          "default": null,
+          "title": "Reference Peak To Off Peak Rms Ratio"
+        },
+        "reference_peak_to_off_peak_rms_ratio_status": {
+          "enum": [
+            "computed",
+            "no_off_peak_samples",
+            "zero_off_peak_rms"
+          ],
+          "title": "Reference Peak To Off Peak Rms Ratio Status",
+          "type": "string"
+        },
+        "schema_version": {
+          "const": "1.0.0",
+          "title": "Schema Version",
+          "type": "string"
+        },
+        "spectral_division_valid_bin_count_in_band": {
+          "minimum": 0,
+          "title": "Spectral Division Valid Bin Count In Band",
+          "type": "integer"
+        },
+        "spectral_division_valid_fraction_in_band": {
+          "maximum": 1,
+          "minimum": 0,
+          "title": "Spectral Division Valid Fraction In Band",
+          "type": "number"
+        },
+        "spectral_division_zeroed_bin_count_in_band": {
+          "minimum": 0,
+          "title": "Spectral Division Zeroed Bin Count In Band",
+          "type": "integer"
+        },
+        "transfer_aligned_finite_bin_count_in_band": {
+          "minimum": 0,
+          "title": "Transfer Aligned Finite Bin Count In Band",
+          "type": "integer"
+        },
+        "transfer_aligned_finite_fraction_in_band": {
+          "maximum": 1,
+          "minimum": 0,
+          "title": "Transfer Aligned Finite Fraction In Band",
+          "type": "number"
+        },
+        "transfer_raw_finite_bin_count_in_band": {
+          "minimum": 0,
+          "title": "Transfer Raw Finite Bin Count In Band",
+          "type": "integer"
+        },
+        "transfer_raw_finite_fraction_in_band": {
+          "maximum": 1,
+          "minimum": 0,
+          "title": "Transfer Raw Finite Fraction In Band",
+          "type": "number"
+        }
+      },
+      "required": [
+        "schema_version",
+        "output_reference",
+        "captured_input",
+        "input_pre_silence_snr_proxy_db",
+        "input_pre_silence_snr_proxy_status",
+        "estimated_latency_samples",
+        "estimated_latency_seconds",
+        "matched_correlation_signed",
+        "matched_correlation_absolute",
+        "ir_dominant_peak_index",
+        "ir_dominant_peak_value",
+        "ir_dominant_peak_abs",
+        "ir_peak_to_second_peak_ratio_status",
+        "reference_deconvolution_peak_abs",
+        "reference_peak_to_off_peak_rms_ratio_status",
+        "analysis_band_bin_count",
+        "spectral_division_valid_bin_count_in_band",
+        "spectral_division_zeroed_bin_count_in_band",
+        "spectral_division_valid_fraction_in_band",
+        "transfer_raw_finite_bin_count_in_band",
+        "transfer_raw_finite_fraction_in_band",
+        "transfer_aligned_finite_bin_count_in_band",
+        "transfer_aligned_finite_fraction_in_band",
+        "all_required_numeric_values_finite"
+      ],
+      "title": "ProvisionalQcMetrics",
+      "type": "object"
+    },
+    "TransferDifferenceMetrics": {
+      "additionalProperties": false,
+      "properties": {
+        "analysis_band_bin_count": {
+          "exclusiveMinimum": 0,
+          "title": "Analysis Band Bin Count",
+          "type": "integer"
+        },
+        "analysis_band_valid_bin_count": {
+          "minimum": 0,
+          "title": "Analysis Band Valid Bin Count",
+          "type": "integer"
+        },
+        "analysis_band_valid_fraction": {
+          "maximum": 1,
+          "minimum": 0,
+          "title": "Analysis Band Valid Fraction",
+          "type": "number"
+        },
+        "complex_additive_difference_symmetric_relative_l2": {
+          "anyOf": [
+            {
+              "minimum": 0,
+              "type": "number"
+            },
+            {
+              "type": "null"
+            }
+          ],
+          "default": null,
+          "title": "Complex Additive Difference Symmetric Relative L2"
+        },
+        "complex_additive_difference_symmetric_relative_l2_status": {
+          "enum": [
+            "computed",
+            "zero_symmetric_norm"
+          ],
+          "title": "Complex Additive Difference Symmetric Relative L2 Status",
+          "type": "string"
+        },
+        "magnitude_difference_maximum_absolute_db": {
+          "minimum": 0,
+          "title": "Magnitude Difference Maximum Absolute Db",
+          "type": "number"
+        },
+        "magnitude_difference_rms_db": {
+          "minimum": 0,
+          "title": "Magnitude Difference Rms Db",
+          "type": "number"
+        },
+        "phase_defined_count": {
+          "minimum": 0,
+          "title": "Phase Defined Count",
+          "type": "integer"
+        },
+        "phase_defined_fraction": {
+          "maximum": 1,
+          "minimum": 0,
+          "title": "Phase Defined Fraction",
+          "type": "number"
+        },
+        "phase_difference_maximum_absolute_rad": {
+          "anyOf": [
+            {
+              "minimum": 0,
+              "type": "number"
+            },
+            {
+              "type": "null"
+            }
+          ],
+          "default": null,
+          "title": "Phase Difference Maximum Absolute Rad"
+        },
+        "phase_difference_rms_rad": {
+          "anyOf": [
+            {
+              "minimum": 0,
+              "type": "number"
+            },
+            {
+              "type": "null"
+            }
+          ],
+          "default": null,
+          "title": "Phase Difference Rms Rad"
+        },
+        "phase_difference_status": {
+          "enum": [
+            "computed",
+            "no_valid_bins"
+          ],
+          "title": "Phase Difference Status",
+          "type": "string"
+        }
+      },
+      "required": [
+        "analysis_band_bin_count",
+        "analysis_band_valid_bin_count",
+        "analysis_band_valid_fraction",
+        "complex_additive_difference_symmetric_relative_l2_status",
+        "magnitude_difference_rms_db",
+        "magnitude_difference_maximum_absolute_db",
+        "phase_difference_status",
+        "phase_defined_count",
+        "phase_defined_fraction"
+      ],
+      "title": "TransferDifferenceMetrics",
+      "type": "object"
+    },
+    "WaveformQcMetrics": {
+      "additionalProperties": false,
+      "properties": {
+        "active_sweep_rms": {
+          "minimum": 0,
+          "title": "Active Sweep Rms",
+          "type": "number"
+        },
+        "clipped_sample_count": {
+          "minimum": 0,
+          "title": "Clipped Sample Count",
+          "type": "integer"
+        },
+        "clipped_sample_fraction": {
+          "maximum": 1,
+          "minimum": 0,
+          "title": "Clipped Sample Fraction",
+          "type": "number"
+        },
+        "full_sample_count": {
+          "exclusiveMinimum": 0,
+          "title": "Full Sample Count",
+          "type": "integer"
+        },
+        "peak_abs": {
+          "minimum": 0,
+          "title": "Peak Abs",
+          "type": "number"
+        },
+        "pre_silence_rms": {
+          "anyOf": [
+            {
+              "minimum": 0,
+              "type": "number"
+            },
+            {
+              "type": "null"
+            }
+          ],
+          "default": null,
+          "title": "Pre Silence Rms"
+        },
+        "pre_silence_rms_status": {
+          "enum": [
+            "computed",
+            "pre_silence_absent"
+          ],
+          "title": "Pre Silence Rms Status",
+          "type": "string"
+        },
+        "rms": {
+          "minimum": 0,
+          "title": "Rms",
+          "type": "number"
+        }
+      },
+      "required": [
+        "full_sample_count",
+        "peak_abs",
+        "rms",
+        "active_sweep_rms",
+        "pre_silence_rms_status",
+        "clipped_sample_count",
+        "clipped_sample_fraction"
+      ],
+      "title": "WaveformQcMetrics",
+      "type": "object"
+    }
+  },
+  "additionalProperties": false,
+  "properties": {
+    "baseline_difference_metrics": {
+      "$ref": "#/$defs/ProvisionalBaselineDifferenceMetrics"
+    },
+    "baseline_group_id": {
+      "pattern": "^[A-Za-z0-9_-]+$",
+      "title": "Baseline Group Id",
+      "type": "string"
+    },
+    "baseline_reference_row_ids": {
+      "items": {
+        "type": "string"
+      },
+      "minItems": 1,
+      "title": "Baseline Reference Row Ids",
+      "type": "array"
+    },
+    "canonical_condition_index": {
+      "exclusiveMinimum": 0,
+      "title": "Canonical Condition Index",
+      "type": "integer"
+    },
+    "capture_id": {
+      "pattern": "^[A-Za-z0-9_-]+$",
+      "title": "Capture Id",
+      "type": "string"
+    },
+    "capture_receipt_sha256": {
+      "pattern": "^[0-9a-f]{64}$",
+      "title": "Capture Receipt Sha256",
+      "type": "string"
+    },
+    "condition_block_order": {
+      "exclusiveMinimum": 0,
+      "title": "Condition Block Order",
+      "type": "integer"
+    },
+    "condition_id": {
+      "pattern": "^[A-Za-z0-9_-]+$",
+      "title": "Condition Id",
+      "type": "string"
+    },
+    "condition_label": {
+      "title": "Condition Label",
+      "type": "string"
+    },
+    "condition_node_state_sha256": {
+      "pattern": "^[0-9a-f]{64}$",
+      "title": "Condition Node State Sha256",
+      "type": "string"
+    },
+    "condition_role": {
+      "title": "Condition Role",
+      "type": "string"
+    },
+    "continuous_repeat_index": {
+      "exclusiveMinimum": 0,
+      "title": "Continuous Repeat Index",
+      "type": "integer"
+    },
+    "data_origin": {
+      "const": "synthetic",
+      "title": "Data Origin",
+      "type": "string"
+    },
+    "development_synthetic_run": {
+      "const": true,
+      "title": "Development Synthetic Run",
+      "type": "boolean"
+    },
+    "execution_completion_sha256": {
+      "pattern": "^[0-9a-f]{64}$",
+      "title": "Execution Completion Sha256",
+      "type": "string"
+    },
+    "execution_id": {
+      "pattern": "^[A-Za-z0-9_-]+$",
+      "title": "Execution Id",
+      "type": "string"
+    },
+    "execution_manifest_sha256": {
+      "pattern": "^[0-9a-f]{64}$",
+      "title": "Execution Manifest Sha256",
+      "type": "string"
+    },
+    "experiment_stage": {
+      "enum": [
+        1,
+        2,
+        3,
+        4
+      ],
+      "title": "Experiment Stage",
+      "type": "integer"
+    },
+    "experimental_result": {
+      "const": false,
+      "title": "Experimental Result",
+      "type": "boolean"
+    },
+    "formal_eligible": {
+      "const": false,
+      "title": "Formal Eligible",
+      "type": "boolean"
+    },
+    "global_planned_ordinal": {
+      "exclusiveMinimum": 0,
+      "title": "Global Planned Ordinal",
+      "type": "integer"
+    },
+    "hardware_io_performed": {
+      "const": false,
+      "title": "Hardware Io Performed",
+      "type": "boolean"
+    },
+    "is_all_blk": {
+      "title": "Is All Blk",
+      "type": "boolean"
+    },
+    "loading_directions": {
+      "items": {
+        "type": "string"
+      },
+      "title": "Loading Directions",
+      "type": "array"
+    },
+    "matrix_row_ordinal": {
+      "exclusiveMinimum": 0,
+      "title": "Matrix Row Ordinal",
+      "type": "integer"
+    },
+    "node_states": {
+      "additionalProperties": {
+        "$ref": "#/$defs/NodeState"
+      },
+      "title": "Node States",
+      "type": "object"
+    },
+    "ordered_artifact_sha256": {
+      "pattern": "^[0-9a-f]{64}$",
+      "title": "Ordered Artifact Sha256",
+      "type": "string"
+    },
+    "proxy_state": {
+      "title": "Proxy State",
+      "type": "boolean"
+    },
+    "qc_decision": {
+      "const": "not_evaluated",
+      "title": "Qc Decision",
+      "type": "string"
+    },
+    "qc_metrics": {
+      "$ref": "#/$defs/ProvisionalQcMetrics"
+    },
+    "reassembly_group_id": {
+      "pattern": "^[A-Za-z0-9_-]+$",
+      "title": "Reassembly Group Id",
+      "type": "string"
+    },
+    "reassembly_id": {
+      "pattern": "^[A-Za-z0-9_-]+$",
+      "title": "Reassembly Id",
+      "type": "string"
+    },
+    "reassembly_index": {
+      "exclusiveMinimum": 0,
+      "title": "Reassembly Index",
+      "type": "integer"
+    },
+    "repeat_kind": {
+      "const": "continuous_repeat",
+      "title": "Repeat Kind",
+      "type": "string"
+    },
+    "row_id": {
+      "pattern": "^[A-Za-z0-9_-]+$",
+      "title": "Row Id",
+      "type": "string"
+    },
+    "run_id": {
+      "pattern": "^[A-Za-z0-9_-]+$",
+      "title": "Run Id",
+      "type": "string"
+    },
+    "run_mode": {
+      "const": "development",
+      "title": "Run Mode",
+      "type": "string"
+    },
+    "run_record_sha256": {
+      "pattern": "^[0-9a-f]{64}$",
+      "title": "Run Record Sha256",
+      "type": "string"
+    },
+    "schema_version": {
+      "const": "1.0.0",
+      "title": "Schema Version",
+      "type": "string"
+    },
+    "selected_module_ids": {
+      "items": {
+        "type": "string"
+      },
+      "title": "Selected Module Ids",
+      "type": "array"
+    },
+    "selected_node_ids": {
+      "items": {
+        "type": "string"
+      },
+      "title": "Selected Node Ids",
+      "type": "array"
+    },
+    "selected_state_ids": {
+      "items": {
+        "type": "string"
+      },
+      "title": "Selected State Ids",
+      "type": "array"
+    },
+    "session_group_id": {
+      "pattern": "^[A-Za-z0-9_-]+$",
+      "title": "Session Group Id",
+      "type": "string"
+    },
+    "session_id": {
+      "pattern": "^[A-Za-z0-9_-]+$",
+      "title": "Session Id",
+      "type": "string"
+    },
+    "session_index": {
+      "exclusiveMinimum": 0,
+      "title": "Session Index",
+      "type": "integer"
+    },
+    "session_local_measurement_order": {
+      "exclusiveMinimum": 0,
+      "title": "Session Local Measurement Order",
+      "type": "integer"
+    },
+    "thresholds_applied": {
+      "const": false,
+      "title": "Thresholds Applied",
+      "type": "boolean"
+    },
+    "work_order_sha256": {
+      "pattern": "^[0-9a-f]{64}$",
+      "title": "Work Order Sha256",
+      "type": "string"
+    }
+  },
+  "required": [
+    "row_id",
+    "work_order_sha256",
+    "execution_id",
+    "experiment_stage",
+    "global_planned_ordinal",
+    "session_local_measurement_order",
+    "session_index",
+    "reassembly_index",
+    "condition_block_order",
+    "canonical_condition_index",
+    "session_id",
+    "reassembly_id",
+    "run_id",
+    "capture_id",
+    "condition_id",
+    "condition_role",
+    "condition_label",
+    "condition_node_state_sha256",
+    "node_states",
+    "session_group_id",
+    "reassembly_group_id",
+    "baseline_group_id",
+    "selected_node_ids",
+    "selected_state_ids",
+    "selected_module_ids",
+    "loading_directions",
+    "repeat_kind",
+    "continuous_repeat_index",
+    "proxy_state",
+    "is_all_blk",
+    "schema_version",
+    "matrix_row_ordinal",
+    "execution_manifest_sha256",
+    "execution_completion_sha256",
+    "capture_receipt_sha256",
+    "run_record_sha256",
+    "ordered_artifact_sha256",
+    "baseline_reference_row_ids",
+    "qc_metrics",
+    "baseline_difference_metrics",
+    "qc_decision",
+    "thresholds_applied",
+    "development_synthetic_run",
+    "data_origin",
+    "run_mode",
+    "formal_eligible",
+    "experimental_result",
+    "hardware_io_performed"
+  ],
+  "title": "MeasurementRow",
+  "type": "object"
+}

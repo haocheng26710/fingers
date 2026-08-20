@@ -1,0 +1,273 @@
+{
+  "additionalProperties": false,
+  "properties": {
+    "absolute_spl_verified": {
+      "const": false,
+      "title": "Absolute Spl Verified",
+      "type": "boolean"
+    },
+    "algorithm_id": {
+      "const": "plan_bound_synthetic_measurement_matrix",
+      "title": "Algorithm Id",
+      "type": "string"
+    },
+    "algorithm_version": {
+      "const": "1.0.0",
+      "title": "Algorithm Version",
+      "type": "string"
+    },
+    "analysis_decision": {
+      "const": "not_evaluated",
+      "title": "Analysis Decision",
+      "type": "string"
+    },
+    "analysis_id": {
+      "pattern": "^[A-Za-z0-9_-]+$",
+      "title": "Analysis Id",
+      "type": "string"
+    },
+    "analysis_source_binding_sha256": {
+      "pattern": "^[0-9a-f]{64}$",
+      "title": "Analysis Source Binding Sha256",
+      "type": "string"
+    },
+    "analysis_status": {
+      "const": "provisional_measurement_matrix_only",
+      "title": "Analysis Status",
+      "type": "string"
+    },
+    "calibration_performed": {
+      "const": false,
+      "title": "Calibration Performed",
+      "type": "boolean"
+    },
+    "classification_performed": {
+      "const": false,
+      "title": "Classification Performed",
+      "type": "boolean"
+    },
+    "data_origin": {
+      "const": "synthetic",
+      "title": "Data Origin",
+      "type": "string"
+    },
+    "day_group_status": {
+      "const": "trusted_day_identity_unavailable",
+      "title": "Day Group Status",
+      "type": "string"
+    },
+    "experimental_result": {
+      "const": false,
+      "title": "Experimental Result",
+      "type": "boolean"
+    },
+    "feature_count": {
+      "const": 16,
+      "title": "Feature Count",
+      "type": "integer"
+    },
+    "feature_extraction_performed": {
+      "const": true,
+      "title": "Feature Extraction Performed",
+      "type": "boolean"
+    },
+    "feature_schema_sha256": {
+      "pattern": "^[0-9a-f]{64}$",
+      "title": "Feature Schema Sha256",
+      "type": "string"
+    },
+    "formal_eligible": {
+      "const": false,
+      "title": "Formal Eligible",
+      "type": "boolean"
+    },
+    "hardware_enumeration_performed": {
+      "const": false,
+      "title": "Hardware Enumeration Performed",
+      "type": "boolean"
+    },
+    "hardware_io_performed": {
+      "const": false,
+      "title": "Hardware Io Performed",
+      "type": "boolean"
+    },
+    "interaction_analysis_performed": {
+      "const": false,
+      "title": "Interaction Analysis Performed",
+      "type": "boolean"
+    },
+    "measurement_matrix_npz_sha256": {
+      "pattern": "^[0-9a-f]{64}$",
+      "title": "Measurement Matrix Npz Sha256",
+      "type": "string"
+    },
+    "measurement_row_count": {
+      "const": 344,
+      "title": "Measurement Row Count",
+      "type": "integer"
+    },
+    "measurement_row_index_sha256": {
+      "pattern": "^[0-9a-f]{64}$",
+      "title": "Measurement Row Index Sha256",
+      "type": "string"
+    },
+    "model_fit_performed": {
+      "const": false,
+      "title": "Model Fit Performed",
+      "type": "boolean"
+    },
+    "ordered_source_aggregate_sha256": {
+      "pattern": "^[0-9a-f]{64}$",
+      "title": "Ordered Source Aggregate Sha256",
+      "type": "string"
+    },
+    "playback_performed": {
+      "const": false,
+      "title": "Playback Performed",
+      "type": "boolean"
+    },
+    "prediction_performed": {
+      "const": false,
+      "title": "Prediction Performed",
+      "type": "boolean"
+    },
+    "qc_decision": {
+      "const": "not_evaluated",
+      "title": "Qc Decision",
+      "type": "string"
+    },
+    "recording_performed": {
+      "const": false,
+      "title": "Recording Performed",
+      "type": "boolean"
+    },
+    "rows_excluded": {
+      "const": 0,
+      "title": "Rows Excluded",
+      "type": "integer"
+    },
+    "run_mode": {
+      "const": "development",
+      "title": "Run Mode",
+      "type": "string"
+    },
+    "safety_marker": {
+      "const": "SYNTHETIC_MEASUREMENT_MATRIX_NOT_AN_EXPERIMENTAL_RESULT",
+      "title": "Safety Marker",
+      "type": "string"
+    },
+    "schema_version": {
+      "const": "1.0.0",
+      "title": "Schema Version",
+      "type": "string"
+    },
+    "silent_exclusion_performed": {
+      "const": false,
+      "title": "Silent Exclusion Performed",
+      "type": "boolean"
+    },
+    "source_execution_complete": {
+      "const": true,
+      "title": "Source Execution Complete",
+      "type": "boolean"
+    },
+    "source_execution_validated": {
+      "const": true,
+      "title": "Source Execution Validated",
+      "type": "boolean"
+    },
+    "split_fold_count": {
+      "const": 24,
+      "title": "Split Fold Count",
+      "type": "integer"
+    },
+    "split_plan_generated": {
+      "const": true,
+      "title": "Split Plan Generated",
+      "type": "boolean"
+    },
+    "split_plan_sha256": {
+      "pattern": "^[0-9a-f]{64}$",
+      "title": "Split Plan Sha256",
+      "type": "string"
+    },
+    "stage_1_row_count": {
+      "const": 152,
+      "title": "Stage 1 Row Count",
+      "type": "integer"
+    },
+    "stage_2_row_count": {
+      "const": 32,
+      "title": "Stage 2 Row Count",
+      "type": "integer"
+    },
+    "stage_3_row_count": {
+      "const": 32,
+      "title": "Stage 3 Row Count",
+      "type": "integer"
+    },
+    "stage_4_row_count": {
+      "const": 128,
+      "title": "Stage 4 Row Count",
+      "type": "integer"
+    },
+    "stream_opened": {
+      "const": false,
+      "title": "Stream Opened",
+      "type": "boolean"
+    },
+    "thresholds_applied": {
+      "const": false,
+      "title": "Thresholds Applied",
+      "type": "boolean"
+    }
+  },
+  "required": [
+    "data_origin",
+    "run_mode",
+    "analysis_status",
+    "source_execution_complete",
+    "source_execution_validated",
+    "measurement_row_count",
+    "stage_1_row_count",
+    "stage_2_row_count",
+    "stage_3_row_count",
+    "stage_4_row_count",
+    "rows_excluded",
+    "silent_exclusion_performed",
+    "feature_extraction_performed",
+    "split_plan_generated",
+    "model_fit_performed",
+    "prediction_performed",
+    "classification_performed",
+    "interaction_analysis_performed",
+    "thresholds_applied",
+    "qc_decision",
+    "analysis_decision",
+    "formal_eligible",
+    "experimental_result",
+    "hardware_enumeration_performed",
+    "hardware_io_performed",
+    "playback_performed",
+    "recording_performed",
+    "stream_opened",
+    "calibration_performed",
+    "absolute_spl_verified",
+    "day_group_status",
+    "safety_marker",
+    "schema_version",
+    "algorithm_id",
+    "algorithm_version",
+    "analysis_id",
+    "analysis_source_binding_sha256",
+    "measurement_row_index_sha256",
+    "feature_schema_sha256",
+    "split_plan_sha256",
+    "measurement_matrix_npz_sha256",
+    "ordered_source_aggregate_sha256",
+    "feature_count",
+    "split_fold_count"
+  ],
+  "title": "AnalysisReceipt",
+  "type": "object"
+}

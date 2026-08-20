@@ -1,0 +1,42 @@
+schema_version: "1.0.0"
+matrix_schema_version: "1.0.0"
+spec_id: development_measurement_matrix_v1
+analysis_config_reference: config/analysis/default.yaml
+analysis_config_raw_sha256: a4ecf7001045b38667ff4fc1af6d0193b0b4c69bff27f93ce29c8679af651989
+analysis_config_normalized_sha256: 90978619c99d8353d311abbe1a853c6b9b6034150d078099c75b55eef14043d1
+data_origin: synthetic
+run_mode: development
+formal_analysis_config: false
+analysis_lower_hz: 500.0
+analysis_upper_hz: 8000.0
+smoothing_enabled: false
+feature_ids:
+  - raw_complex_additive_symmetric_relative_l2
+  - aligned_complex_additive_symmetric_relative_l2
+  - raw_magnitude_difference_rms_db
+  - aligned_magnitude_difference_rms_db
+  - raw_magnitude_difference_maximum_absolute_db
+  - aligned_magnitude_difference_maximum_absolute_db
+  - raw_phase_difference_rms_rad
+  - aligned_phase_difference_rms_rad
+  - raw_phase_difference_maximum_absolute_rad
+  - aligned_phase_difference_maximum_absolute_rad
+  - raw_ir_difference_symmetric_nrmse
+  - aligned_ir_difference_symmetric_nrmse
+  - raw_ir_difference_absolute_peak
+  - aligned_ir_difference_absolute_peak
+  - raw_ir_difference_peak_index
+  - aligned_ir_difference_peak_index
+baseline_reference_policy: same_stage_session_reassembly_all_blk_leave_one_repeat_out
+split_strategies:
+  - leave_one_session_out
+  - leave_one_reassembly_out
+scalar_dtype: float64
+random_seed: null
+decision_thresholds: {}
+model_id: null
+classification_pass_threshold: null
+day_group: null
+day_group_status: trusted_day_identity_unavailable
+formal_eligible: false
+experimental_result: false

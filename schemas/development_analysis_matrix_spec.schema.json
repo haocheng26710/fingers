@@ -1,0 +1,158 @@
+{
+  "additionalProperties": false,
+  "properties": {
+    "analysis_config_normalized_sha256": {
+      "pattern": "^[0-9a-f]{64}$",
+      "title": "Analysis Config Normalized Sha256",
+      "type": "string"
+    },
+    "analysis_config_raw_sha256": {
+      "pattern": "^[0-9a-f]{64}$",
+      "title": "Analysis Config Raw Sha256",
+      "type": "string"
+    },
+    "analysis_config_reference": {
+      "title": "Analysis Config Reference",
+      "type": "string"
+    },
+    "analysis_lower_hz": {
+      "exclusiveMinimum": 0,
+      "title": "Analysis Lower Hz",
+      "type": "number"
+    },
+    "analysis_upper_hz": {
+      "exclusiveMinimum": 0,
+      "title": "Analysis Upper Hz",
+      "type": "number"
+    },
+    "baseline_reference_policy": {
+      "const": "same_stage_session_reassembly_all_blk_leave_one_repeat_out",
+      "title": "Baseline Reference Policy",
+      "type": "string"
+    },
+    "classification_pass_threshold": {
+      "title": "Classification Pass Threshold",
+      "type": "null"
+    },
+    "data_origin": {
+      "const": "synthetic",
+      "title": "Data Origin",
+      "type": "string"
+    },
+    "day_group": {
+      "title": "Day Group",
+      "type": "null"
+    },
+    "day_group_status": {
+      "const": "trusted_day_identity_unavailable",
+      "title": "Day Group Status",
+      "type": "string"
+    },
+    "decision_thresholds": {
+      "additionalProperties": {
+        "type": "number"
+      },
+      "title": "Decision Thresholds",
+      "type": "object"
+    },
+    "experimental_result": {
+      "const": false,
+      "title": "Experimental Result",
+      "type": "boolean"
+    },
+    "feature_ids": {
+      "items": {
+        "type": "string"
+      },
+      "title": "Feature Ids",
+      "type": "array"
+    },
+    "formal_analysis_config": {
+      "const": false,
+      "title": "Formal Analysis Config",
+      "type": "boolean"
+    },
+    "formal_eligible": {
+      "const": false,
+      "title": "Formal Eligible",
+      "type": "boolean"
+    },
+    "matrix_schema_version": {
+      "const": "1.0.0",
+      "title": "Matrix Schema Version",
+      "type": "string"
+    },
+    "model_id": {
+      "title": "Model Id",
+      "type": "null"
+    },
+    "random_seed": {
+      "title": "Random Seed",
+      "type": "null"
+    },
+    "run_mode": {
+      "const": "development",
+      "title": "Run Mode",
+      "type": "string"
+    },
+    "scalar_dtype": {
+      "const": "float64",
+      "title": "Scalar Dtype",
+      "type": "string"
+    },
+    "schema_version": {
+      "const": "1.0.0",
+      "title": "Schema Version",
+      "type": "string"
+    },
+    "smoothing_enabled": {
+      "const": false,
+      "title": "Smoothing Enabled",
+      "type": "boolean"
+    },
+    "spec_id": {
+      "pattern": "^[A-Za-z0-9_-]+$",
+      "title": "Spec Id",
+      "type": "string"
+    },
+    "split_strategies": {
+      "items": {
+        "enum": [
+          "leave_one_session_out",
+          "leave_one_reassembly_out"
+        ],
+        "type": "string"
+      },
+      "title": "Split Strategies",
+      "type": "array"
+    }
+  },
+  "required": [
+    "schema_version",
+    "matrix_schema_version",
+    "spec_id",
+    "analysis_config_reference",
+    "analysis_config_raw_sha256",
+    "analysis_config_normalized_sha256",
+    "data_origin",
+    "run_mode",
+    "formal_analysis_config",
+    "analysis_lower_hz",
+    "analysis_upper_hz",
+    "smoothing_enabled",
+    "feature_ids",
+    "baseline_reference_policy",
+    "split_strategies",
+    "scalar_dtype",
+    "random_seed",
+    "decision_thresholds",
+    "model_id",
+    "classification_pass_threshold",
+    "day_group",
+    "day_group_status",
+    "formal_eligible",
+    "experimental_result"
+  ],
+  "title": "DevelopmentAnalysisMatrixSpec",
+  "type": "object"
+}

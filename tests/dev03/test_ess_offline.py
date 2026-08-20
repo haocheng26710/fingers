@@ -493,7 +493,7 @@ def test_cli_offline_workflow_never_requests_audio_backend(
 
 
 def test_schema_export_contains_all_active_models() -> None:
-    assert len(ALL_GENERATED_SCHEMA_MODELS) == 40
+    assert len(ALL_GENERATED_SCHEMA_MODELS) == 47
     check_schemas(REPO_ROOT / "schemas")
 
 

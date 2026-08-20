@@ -243,6 +243,14 @@ acoustic-ladder synthetic-protocol-execution-validate @bundle --plan-spec tests/
 
 如果 capture 已完整发布而 success event 尚未发布，或最后 success event 已发布而 completion 尚未发布，status 返回 `recovery_required`，只有显式 `recover-current` 才会在完整重验后采用已有产物。mutation 错误中的 capture/event/completion publication 字段由异常返回时的只读持久化重放决定：publisher 完整发布后再抛错会报告 true，部分、语义验证失败或无法探测的发布保守报告 false，旧内存布尔值不能覆盖该结果。lock close/unlink 失败也返回同一领域错误契约并重新探测持久化事实；unlink 失败会保留 stale lock，status/validator 不自动清理，后续 mutation 被拒绝。探测不会修复或删除字节。CLI `PASS` 只表示 development synthetic 操作/完整性验证通过；所有 hardware、playback、recording、formal execution、measurement 与 experimental-result 状态保持 false。Stage 2 条件仍只是 proxy states，Stage 3 不计算 interaction residual，Stage 4 不执行分类。详见 `docs/architecture/protocol-synthetic-execution.md`。
 
+## DEV-06.01 离线 measurement matrix
+
+`analysis-matrix-compute` 消费四个已完成、完整重放验证的 Stage 1–4 synthetic execution；它不执行 protocol，也不接受 row、label、baseline、feature、fold、waveform 或任意输出路径。完整 development fixture 恰好产生 344 行（152/32/32/128），一行对应一个 synthetic run。每行只使用同 stage/session/reassembly 的全 BLK repeats；全 BLK 行自身使用 leave-one-repeat-out。固定 16 列来自 versioned feature schema，split 逐 stage 生成 leave-one-session-out 与 leave-one-reassembly-out。
+
+结果位于 analysis synthetic root 的 `analyses/analysis_<id>/` exact 15-file create-only envelope；`analysis-matrix-validate` 重验四个 execution、重做 processing/QC、基线、feature、split 和 deterministic NPZ，并逐字节比较且不写回。CLI 的四组 `--protocol`、`--plan-spec`、plan/execution/synthetic/ESS roots、execution/plan IDs 必须按 stage 各提供四次；`--analysis-root` 是专用 synthetic analysis storage root，其下自动派生 `analyses/`。
+
+这里的 feature extraction 仅是 development fixture 的确定性软件产物：没有模型拟合、预测、分类、interaction analysis、normalization fitting、阈值或真实 QC PASS/FAIL，也没有硬件枚举/I/O、播放、录音、校准或实验结论。详见 `docs/architecture/synthetic-measurement-matrix.md`。
+
 详细契约见 `docs/architecture/`；数据根目录政策见 `data/README.md`。
 
 单元测试、真实包集成测试、完整测试与静态检查：

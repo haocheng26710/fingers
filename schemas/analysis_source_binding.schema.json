@@ -1,0 +1,253 @@
+{
+  "$defs": {
+    "ConfigLayer": {
+      "enum": [
+        "device_manifest",
+        "audio_config",
+        "protocol_config",
+        "analysis_config",
+        "synthetic_config"
+      ],
+      "type": "string"
+    },
+    "ConfigSnapshot": {
+      "additionalProperties": false,
+      "properties": {
+        "layer": {
+          "$ref": "#/$defs/ConfigLayer"
+        },
+        "normalized_sha256": {
+          "title": "Normalized Sha256",
+          "type": "string"
+        },
+        "original_relative_path": {
+          "minLength": 1,
+          "title": "Original Relative Path",
+          "type": "string"
+        },
+        "original_sha256": {
+          "title": "Original Sha256",
+          "type": "string"
+        },
+        "validation_status": {
+          "const": "valid",
+          "title": "Validation Status",
+          "type": "string"
+        }
+      },
+      "required": [
+        "layer",
+        "original_relative_path",
+        "original_sha256",
+        "normalized_sha256",
+        "validation_status"
+      ],
+      "title": "ConfigSnapshot",
+      "type": "object"
+    },
+    "SourceExecutionBinding": {
+      "additionalProperties": false,
+      "properties": {
+        "bundle_content_sha256": {
+          "pattern": "^[0-9a-f]{64}$",
+          "title": "Bundle Content Sha256",
+          "type": "string"
+        },
+        "compiled_plan_sha256": {
+          "pattern": "^[0-9a-f]{64}$",
+          "title": "Compiled Plan Sha256",
+          "type": "string"
+        },
+        "config_snapshots": {
+          "additionalProperties": {
+            "$ref": "#/$defs/ConfigSnapshot"
+          },
+          "title": "Config Snapshots",
+          "type": "object"
+        },
+        "device_manifest_sha256": {
+          "pattern": "^[0-9a-f]{64}$",
+          "title": "Device Manifest Sha256",
+          "type": "string"
+        },
+        "execution_completion_sha256": {
+          "pattern": "^[0-9a-f]{64}$",
+          "title": "Execution Completion Sha256",
+          "type": "string"
+        },
+        "execution_id": {
+          "pattern": "^[A-Za-z0-9_-]+$",
+          "title": "Execution Id",
+          "type": "string"
+        },
+        "execution_manifest_sha256": {
+          "pattern": "^[0-9a-f]{64}$",
+          "title": "Execution Manifest Sha256",
+          "type": "string"
+        },
+        "experiment_stage": {
+          "enum": [
+            1,
+            2,
+            3,
+            4
+          ],
+          "title": "Experiment Stage",
+          "type": "integer"
+        },
+        "ordered_work_order_sha256": {
+          "pattern": "^[0-9a-f]{64}$",
+          "title": "Ordered Work Order Sha256",
+          "type": "string"
+        },
+        "protocol_plan_receipt_sha256": {
+          "pattern": "^[0-9a-f]{64}$",
+          "title": "Protocol Plan Receipt Sha256",
+          "type": "string"
+        },
+        "row_count": {
+          "exclusiveMinimum": 0,
+          "title": "Row Count",
+          "type": "integer"
+        },
+        "scenario_normalized_sha256": {
+          "pattern": "^[0-9a-f]{64}$",
+          "title": "Scenario Normalized Sha256",
+          "type": "string"
+        },
+        "scenario_raw_sha256": {
+          "pattern": "^[0-9a-f]{64}$",
+          "title": "Scenario Raw Sha256",
+          "type": "string"
+        },
+        "scenario_reference": {
+          "title": "Scenario Reference",
+          "type": "string"
+        },
+        "schedule_sha256": {
+          "pattern": "^[0-9a-f]{64}$",
+          "title": "Schedule Sha256",
+          "type": "string"
+        },
+        "source_ess_artifact_id": {
+          "title": "Source Ess Artifact Id",
+          "type": "string"
+        },
+        "source_ess_metadata_sha256": {
+          "pattern": "^[0-9a-f]{64}$",
+          "title": "Source Ess Metadata Sha256",
+          "type": "string"
+        },
+        "source_ess_raw_float32_sha256": {
+          "pattern": "^[0-9a-f]{64}$",
+          "title": "Source Ess Raw Float32 Sha256",
+          "type": "string"
+        },
+        "source_ess_wav_sha256": {
+          "pattern": "^[0-9a-f]{64}$",
+          "title": "Source Ess Wav Sha256",
+          "type": "string"
+        }
+      },
+      "required": [
+        "experiment_stage",
+        "execution_id",
+        "execution_manifest_sha256",
+        "execution_completion_sha256",
+        "ordered_work_order_sha256",
+        "row_count",
+        "bundle_content_sha256",
+        "device_manifest_sha256",
+        "config_snapshots",
+        "compiled_plan_sha256",
+        "protocol_plan_receipt_sha256",
+        "schedule_sha256",
+        "scenario_reference",
+        "scenario_raw_sha256",
+        "scenario_normalized_sha256",
+        "source_ess_artifact_id",
+        "source_ess_metadata_sha256",
+        "source_ess_wav_sha256",
+        "source_ess_raw_float32_sha256"
+      ],
+      "title": "SourceExecutionBinding",
+      "type": "object"
+    }
+  },
+  "additionalProperties": false,
+  "properties": {
+    "analysis_id": {
+      "pattern": "^[A-Za-z0-9_-]+$",
+      "title": "Analysis Id",
+      "type": "string"
+    },
+    "analysis_spec_normalized_sha256": {
+      "pattern": "^[0-9a-f]{64}$",
+      "title": "Analysis Spec Normalized Sha256",
+      "type": "string"
+    },
+    "analysis_spec_raw_sha256": {
+      "pattern": "^[0-9a-f]{64}$",
+      "title": "Analysis Spec Raw Sha256",
+      "type": "string"
+    },
+    "analysis_spec_reference": {
+      "title": "Analysis Spec Reference",
+      "type": "string"
+    },
+    "data_origin": {
+      "const": "synthetic",
+      "title": "Data Origin",
+      "type": "string"
+    },
+    "executions": {
+      "items": {
+        "$ref": "#/$defs/SourceExecutionBinding"
+      },
+      "maxItems": 4,
+      "minItems": 4,
+      "title": "Executions",
+      "type": "array"
+    },
+    "ordered_source_aggregate_sha256": {
+      "pattern": "^[0-9a-f]{64}$",
+      "title": "Ordered Source Aggregate Sha256",
+      "type": "string"
+    },
+    "run_mode": {
+      "const": "development",
+      "title": "Run Mode",
+      "type": "string"
+    },
+    "schema_version": {
+      "const": "1.0.0",
+      "title": "Schema Version",
+      "type": "string"
+    },
+    "source_execution_complete": {
+      "const": true,
+      "title": "Source Execution Complete",
+      "type": "boolean"
+    },
+    "source_execution_validated": {
+      "const": true,
+      "title": "Source Execution Validated",
+      "type": "boolean"
+    }
+  },
+  "required": [
+    "schema_version",
+    "analysis_id",
+    "analysis_spec_reference",
+    "analysis_spec_raw_sha256",
+    "analysis_spec_normalized_sha256",
+    "ordered_source_aggregate_sha256",
+    "executions",
+    "data_origin",
+    "run_mode",
+    "source_execution_complete",
+    "source_execution_validated"
+  ],
+  "title": "AnalysisSourceBinding",
+  "type": "object"
+}

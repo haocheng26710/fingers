@@ -7,6 +7,14 @@ from pathlib import Path
 
 from pydantic import BaseModel
 
+from acoustic_ladder.analysis.models import (
+    AnalysisReceipt,
+    AnalysisSourceBinding,
+    FeatureColumnSchema,
+    MeasurementRow,
+)
+from acoustic_ladder.analysis.spec import DevelopmentAnalysisMatrixSpec
+from acoustic_ladder.analysis.split_plan import SplitFold, SplitPlan
 from acoustic_ladder.audio.baseline_difference import ProvisionalBaselineDifferenceMetrics
 from acoustic_ladder.audio.baseline_difference_models import ProvisionalBaselineDifferenceReceipt
 from acoustic_ladder.audio.condition_plan_models import DevelopmentConditionPlan
@@ -135,6 +143,15 @@ SYNTHETIC_PROTOCOL_EXECUTION_SCHEMA_MODELS: dict[str, type[BaseModel]] = {
     "synthetic_protocol_execution_completion.schema.json": SyntheticProtocolExecutionCompletion,
     "plan_bound_synthetic_capture_receipt.schema.json": PlanBoundSyntheticCaptureReceipt,
 }
+ANALYSIS_MATRIX_SCHEMA_MODELS: dict[str, type[BaseModel]] = {
+    "development_analysis_matrix_spec.schema.json": DevelopmentAnalysisMatrixSpec,
+    "analysis_source_binding.schema.json": AnalysisSourceBinding,
+    "measurement_row.schema.json": MeasurementRow,
+    "feature_column_schema.schema.json": FeatureColumnSchema,
+    "analysis_split_fold.schema.json": SplitFold,
+    "analysis_split_plan.schema.json": SplitPlan,
+    "analysis_receipt.schema.json": AnalysisReceipt,
+}
 ALL_GENERATED_SCHEMA_MODELS = (
     GENERATED_SCHEMA_MODELS
     | ESS_SCHEMA_MODELS
@@ -146,6 +163,7 @@ ALL_GENERATED_SCHEMA_MODELS = (
     | PROTOCOL_PLAN_SCHEMA_MODELS
     | PROTOCOL_REHEARSAL_SCHEMA_MODELS
     | SYNTHETIC_PROTOCOL_EXECUTION_SCHEMA_MODELS
+    | ANALYSIS_MATRIX_SCHEMA_MODELS
 )
 
 

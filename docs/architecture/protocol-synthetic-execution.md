@@ -47,3 +47,5 @@ The probe never writes, deletes, cleans, completes or repairs storage. Original 
 ## Development fixture result and limits
 
 The committed plans derive 152/32/32/128 work orders for Stage 1–4. The full acceptance test executes all 344 orders in each of two independent roots and compares canonical execution/session/capture trees byte-for-byte. These counts, repeats, reassemblies, sessions and seed are software fixtures, not formal protocol recommendations. Stage 2 remains a proxy-state exercise; Stage 3 produces no interaction residual; Stage 4 performs no classification. The hash chain is internal integrity evidence, not a signature, external witness or trusted timestamp.
+
+DEV-06.01 is a downstream read-only consumer of four completed execution capabilities. It does not mutate this ledger or append an analysis event. Its source binding references each immutable completion/manifest and the ordered aggregate, then independently publishes a synthetic measurement-matrix envelope. See `synthetic-measurement-matrix.md`.

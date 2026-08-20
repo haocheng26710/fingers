@@ -1,0 +1,103 @@
+{
+  "$defs": {
+    "FeatureColumn": {
+      "additionalProperties": false,
+      "properties": {
+        "definition": {
+          "title": "Definition",
+          "type": "string"
+        },
+        "feature_id": {
+          "pattern": "^[a-z0-9_]+$",
+          "title": "Feature Id",
+          "type": "string"
+        },
+        "ordinal": {
+          "exclusiveMinimum": 0,
+          "title": "Ordinal",
+          "type": "integer"
+        },
+        "source_arrays": {
+          "items": {
+            "type": "string"
+          },
+          "minItems": 1,
+          "title": "Source Arrays",
+          "type": "array"
+        },
+        "unit": {
+          "title": "Unit",
+          "type": "string"
+        },
+        "version": {
+          "const": "1.0.0",
+          "title": "Version",
+          "type": "string"
+        }
+      },
+      "required": [
+        "ordinal",
+        "feature_id",
+        "unit",
+        "definition",
+        "source_arrays",
+        "version"
+      ],
+      "title": "FeatureColumn",
+      "type": "object"
+    }
+  },
+  "additionalProperties": false,
+  "properties": {
+    "columns": {
+      "items": {
+        "$ref": "#/$defs/FeatureColumn"
+      },
+      "maxItems": 16,
+      "minItems": 16,
+      "title": "Columns",
+      "type": "array"
+    },
+    "feature_count": {
+      "const": 16,
+      "title": "Feature Count",
+      "type": "integer"
+    },
+    "feature_selection_performed": {
+      "const": false,
+      "title": "Feature Selection Performed",
+      "type": "boolean"
+    },
+    "normalization_fitting_performed": {
+      "const": false,
+      "title": "Normalization Fitting Performed",
+      "type": "boolean"
+    },
+    "pca_performed": {
+      "const": false,
+      "title": "Pca Performed",
+      "type": "boolean"
+    },
+    "scalar_dtype": {
+      "const": "float64",
+      "title": "Scalar Dtype",
+      "type": "string"
+    },
+    "schema_version": {
+      "const": "1.0.0",
+      "title": "Schema Version",
+      "type": "string"
+    }
+  },
+  "required": [
+    "schema_version",
+    "feature_count",
+    "scalar_dtype",
+    "columns",
+    "pca_performed",
+    "feature_selection_performed",
+    "normalization_fitting_performed"
+  ],
+  "title": "FeatureColumnSchema",
+  "type": "object"
+}
