@@ -854,3 +854,33 @@
 - 失败/纠正保留：除预期RED外，Ruff首次报告2个排序问题后仅修排序；Schema首次check报告4个stale/missing后由exporter生成；一次pytest Schema selector名称误写得到no tests ran后查明正确函数并重跑2项PASS。所有未通过命令均未冒充PASS。
 - 当前提交状态：本条落盘时尚未执行最终报告后静态/扫描、最终远端fetch、`git add`、commit或push，不能预写提交SHA。下一步只有这些轻量门禁全部通过且GitHub main仍为起始 `7ec44c2b0904d26627f7c15b0ad021881bda71bc` 时，才允许唯一普通提交 `DEV-06.01R: bind analysis audit metadata to verified sources` 和普通push；无amend/rebase/force。
 - 报告/清理后最终轻量门禁：Ruff format `192 files already formatted`、lint PASS、strict mypy `76 source files` PASS、Schema consistency PASS、`git diff --check` PASS；changed/new suppression及相关U+FFFD扫描0，workspace直属`.d601*`根0。完整suite后仅修改报告/日志审计文本，未改生产代码或测试逻辑，因此最终生产代码完整suite仍为896项PASS。最终远端复核、stage/commit/push仍未执行。
+
+## DEV-06.02：Stage 1–4 离线研究分析最小闭环
+
+### DEV-06.02-00 — 基线、指令与精简边界
+
+- 2026-08-21 通过门禁：分支 `main`；普通 `git fetch origin main` 后 local HEAD、`origin/main`、`git ls-remote` GitHub main 均为 `3065887952676e3545633c177651f86713f5b50b`；remote fetch/push 均为 `https://github.com/haocheng26710/fingers.git`；`git status --short --branch` 干净。`rg --files -uu` 未找到待优先读取的 `AGENTS.md`、`CLAUDE.md`、`.agents/**` 或 `.codex/**` 项目指令。
+- 完整读取 TDD skill 及 tests/mocking/deep-modules/interface-design/refactoring 指南。用户已指定公共入口与六类行为，按逐项 RED→最小 GREEN 实施。未运行完整测试套件，未重建 Stage 1–4 execution，未重算历史保护哈希，未调用真实音频设备或音频 API。
+- 原样归档本轮聊天提示词为 `docs/prompts/DEV-06.02.md`，并加入 `.gitattributes` binary 规则。本提示词不是 attachment 文件，因此不存在可执行的 attachment `SequenceEqual` 检查。
+
+### DEV-06.02-01 — Stage 1–4 纵向 RED→GREEN
+
+- Stage 1 首个公共测试实际 RED：`uv --cache-dir .uv-cache-dev0602 run --no-sync pytest tests/dev06/test_research_analysis.py -q` 因 `acoustic_ladder.analysis.research` 不存在而 collection error；最小分组/BLK reference 实现后 `1 passed`。Stage 2 连续/缺失标签测试先因公共函数不存在 collection RED，GREEN 后累计 `3 passed`；仅显式 `NodeState.continuous_value` 进入 OLS，缺失时固定 `not_computed_missing_continuous_label`，不解析 condition 名。
+- Stage 3 手算 residual 测试先因公共函数不存在 collection RED，GREEN 后累计 `4 passed`。实现按每个 baseline group 的 plan-ordered 00/10/01/11 均值计算两个单节点 delta、pair delta、additive expected 与 residual。
+- Stage 4 train-only 标准化/预测覆盖测试先因公共 fold/classification 接口不存在 collection RED；新增 scikit-learn 多项逻辑回归后累计 `5 passed`。目标只由四个 `selected_node_ids` 顺序及对应显式 binary label 派生；feature 仅为 measurement matrix 列；每折训练均值/标准差和模型只拟合 train，零方差 scale=1；两种既有 strategy 均须逐行恰好测试一次，train 缺类明确失败。
+
+### DEV-06.02-02 — 输入、发布、CLI 与依赖
+
+- 新增公共 `load_research_dataset` / `run_research_analysis` 及 `research-analyze --analysis-dir --output-dir --random-seed`。loader 要求 exact 15-file DEV-06.01 envelope、completion、receipt/sidecar、identity、synthetic/development/immutable 状态、row/feature/matrix/fold count、finite matrix、唯一 row ID 和合法 fold reference；只从 NPZ 读取小型 `feature_matrix` member，不重跑 processing。1.13 GB NPZ 的已验证 digest 复用 receipt-bound sidecar，不重新全文件哈希。
+- 发布使用同父目录 staging、`xb` create-only 文件和 no-replace rename；已存在 output 立即拒绝。输出恰好是 summary、四个 deterministic CSV、receipt 六项，无 sidecar/Schema/model pickle。receipt 记录15个输入项与五个非自引用输出项 digest、计数和 no-hardware/no-formal-experiment 状态。
+- `pyproject.toml` 新增直接依赖 `scikit-learn>=1.5,<2`，`uv lock` 实际解析 scikit-learn 1.9.0及 joblib/scipy/threadpoolctl/narwhals；strict mypy 初次因 sklearn 未提供 `py.typed` 得到3个 `import-untyped`，没有使用 ignore，而是声明/锁定 `scikit-learn-stubs==0.0.3` dev dependency。最初 `uv` 用户 cache 初始化遇到 Windows `os error 183`，随后所有命令改用任务专用 `.uv-cache-dev0602`。
+- 第六/第七项测试使最终新文件共7个测试：相同输入/seed 的两次六文件 bytes 相同且已有目录拒绝；CLI 用小型真实15-file临时 envelope 成功发布。小 fixture Stage 4 共4 folds，每折 accuracy/balanced accuracy/macro-F1 均为1.0；只属于测试 Oracle，不是研究分数或实验结论。
+
+### DEV-06.02-03 — 定向测试、文档与已知限制
+
+- 新增测试文件最终独立运行 `7 passed`；直接相关既有 `test_analysis_persistence.py` + `test_analysis_envelope_contract.py` 为 `6 passed in 12.96s`。未运行整个 `tests/`，没有 skip/xfail/noqa/type-ignore。Schema 未修改，按提示词不重复 Schema consistency。
+- `rg --files -uu -g measurement_matrix.npz` 未找到工作区内完整矩阵，因此没有运行344行 smoke，也没有为本步骤生成矩阵；如实推迟到 Stage 6。当前 Stage 2 协议所有 `continuous_value` 均为 null，因此完整矩阵未来应走 proxy group description 分支。
+- 修改/新增范围：`.gitattributes`、README、`pyproject.toml`、`uv.lock`、analysis public namespace/new research module、CLI、新 DEV-06 test、prompt、report、implementation log。README 记录新CLI与 synthetic/provisional边界；创建 `docs/reports/DEV-06.02.md`。
+- 实际主要命令：Git status/branch/rev-parse/remote/fetch/ls-remote与指令扫描；TDD指南读取；源码/协议/依赖/矩阵文件检查；各纵向 pytest；`uv lock/sync`；小 fixture 指标读取；直接相关 pytest；Ruff format/lint与strict mypy预检。初次 Ruff 报 import排序/长行后只做机械format/fix；未把失败命令计为PASS。
+- 本条落盘时最终报告后定向 pytest、changed-file Ruff format/lint、affected mypy、`git diff --check`、suppression扫描、任务cache清理、远端复核、commit/push尚未执行，不能预写结果或SHA。只有这些门禁通过后才允许唯一普通提交 `DEV-06.02: add minimal offline research analysis` 与普通push；禁止amend/rebase/force。
+- 报告后最终门禁：组合新测试与两个直接相关既有文件为 `13 passed in 1.55s`（7+6）；changed-file Ruff format `4 files already formatted`，lint `All checks passed!`，strict mypy `Success: no issues found in 4 source files`；`git diff --check` exit 0且无输出；skip/skipif/xfail/pytest.skip/noqa/type-ignore扫描 `suppression_matches=0`。任务cache先验证 resolved path 精确为 workspace 直属 `.uv-cache-dev0602`，再只删除该目录，`remaining=False`；删除内容为可由lock重建的依赖cache，未删除其他路径。完整suite和Schema consistency按提示词边界未运行。远端复核、stage/commit/push仍未执行。

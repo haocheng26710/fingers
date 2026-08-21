@@ -17,6 +17,7 @@ from acoustic_ladder.analysis.persistence import (
     compute_synthetic_measurement_matrix,
     validate_synthetic_measurement_matrix,
 )
+from acoustic_ladder.analysis.research import run_research_analysis
 from acoustic_ladder.analysis.source_validation import AnalysisExecutionSource
 from acoustic_ladder.analysis.spec import load_development_analysis_matrix_spec
 from acoustic_ladder.audio.backend import SoundDeviceInventoryBackend
@@ -384,6 +385,11 @@ def _parser() -> argparse.ArgumentParser:
         matrix.add_argument("--analysis-root", required=True)
         matrix.add_argument("--analysis-id", required=True)
 
+    research = commands.add_parser("research-analyze")
+    research.add_argument("--analysis-dir", required=True)
+    research.add_argument("--output-dir", required=True)
+    research.add_argument("--random-seed", type=int, default=602)
+
     session = commands.add_parser("create-synthetic-session")
     _add_bundle_arguments(session)
     session.add_argument("--synthetic-root", required=True)
@@ -642,6 +648,19 @@ def _all_blocked_states(manifest: dict[str, object], overrides: list[str]) -> di
 
 def main(argv: list[str] | None = None) -> None:
     args = _parser().parse_args(argv)
+    if args.command == "research-analyze":
+        published = run_research_analysis(
+            args.analysis_dir,
+            args.output_dir,
+            seed=args.random_seed,
+        )
+        print(
+            f"PASS synthetic provisional research analysis: output_path={published.output_path} "
+            f"analysis_id={published.summary['analysis_id']} "
+            f"fold_count={published.receipt['fold_count']} hardware_io_performed=false "
+            "experimental_result=false"
+        )
+        return
     if args.command.startswith("synthetic-protocol-execution-"):
         project_root = Path(args.project_root).resolve()
         execution_bundle = _load_bundle(args)

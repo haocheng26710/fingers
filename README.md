@@ -253,6 +253,12 @@ DEV-06.01R 将 `analysis_evidence_time` 固定为四个 verified execution compl
 
 这里的 feature extraction 仅是 development fixture 的确定性软件产物：没有模型拟合、预测、分类、interaction analysis、normalization fitting、阈值或真实 QC PASS/FAIL，也没有硬件枚举/I/O、播放、录音、校准或实验结论。详见 `docs/architecture/synthetic-measurement-matrix.md`。
 
+## DEV-06.02 离线研究分析
+
+`research-analyze --analysis-dir <analysis-envelope> --output-dir <new-directory>` 只读取已验证的 DEV-06.01 15 文件 envelope，不重放 ESS processing，也不重建 measurement matrix。它发布六个无 sidecar 的 synthetic/development/provisional 研究文件；目标目录已存在时拒绝覆盖。
+
+Stage 1 输出按行元数据派生的单节点/桥状态描述差异，Stage 2 只在协议提供有限连续标签时计算 OLS，否则保持 proxy 分组描述，Stage 3 输出相对 BLK 的双节点 interaction residual。Stage 4 仅使用 16 个 measurement features，在既有 session/reassembly folds 内进行 train-only 标准化和 `lbfgs` 多项逻辑回归。该命令不设置阈值、不选择模型、不产生正式实验或真实声学结论。
+
 详细契约见 `docs/architecture/`；数据根目录政策见 `data/README.md`。
 
 单元测试、真实包集成测试、完整测试与静态检查：
