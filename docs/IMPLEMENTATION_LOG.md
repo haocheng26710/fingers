@@ -884,3 +884,29 @@
 - 实际主要命令：Git status/branch/rev-parse/remote/fetch/ls-remote与指令扫描；TDD指南读取；源码/协议/依赖/矩阵文件检查；各纵向 pytest；`uv lock/sync`；小 fixture 指标读取；直接相关 pytest；Ruff format/lint与strict mypy预检。初次 Ruff 报 import排序/长行后只做机械format/fix；未把失败命令计为PASS。
 - 本条落盘时最终报告后定向 pytest、changed-file Ruff format/lint、affected mypy、`git diff --check`、suppression扫描、任务cache清理、远端复核、commit/push尚未执行，不能预写结果或SHA。只有这些门禁通过后才允许唯一普通提交 `DEV-06.02: add minimal offline research analysis` 与普通push；禁止amend/rebase/force。
 - 报告后最终门禁：组合新测试与两个直接相关既有文件为 `13 passed in 1.55s`（7+6）；changed-file Ruff format `4 files already formatted`，lint `All checks passed!`，strict mypy `Success: no issues found in 4 source files`；`git diff --check` exit 0且无输出；skip/skipif/xfail/pytest.skip/noqa/type-ignore扫描 `suppression_matches=0`。任务cache先验证 resolved path 精确为 workspace 直属 `.uv-cache-dev0602`，再只删除该目录，`remaining=False`；删除内容为可由lock重建的依赖cache，未删除其他路径。完整suite和Schema consistency按提示词边界未运行。远端复核、stage/commit/push仍未执行。
+
+## DEV-06.03：结果导出与 Stage 6 最终验收
+
+### DEV-06.03-00 — 基线、边界与归档
+
+- 2026-08-21 基线门禁通过：分支 `main`、工作区干净；普通 `git fetch origin main` 和 `git ls-remote` 后 local HEAD、`origin/main`、GitHub main 均为 `db7d1ca26e5a23349447c052dbd0cd046b037931`；remote fetch/push URL 均为 `https://github.com/haocheng26710/fingers.git`。`rg --files -uu` 未发现待优先读取的项目级 `AGENTS.md`、`CLAUDE.md`、`.agents/**` 或 `.codex/**` 指令。
+- 完整读取 TDD skill 及 tests/mocking/deep-modules/interface-design/refactoring 指南，并以用户列出的六类导出行为作为已批准接口计划。原样归档聊天提示词为 `docs/prompts/DEV-06.03.md`，向 `.gitattributes` 增加 binary 规则；未改写历史日志。
+- 严格限定为 synthetic 结果导出；未增加新分析算法、模型、网页、GUI、数据库、dashboard、论文自动写作或复杂发布系统。未访问、枚举、连接、播放、录音或校准任何真实音频设备。
+
+### DEV-06.03-01 — 导出入口、图表、摘要与依赖
+
+- 首个公共测试按 TDD 实际 RED：`tests/dev06/test_research_export.py` collection 因 `acoustic_ladder.analysis.report_export` 不存在而失败。新增 `export_research_report`、`PublishedResearchReport` 及 analysis namespace export 后首项 GREEN；随后依次加入 missing-file、missing-column、Stage 2 missing-label、existing-output 和 CLI 测试，CLI 在实现前实际 RED 为 argparse `invalid choice`，新增 `research-report-export --research-output-dir --output-dir` 后 GREEN。最终新文件含6个测试函数。
+- 导出器读取 DEV-06.02 六项，校验 exact CSV columns、finite numeric/positive count、feature/stage count、synthetic/development/provisional 状态、receipt output hashes 和 Stage 2 表示一致性。输出采用同父目录 staging、create-only `xb` 和 no-overwrite rename；已有目标立即拒绝。它不训练模型、不读取或重建 measurement matrix、不执行 processing。
+- Matplotlib 固定 `Agg` backend，在import前把 `MPLCONFIGDIR` 默认指向任务安全临时目录；新增直接依赖 `matplotlib>=3.9,<4`，`uv lock` 解析 Matplotlib 3.11.1及其受约束依赖。没有新增 pandas、seaborn、sidecar或Schema。
+- 输出恰好为四组各300 DPI PNG/SVG、`analysis_summary.md` 和 `report_manifest.json`。Stage 1/3使用以零为中心的发散热图；Stage 2只在真实computed结果画OLS slope，否则标题精确包含 `Proxy / no continuous label` 并画描述性均值；Stage 4按确定类别顺序分别汇总session/reassembly OOF confusion matrix。所有图带 `SYNTHETIC / PROVISIONAL`。
+- task-local可视检查首次发现Stage 4双面板标签拥挤，修正为更宽画布、square axes、换行strategy标题和shared colorbar；重新生成并检查Stage 1–4及missing-label Stage 2均可读。临时visual目录随后精确删除。DEV-06.02未保存feature units，导出仅使用input feature IDs并在摘要说明缺失，不猜测单位。
+
+### DEV-06.03-02 — 定向门禁与 Stage 6 集中验收
+
+- 最终定向命令 `uv --cache-dir .uv-cache-dev0603 run --no-sync pytest tests/dev06/test_research_export.py tests/dev06/test_research_analysis.py -q` 得到 `13 passed in 6.54s`，其中新导出测试6项、直接相关DEV-06.02测试7项。changed-file Ruff format为 `4 files already formatted`，lint为 `All checks passed!`，strict mypy为 `Success: no issues found in 4 source files`；`git diff --check` exit 0无输出；skip/skipif/xfail/pytest.skip/noqa/type-ignore扫描0。Schema未修改，按提示词不运行Schema consistency。
+- 定向通过后只启动一次完整suite：`.\.venv\Scripts\python.exe -m pytest --basetemp=.d603all -q`，权威结果 `909 passed in 2948.71s (0:49:08)`，无失败摘要。没有并行或重复完整suite，也没有因修复再跑一轮。
+- 完整suite包含 `tests/dev05/test_synthetic_protocol_execution_full.py`，该公共路径断言并验证344行完整synthetic measurement matrix，因此按要求没有另跑344行smoke、没有额外生成第二套1.13 GB matrix。导出接口本身使用小型确定性fixture验收，未对保留的完整DEV-06.02 output另跑导出。
+- 完整suite后先解析验证 `.d603all` 与 `.uv-cache-dev0603` 均为workspace直属精确目标，再用PowerShell `Remove-Item -LiteralPath -Recurse -Force`删除，结果 `removed=2 remaining=0`。删除的是可重建pytest临时数据和dependency cache，未删除其他路径。
+- 创建 `docs/reports/DEV-06.03.md`，README新增CLI说明并写入精确状态 `Stage 6 software workflow complete; awaiting real hardware connection and authorization.`。本条落盘时最终文档后轻量门禁、远程基线复核、stage/commit/push尚未执行，不能预写提交SHA或推送结果。
+- 文档后轻量门禁实际结果：changed-file Ruff format `4 files already formatted`、lint `All checks passed!`、strict mypy `Success: no issues found in 4 source files`、`uv lock --check` resolved 44 packages、`git diff --check` exit 0无输出，禁止抑制扫描 `suppression_matches=0`。task-local `.uv-cache-dev0603-final` 解析为workspace直属目标后删除，`remaining=False`。Schema仍未修改，故未运行Schema consistency；完整pytest未重复。远端复核、stage/commit/push仍待执行。
+- 提交前首次普通 `git fetch origin main` 与 `git ls-remote` 在受限sandbox内均因 `Failed to connect to github.com:443` 失败，未计远端验证；按执行环境要求仅对相同只读命令获取网络授权后重试成功。local HEAD、`origin/main`、GitHub main仍一致为规定基线 `db7d1ca26e5a23349447c052dbd0cd046b037931`。当前仍未执行stage/commit/push，因此不预写最终SHA。

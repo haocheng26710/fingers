@@ -17,6 +17,7 @@ from acoustic_ladder.analysis.persistence import (
     compute_synthetic_measurement_matrix,
     validate_synthetic_measurement_matrix,
 )
+from acoustic_ladder.analysis.report_export import export_research_report
 from acoustic_ladder.analysis.research import run_research_analysis
 from acoustic_ladder.analysis.source_validation import AnalysisExecutionSource
 from acoustic_ladder.analysis.spec import load_development_analysis_matrix_spec
@@ -390,6 +391,10 @@ def _parser() -> argparse.ArgumentParser:
     research.add_argument("--output-dir", required=True)
     research.add_argument("--random-seed", type=int, default=602)
 
+    report = commands.add_parser("research-report-export")
+    report.add_argument("--research-output-dir", required=True)
+    report.add_argument("--output-dir", required=True)
+
     session = commands.add_parser("create-synthetic-session")
     _add_bundle_arguments(session)
     session.add_argument("--synthetic-root", required=True)
@@ -658,6 +663,18 @@ def main(argv: list[str] | None = None) -> None:
             f"PASS synthetic provisional research analysis: output_path={published.output_path} "
             f"analysis_id={published.summary['analysis_id']} "
             f"fold_count={published.receipt['fold_count']} hardware_io_performed=false "
+            "experimental_result=false"
+        )
+        return
+    if args.command == "research-report-export":
+        published_report = export_research_report(
+            args.research_output_dir,
+            args.output_dir,
+        )
+        print(
+            "PASS synthetic provisional research report: "
+            f"output_path={published_report.output_path} "
+            "figures=4 formats=png,svg hardware_io_performed=false "
             "experimental_result=false"
         )
         return

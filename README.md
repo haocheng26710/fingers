@@ -259,6 +259,12 @@ DEV-06.01R 将 `analysis_evidence_time` 固定为四个 verified execution compl
 
 Stage 1 输出按行元数据派生的单节点/桥状态描述差异，Stage 2 只在协议提供有限连续标签时计算 OLS，否则保持 proxy 分组描述，Stage 3 输出相对 BLK 的双节点 interaction residual。Stage 4 仅使用 16 个 measurement features，在既有 session/reassembly folds 内进行 train-only 标准化和 `lbfgs` 多项逻辑回归。该命令不设置阈值、不选择模型、不产生正式实验或真实声学结论。
 
+## DEV-06.03 静态研究报告导出
+
+`research-report-export --research-output-dir <DEV-06.02-output> --output-dir <new-directory>` 验证六个研究结果文件后，以 Matplotlib `Agg` 后端生成 Stage 1–4 的四张 300 DPI PNG、四张 SVG、`analysis_summary.md` 和 `report_manifest.json`。导出不重新训练模型、不重建 measurement matrix，不把 synthetic fixture 指标解释为设备性能。
+
+Stage 6 software workflow complete; awaiting real hardware connection and authorization.
+
 详细契约见 `docs/architecture/`；数据根目录政策见 `data/README.md`。
 
 单元测试、真实包集成测试、完整测试与静态检查：
