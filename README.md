@@ -279,6 +279,12 @@ uv run --frozen python -m acoustic_ladder.ui
 
 可用 `--session-id <ID>` 重新打开并选择从原子保存的安全边界继续。向导只执行 3 个 `development_demo` 条件、每条件 2 次 fake capture，数据写入 `development/demo/`；正式 Stage 1–4 计划仅作只读预览（19/4/4/16 条件，合计 172 次装配、344 sweeps）。该入口不枚举或连接设备，不打开真实 Stream，不播放、不录音、不校准，也不产生正式实验结论。
 
+## DEV-07.03 iMM-6C 幅值校准处理
+
+仓库原样保存 `calibration/microphones/dayton_imm6c/CMM29939.txt`（SHA256 `421070EC6D41C1B92CB69F0F5E4E290F9644847D92D52590994A80EA9E17A11E`）。处理入口严格验证 DEV-07.01 四文件 capture bundle，复用现有 ESS 内核，并在 20–20,000 Hz 内按 log10 频率轴线性插值后将 dB 修正加到测量幅值；原始 transfer、幅值、相位和 bundle 字节均保留。
+
+该文件没有相位或 94 dB 校准器信息，因此不进行相位校准或绝对 SPL 校准，也不构成真实设备操作、正式 QC 或实验授权。
+
 详细契约见 `docs/architecture/`；数据根目录政策见 `data/README.md`。
 
 单元测试、真实包集成测试、完整测试与静态检查：
