@@ -11,20 +11,19 @@ from functools import partial
 from pathlib import Path
 from tkinter import BooleanVar, StringVar, Tk, messagebox, ttk
 
-from acoustic_ladder.audio.ess import generate_ess, spec_from_audio_config
-from acoustic_ladder.config.bundle import load_config
-from acoustic_ladder.config.models import AudioConfig
 from acoustic_ladder.ui.controller import (
     Confirmation,
     ExperimentWizardController,
-    FakeDemoCaptureRunner,
     WizardError,
     WizardSnapshot,
     WizardState,
 )
 from acoustic_ladder.ui.plans import WizardPlans, load_wizard_plans
+from acoustic_ladder.ui.simulated_workflow import SimulatedMeasurementRunner
 
 FAKE_MODE_WARNING = "当前未连接真实硬件\uff0c不会播放或录音"
+FORMAL_RESULT_WARNING = "不构成正式实验结论"
+STRUCTURAL_DISCLAIMER = "当前结果仅为模拟链路结构检查\uff0c不代表正式声学 PASS/FAIL。"
 REASSEMBLY_ID = "demo-reassembly-1"
 MODULE_DESCRIPTIONS = {
     "BLK": "封闭件",
@@ -58,16 +57,8 @@ def create_demo_controller(
 
     root = project_root.resolve()
     plans = load_wizard_plans(root)
-    loaded = load_config(
-        "audio",
-        root / "tests/fixtures/audio/ess_offline_development.yaml",
-        project_root=root,
-    )
-    if not isinstance(loaded.model, AudioConfig):
-        raise WizardError("development audio fixture did not load as AudioConfig")
-    samples = generate_ess(spec_from_audio_config(loaded.model)).samples
-    runner = FakeDemoCaptureRunner(samples)
     session_root = (demo_data_root or root / "development" / "demo") / session_id
+    runner = SimulatedMeasurementRunner(project_root=root, session_root=session_root)
     factory = ExperimentWizardController.recover if recover else ExperimentWizardController
     controller = factory(
         plan=plans.demo_plan,
@@ -107,6 +98,13 @@ class ExperimentWizardWindow:
                 "last_result",
                 "error",
                 "next_action",
+                "capture_status",
+                "bundle_validation_status",
+                "processing_status",
+                "calibration_status",
+                "calibration_band_status",
+                "structural_check_status",
+                "result_directory",
             )
         }
         self._node_vars = {f"N{index}": StringVar(root) for index in range(1, 7)}
@@ -133,7 +131,9 @@ class ExperimentWizardWindow:
         ttk.Label(outer, text="当前模式: 模拟演练 / FAKE BACKEND").grid(
             row=1, column=0, sticky="w", pady=(3, 0)
         )
-        warning = ttk.Label(outer, text=FAKE_MODE_WARNING, foreground="#b00020")
+        warning = ttk.Label(
+            outer, text=f"{FAKE_MODE_WARNING}\uff1b{FORMAL_RESULT_WARNING}", foreground="#b00020"
+        )
         warning.grid(row=2, column=0, sticky="ew", pady=(3, 8))
 
         top = ttk.LabelFrame(outer, text="顶部状态区", padding=8)
@@ -200,6 +200,13 @@ class ExperimentWizardWindow:
         for row, (label, key) in enumerate(
             (
                 ("程序状态", "program_state"),
+                ("Capture", "capture_status"),
+                ("Bundle 验证", "bundle_validation_status"),
+                ("ESS 处理", "processing_status"),
+                ("iMM-6C 校准", "calibration_status"),
+                ("校准频段", "calibration_band_status"),
+                ("结构检查", "structural_check_status"),
+                ("结果目录", "result_directory"),
                 ("最近结果", "last_result"),
                 ("错误", "error"),
                 ("下一步", "next_action"),
@@ -212,19 +219,27 @@ class ExperimentWizardWindow:
                 wraplength=760,
             ).grid(row=row, column=1, sticky="w")
 
+        ttk.Label(
+            execution,
+            text=STRUCTURAL_DISCLAIMER,
+            foreground="#b00020",
+        ).grid(row=11, column=0, columnspan=2, sticky="w", pady=(6, 0))
+
         controls = ttk.Frame(outer)
         controls.grid(row=7, column=0, sticky="ew", pady=(10, 0))
         self._start_button = ttk.Button(
             controls, text="开始当前条件测量", command=self._start_capture
         )
         self._start_button.grid(row=0, column=0, padx=3)
+        self._retry_button = ttk.Button(controls, text="重试当前重复", command=self._retry_capture)
+        self._retry_button.grid(row=0, column=1, padx=3)
         self._pause_button = ttk.Button(controls, text="暂停", command=self._pause)
-        self._pause_button.grid(row=0, column=1, padx=3)
+        self._pause_button.grid(row=0, column=2, padx=3)
         self._resume_button = ttk.Button(controls, text="继续", command=self._resume)
-        self._resume_button.grid(row=0, column=2, padx=3)
+        self._resume_button.grid(row=0, column=3, padx=3)
         self._stop_button = ttk.Button(controls, text="紧急停止", command=self._stop)
-        self._stop_button.grid(row=0, column=3, padx=3)
-        ttk.Button(controls, text="退出", command=self._request_close).grid(row=0, column=4, padx=3)
+        self._stop_button.grid(row=0, column=4, padx=3)
+        ttk.Button(controls, text="退出", command=self._request_close).grid(row=0, column=5, padx=3)
 
     def _set_confirmation(self, confirmation: Confirmation) -> None:
         try:
@@ -238,15 +253,25 @@ class ExperimentWizardWindow:
         self._refresh(snapshot)
 
     def _start_capture(self) -> None:
+        self._start_worker(self.controller.run_current_condition)
+
+    def _retry_capture(self) -> None:
+        self._start_worker(self.controller.retry_current_repeat)
+
+    def _start_worker(self, action: Callable[[], WizardSnapshot]) -> None:
         if self._worker is not None and self._worker.is_alive():
             return
-        self._worker = threading.Thread(target=self._capture_worker, daemon=True)
+        self._worker = threading.Thread(
+            target=self._capture_worker,
+            args=(action,),
+            daemon=True,
+        )
         self._worker.start()
         self._refresh(self.controller.snapshot())
 
-    def _capture_worker(self) -> None:
+    def _capture_worker(self, action: Callable[[], WizardSnapshot]) -> None:
         try:
-            self._messages.put(("snapshot", self.controller.run_current_condition()))
+            self._messages.put(("snapshot", action()))
         except Exception as exc:
             self._messages.put(("error", exc))
 
@@ -321,7 +346,18 @@ class ExperimentWizardWindow:
         self._status_vars["program_state"].set(STATE_TEXT[snapshot.state])
         self._status_vars["last_result"].set(snapshot.last_capture_summary)
         self._status_vars["error"].set(self._ui_error or snapshot.error_message or "无")
-        self._status_vars["next_action"].set(self._next_action(snapshot.state))
+        self._status_vars["next_action"].set(
+            "[用户操作] 点击“重试当前重复”"
+            if snapshot.needs_retry
+            else self._next_action(snapshot.state)
+        )
+        self._status_vars["capture_status"].set(snapshot.capture_status)
+        self._status_vars["bundle_validation_status"].set(snapshot.bundle_validation_status)
+        self._status_vars["processing_status"].set(snapshot.processing_status)
+        self._status_vars["calibration_status"].set(snapshot.calibration_status)
+        self._status_vars["calibration_band_status"].set(snapshot.calibration_band_status)
+        self._status_vars["structural_check_status"].set(snapshot.structural_check_status)
+        self._status_vars["result_directory"].set(snapshot.result_directory)
         node_states = {node.node_id: node.module_id for node in condition.nodes}
         for node_id, node_variable in self._node_vars.items():
             module_id = node_states[node_id]
@@ -339,6 +375,9 @@ class ExperimentWizardWindow:
         running = self._worker is not None and self._worker.is_alive()
         self._start_button.configure(
             state="normal" if snapshot.can_start and not running else "disabled"
+        )
+        self._retry_button.configure(
+            state="normal" if snapshot.needs_retry and not running else "disabled"
         )
         self._pause_button.configure(
             state="normal"

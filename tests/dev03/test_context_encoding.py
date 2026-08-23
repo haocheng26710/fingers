@@ -1,6 +1,5 @@
 from __future__ import annotations
 
-import ast
 import hashlib
 import json
 from datetime import UTC, datetime
@@ -28,6 +27,7 @@ from acoustic_ladder.audio.preflight import build_contextual_preflight_report
 from acoustic_ladder.audio.summary import render_inventory_summary
 from acoustic_ladder.config.schema import GENERATED_SCHEMA_MODELS, check_schemas
 from tests.conftest import REPO_ROOT
+from tests.dev03.audio_api_guard import assert_production_audio_api_guard
 
 INVENTORY = REPO_ROOT / "reference/audio/inventory/DEV-03.01_audio_inventory.json"
 INVENTORY_SIDECAR = REPO_ROOT / "reference/audio/inventory/DEV-03.01_audio_inventory.sha256"
@@ -279,28 +279,11 @@ def test_corrected_dev0301_report_does_not_blame_sounddevice() -> None:
 
 
 def test_production_audio_code_calls_no_forbidden_api_after_context_change() -> None:
-    forbidden = {
-        "play",
-        "rec",
-        "playrec",
-        "wait",
-        "Stream",
-        "RawStream",
-        "InputStream",
-        "OutputStream",
-        "RawInputStream",
-        "RawOutputStream",
+    sources = {
+        str(source_path): source_path.read_text(encoding="utf-8")
+        for source_path in (REPO_ROOT / "src/acoustic_ladder/audio").glob("*.py")
     }
-    called: set[str] = set()
-    for source_path in (REPO_ROOT / "src/acoustic_ladder/audio").glob("*.py"):
-        tree = ast.parse(source_path.read_text(encoding="utf-8"))
-        for node in ast.walk(tree):
-            if isinstance(node, ast.Call):
-                if isinstance(node.func, ast.Name):
-                    called.add(node.func.id)
-                elif isinstance(node.func, ast.Attribute):
-                    called.add(node.func.attr)
-    assert called.isdisjoint(forbidden)
+    assert_production_audio_api_guard(sources)
 
 
 def test_context_schemas_are_generated_from_models() -> None:

@@ -29,6 +29,12 @@ from acoustic_ladder.ui.session_state import (
     DemoSessionStateStore,
     demo_plan_sha256,
 )
+from acoustic_ladder.ui.simulated_workflow import (
+    SimulatedMeasurementRunner,
+    SimulatedRepeatResult,
+    SimulatedWorkflowError,
+    validate_simulated_repeat_evidence,
+)
 
 _SAFE_IDENTIFIER = re.compile(r"^[A-Za-z0-9_-]+$")
 _CAPTURE_FILE_NAMES = frozenset(
@@ -77,6 +83,15 @@ class WizardSnapshot:
     can_start: bool
     error_message: str
     last_capture_summary: str
+    capture_status: str
+    bundle_validation_status: str
+    processing_status: str
+    calibration_status: str
+    calibration_band_status: str
+    structural_check_status: str
+    result_directory: str
+    formal_acoustic_decision: bool
+    needs_retry: bool
 
 
 class _ValidatedRecoveryState(TypedDict):
@@ -86,6 +101,10 @@ class _ValidatedRecoveryState(TypedDict):
     state: WizardState
     resume_state: WizardState | None
     confirmations: dict[Confirmation, bool]
+    successful_runs: list[dict[str, object]]
+    last_failed_run_id: str | None
+    needs_retry: bool
+    attempt_counts: dict[str, int]
 
 
 class FakeDemoCaptureRunner:
@@ -138,7 +157,7 @@ class ExperimentWizardController:
         self,
         *,
         plan: DemoPlan,
-        runner: FakeDemoCaptureRunner,
+        runner: FakeDemoCaptureRunner | SimulatedMeasurementRunner,
         session_id: str,
         session_root: Path,
         now: Callable[[], datetime] | None = None,
@@ -163,8 +182,19 @@ class ExperimentWizardController:
         self.completed_repeat_count = 0
         self._confirmations = dict.fromkeys(Confirmation, False)
         self._completed_condition_ids: list[str] = []
+        self._successful_runs: list[dict[str, object]] = []
+        self._last_failed_run_id: str | None = None
+        self._needs_retry = False
+        self._attempt_counts: dict[str, int] = {}
         self._error_message = ""
         self._last_capture_summary = "尚无 fake capture 结果"
+        self._capture_status = "等待"
+        self._bundle_validation_status = "等待"
+        self._processing_status = "等待"
+        self._calibration_status = "等待"
+        self._calibration_band_status = "等待"
+        self._structural_check_status = "等待"
+        self._result_directory = "尚无结果目录"
         self._resume_state: WizardState | None = None
         self._pause_requested = False
         self._lock = RLock()
@@ -202,6 +232,10 @@ class ExperimentWizardController:
             },
             "demo_data_root": str(self.session_root.parent),
             "last_updated_at": self._now().isoformat(),
+            "successful_runs": list(self._successful_runs),
+            "last_failed_run_id": self._last_failed_run_id,
+            "needs_retry": self._needs_retry,
+            "attempt_counts": dict(self._attempt_counts),
             "plan_sha256": demo_plan_sha256(self.plan),
         }
 
@@ -218,7 +252,7 @@ class ExperimentWizardController:
         cls,
         *,
         plan: DemoPlan,
-        runner: FakeDemoCaptureRunner,
+        runner: FakeDemoCaptureRunner | SimulatedMeasurementRunner,
         session_id: str,
         session_root: Path,
         now: Callable[[], datetime] | None = None,
@@ -228,9 +262,19 @@ class ExperimentWizardController:
         try:
             payload = DemoSessionStateStore(resolved_root).read()
             validated = cls._validate_recovery_payload(
-                payload, plan=plan, session_id=session_id, session_root=resolved_root
+                payload,
+                plan=plan,
+                runner=runner,
+                session_id=session_id,
+                session_root=resolved_root,
             )
-        except (DemoSessionStateError, KeyError, TypeError, ValueError) as exc:
+        except (
+            DemoSessionStateError,
+            KeyError,
+            TypeError,
+            ValueError,
+            SimulatedWorkflowError,
+        ) as exc:
             raise WizardRecoveryError(f"saved demo state was rejected: {exc}") from exc
         controller = cls(
             plan=plan,
@@ -246,6 +290,10 @@ class ExperimentWizardController:
         controller.state = validated["state"]
         controller._resume_state = validated["resume_state"]
         controller._confirmations = validated["confirmations"]
+        controller._successful_runs = validated["successful_runs"]
+        controller._last_failed_run_id = validated["last_failed_run_id"]
+        controller._needs_retry = validated["needs_retry"]
+        controller._attempt_counts = validated["attempt_counts"]
         if controller.state in {WizardState.CANCELLED, WizardState.ERROR}:
             controller.state = (
                 WizardState.BETWEEN_REPEATS
@@ -254,6 +302,22 @@ class ExperimentWizardController:
                 if all(controller._confirmations.values())
                 else WizardState.WAITING_USER_ASSEMBLY
             )
+        if controller._successful_runs:
+            last_success = controller._successful_runs[-1]
+            controller._capture_status = "完成"
+            controller._bundle_validation_status = "通过"
+            controller._processing_status = "通过"
+            controller._calibration_status = "已应用"
+            controller._calibration_band_status = "500\u20138,000 Hz 有效"
+            controller._structural_check_status = "通过"
+            controller._result_directory = str(
+                controller.session_root / str(last_success["processing_relative_path"])
+            )
+            controller._last_capture_summary = f"已恢复成功证据: {last_success['run_id']}"
+        if controller._needs_retry:
+            controller._structural_check_status = "需要重试"
+            controller._error_message = "检测到未完成的上次尝试\uff0c请重试当前重复"
+
         return controller
 
     @staticmethod
@@ -261,6 +325,7 @@ class ExperimentWizardController:
         payload: dict[str, object],
         *,
         plan: DemoPlan,
+        runner: FakeDemoCaptureRunner | SimulatedMeasurementRunner,
         session_id: str,
         session_root: Path,
     ) -> _ValidatedRecoveryState:
@@ -278,6 +343,10 @@ class ExperimentWizardController:
             "demo_data_root",
             "last_updated_at",
             "plan_sha256",
+            "successful_runs",
+            "last_failed_run_id",
+            "needs_retry",
+            "attempt_counts",
         }
         missing = required - payload.keys()
         if missing:
@@ -311,20 +380,20 @@ class ExperimentWizardController:
             isinstance(condition_id, str) for condition_id in completed
         ):
             raise ValueError("completed_conditions must be a string list")
-        completed_count = (
-            len(plan.conditions)
-            if payload["controller_state"] == WizardState.ALL_COMPLETE.value
-            else condition_index
-        )
-        expected = [condition.condition_id for condition in plan.conditions[:completed_count]]
-        if completed != expected:
-            raise ValueError("completed condition prefix is invalid")
         try:
             state = WizardState(str(payload["controller_state"]))
         except ValueError as exc:
             raise ValueError("controller_state is invalid") from exc
         if state in {WizardState.RUNNING_REPEAT_1, WizardState.RUNNING_REPEAT_2}:
             raise ValueError("running state is not a recoverable boundary")
+        completed_count = (
+            len(plan.conditions) if state is WizardState.ALL_COMPLETE else condition_index
+        )
+        expected_conditions = [
+            condition.condition_id for condition in plan.conditions[:completed_count]
+        ]
+        if completed != expected_conditions:
+            raise ValueError("completed condition prefix is invalid")
         raw_resume = payload["resume_state"]
         resume_state = None if raw_resume is None else WizardState(str(raw_resume))
         if state is WizardState.PAUSED and resume_state not in {
@@ -342,22 +411,135 @@ class ExperimentWizardController:
             if not isinstance(value, bool):
                 raise ValueError("confirmation values must be booleans")
             confirmations[confirmation] = value
-        completed_repeats = {
+
+        expected_positions = [
             (index, repeat)
             for index in range(completed_count)
             for repeat in range(1, plan.repeat_count + 1)
-        }
+        ]
         if state is not WizardState.ALL_COMPLETE:
-            completed_repeats.update(
+            expected_positions.extend(
                 (condition_index, repeat) for repeat in range(1, repeat_count + 1)
             )
-        for index, repeat in completed_repeats:
-            bundle = session_root / "captures" / f"condition_{index + 1:03d}" / f"repeat_{repeat}"
+
+        raw_attempts = payload["attempt_counts"]
+        if not isinstance(raw_attempts, dict):
+            raise ValueError("attempt_counts must be an object")
+        attempt_counts: dict[str, int] = {}
+        for key, value in raw_attempts.items():
             if (
-                not bundle.is_dir()
-                or {entry.name for entry in bundle.iterdir()} != _CAPTURE_FILE_NAMES
+                not isinstance(key, str)
+                or _SAFE_IDENTIFIER.fullmatch(key.replace(":", "-")) is None
             ):
-                raise ValueError("saved repeat does not have a complete fake capture bundle")
+                raise ValueError("attempt count key is invalid")
+            parts = key.split(":")
+            if len(parts) != 2 or not all(part.isascii() and part.isdigit() for part in parts):
+                raise ValueError("attempt count key is invalid")
+            key_condition, key_repeat = (int(part) for part in parts)
+            if not (
+                0 <= key_condition < len(plan.conditions) and 1 <= key_repeat <= plan.repeat_count
+            ):
+                raise ValueError("attempt count position is invalid")
+            if isinstance(value, bool) or not isinstance(value, int) or value <= 0:
+                raise ValueError("attempt count must be a positive integer")
+            attempt_counts[key] = value
+
+        raw_last_failed = payload["last_failed_run_id"]
+        if raw_last_failed is not None and (
+            not isinstance(raw_last_failed, str)
+            or _SAFE_IDENTIFIER.fullmatch(raw_last_failed) is None
+        ):
+            raise ValueError("last_failed_run_id is invalid")
+        last_failed_run_id = raw_last_failed if isinstance(raw_last_failed, str) else None
+        needs_retry = payload["needs_retry"]
+        if not isinstance(needs_retry, bool):
+            raise ValueError("needs_retry must be boolean")
+
+        raw_successful = payload["successful_runs"]
+        if not isinstance(raw_successful, list):
+            raise ValueError("successful_runs must be a list")
+        successful_runs: list[dict[str, object]] = []
+        actual_positions: list[tuple[int, int]] = []
+        for raw_entry in raw_successful:
+            if not isinstance(raw_entry, dict) or set(raw_entry) != {
+                "condition_index",
+                "condition_id",
+                "repeat_index",
+                "run_id",
+                "bundle_relative_path",
+                "processing_relative_path",
+                "processing_receipt_relative_path",
+            }:
+                raise ValueError("successful run evidence fields are invalid")
+            entry_condition = raw_entry["condition_index"]
+            entry_repeat = raw_entry["repeat_index"]
+            run_id = raw_entry["run_id"]
+            condition_id = raw_entry["condition_id"]
+            if (
+                isinstance(entry_condition, bool)
+                or not isinstance(entry_condition, int)
+                or isinstance(entry_repeat, bool)
+                or not isinstance(entry_repeat, int)
+                or not 0 <= entry_condition < len(plan.conditions)
+                or not 1 <= entry_repeat <= plan.repeat_count
+                or condition_id != plan.conditions[entry_condition].condition_id
+                or not isinstance(run_id, str)
+                or _SAFE_IDENTIFIER.fullmatch(run_id) is None
+            ):
+                raise ValueError("successful run identity is invalid")
+
+            evidence: dict[str, Path] = {}
+            for field in (
+                "bundle_relative_path",
+                "processing_relative_path",
+                "processing_receipt_relative_path",
+            ):
+                value = raw_entry[field]
+                if not isinstance(value, str) or not value or Path(value).is_absolute():
+                    raise ValueError(f"{field} must be a relative path")
+                resolved = (session_root / Path(value)).resolve()
+                if not resolved.is_relative_to(session_root):
+                    raise ValueError(f"{field} escapes the demo session")
+                evidence[field] = resolved
+
+            bundle = evidence["bundle_relative_path"]
+            processing = evidence["processing_relative_path"]
+            receipt = evidence["processing_receipt_relative_path"]
+            if receipt != processing / "processing_receipt.json":
+                raise ValueError("processing receipt path does not match processing evidence")
+            if isinstance(runner, SimulatedMeasurementRunner):
+                validate_simulated_repeat_evidence(
+                    bundle,
+                    processing,
+                    project_root=runner.project_root,
+                    expected_run_id=run_id,
+                )
+            successful_runs.append({str(key): value for key, value in raw_entry.items()})
+            actual_positions.append((entry_condition, entry_repeat))
+
+        if isinstance(runner, SimulatedMeasurementRunner):
+            if actual_positions != expected_positions:
+                raise ValueError("successful run evidence does not match completed progress")
+        else:
+            if successful_runs:
+                raise ValueError("capture-only recovery cannot claim processing evidence")
+            for index, repeat in expected_positions:
+                bundle = (
+                    session_root / "captures" / f"condition_{index + 1:03d}" / f"repeat_{repeat}"
+                )
+                if (
+                    not bundle.is_dir()
+                    or {entry.name for entry in bundle.iterdir()} != _CAPTURE_FILE_NAMES
+                ):
+                    raise ValueError("saved repeat does not have a complete fake capture bundle")
+        if isinstance(runner, SimulatedMeasurementRunner) and state is not WizardState.ALL_COMPLETE:
+            next_position = (condition_index, repeat_count + 1)
+            next_attempt_key = f"{condition_index}:{repeat_count + 1}"
+            if repeat_count < plan.repeat_count and (
+                attempt_counts.get(next_attempt_key, 0) > 0
+                and next_position not in actual_positions
+            ):
+                needs_retry = True
         return {
             "condition_index": condition_index,
             "repeat_count": repeat_count,
@@ -365,7 +547,17 @@ class ExperimentWizardController:
             "state": state,
             "resume_state": resume_state,
             "confirmations": confirmations,
+            "successful_runs": successful_runs,
+            "last_failed_run_id": last_failed_run_id,
+            "needs_retry": needs_retry,
+            "attempt_counts": attempt_counts,
         }
+
+    @property
+    def successful_run_ids(self) -> tuple[str, ...]:
+        """Return successfully published run identities in deterministic workflow order."""
+
+        return tuple(str(entry["run_id"]) for entry in self._successful_runs)
 
     def snapshot(self) -> WizardSnapshot:
         return WizardSnapshot(
@@ -381,6 +573,15 @@ class ExperimentWizardController:
             can_start=self.state is WizardState.READY,
             error_message=self._error_message,
             last_capture_summary=self._last_capture_summary,
+            capture_status=self._capture_status,
+            bundle_validation_status=self._bundle_validation_status,
+            processing_status=self._processing_status,
+            calibration_status=self._calibration_status,
+            calibration_band_status=self._calibration_band_status,
+            structural_check_status=self._structural_check_status,
+            result_directory=self._result_directory,
+            formal_acoustic_decision=False,
+            needs_retry=self._needs_retry,
         )
 
     def set_confirmation(self, confirmation: Confirmation, value: bool) -> WizardSnapshot:
@@ -443,40 +644,129 @@ class ExperimentWizardController:
             raise WizardError("current condition is not ready to run")
         condition = self.plan.conditions[self.condition_index]
         for repeat_index in range(self.completed_repeat_count + 1, self.plan.repeat_count + 1):
+            attempt_key = f"{self.condition_index}:{repeat_index}"
+            attempt_number = self._attempt_counts.get(attempt_key, 0) + 1
+            self._attempt_counts[attempt_key] = attempt_number
+            self._persist()
             self.state = (
                 WizardState.RUNNING_REPEAT_1 if repeat_index == 1 else WizardState.RUNNING_REPEAT_2
             )
             cancellation = CancellationToken()
+            target_name = (
+                f"repeat_{repeat_index}"
+                if attempt_number == 1
+                else f"repeat_{repeat_index}_attempt_{attempt_number:03d}"
+            )
             target = (
                 self.session_root
                 / "captures"
                 / f"condition_{self.condition_index + 1:03d}"
-                / f"repeat_{repeat_index}"
+                / target_name
             )
+            self._capture_status = "运行"
+            self._bundle_validation_status = "等待"
+            self._processing_status = "等待"
+            self._calibration_status = "等待"
+            self._calibration_band_status = "等待"
+            self._structural_check_status = "等待"
+            self._result_directory = str(target)
+            integrated = isinstance(self.runner, SimulatedMeasurementRunner)
+            run_id = (
+                f"{self.session_id}-c{self.condition_index + 1:03d}"
+                f"-r{repeat_index}-a{attempt_number:03d}"
+                if integrated
+                else f"{self.session_id}-c{self.condition_index + 1:03d}-r{repeat_index}"
+            )
+            result: SimulatedRepeatResult | PilotCaptureResult
             try:
                 self._current_cancellation = cancellation
-                result = self.runner.capture_repeat(
-                    condition=condition,
-                    repeat_index=repeat_index,
-                    target=target,
-                    run_id=(f"{self.session_id}-c{self.condition_index + 1:03d}-r{repeat_index}"),
-                    cancellation=cancellation,
-                )
+                if integrated:
+                    assert isinstance(self.runner, SimulatedMeasurementRunner)
+                    result = self.runner.run_repeat(
+                        condition=condition,
+                        repeat_index=repeat_index,
+                        target=target,
+                        run_id=run_id,
+                        cancellation=cancellation,
+                    )
+                else:
+                    assert isinstance(self.runner, FakeDemoCaptureRunner)
+                    result = self.runner.capture_repeat(
+                        condition=condition,
+                        repeat_index=repeat_index,
+                        target=target,
+                        run_id=run_id,
+                        cancellation=cancellation,
+                    )
             except PilotCaptureError as exc:
                 self.state = (
                     WizardState.CANCELLED
                     if exc.state is CaptureState.CANCELLED
                     else WizardState.ERROR
                 )
+                self._last_failed_run_id = run_id
+                self._needs_retry = True
                 self._error_message = str(exc)
+                self._capture_status = "取消" if exc.state is CaptureState.CANCELLED else "失败"
+                self._bundle_validation_status = "失败"
+                self._structural_check_status = "需要重试"
+                self._persist()
+                return self.snapshot()
+            except SimulatedWorkflowError as exc:
+                self.state = WizardState.ERROR
+                self._last_failed_run_id = run_id
+                self._needs_retry = True
+                self._error_message = str(exc)
+                self._capture_status = "完成" if exc.capture_published else "失败"
+                self._bundle_validation_status = "通过" if exc.capture_published else "失败"
+                if exc.phase == "processing":
+                    self._processing_status = "失败"
+                elif exc.phase == "calibration":
+                    self._calibration_status = "失败"
+                    self._calibration_band_status = "无效"
+                elif exc.phase == "persistence":
+                    self._processing_status = "通过"
+                    self._calibration_status = "已应用"
+                    self._calibration_band_status = "500\u20138,000 Hz 有效"
+                self._structural_check_status = "需要重试"
+                self._result_directory = str(exc.bundle_path)
                 self._persist()
                 return self.snapshot()
             finally:
                 self._current_cancellation = None
             self.completed_repeat_count = repeat_index
+            if isinstance(result, SimulatedRepeatResult):
+                result_state = result.capture_status
+                self._capture_status = "完成"
+                self._bundle_validation_status = "通过"
+                self._processing_status = "通过"
+                self._calibration_status = "已应用"
+                self._calibration_band_status = "500\u20138,000 Hz 有效"
+                self._structural_check_status = "通过"
+                self._result_directory = str(result.processing_directory)
+                self._successful_runs.append(
+                    {
+                        "condition_index": self.condition_index,
+                        "condition_id": condition.condition_id,
+                        "repeat_index": repeat_index,
+                        "run_id": result.run_id,
+                        "bundle_relative_path": result.bundle_path.relative_to(
+                            self.session_root
+                        ).as_posix(),
+                        "processing_relative_path": result.processing_directory.relative_to(
+                            self.session_root
+                        ).as_posix(),
+                        "processing_receipt_relative_path": (
+                            result.processing_receipt_path.relative_to(self.session_root).as_posix()
+                        ),
+                    }
+                )
+                self._needs_retry = False
+            else:
+                result_state = result.state.value
             self._last_capture_summary = (
                 f"重复 {repeat_index}/{self.plan.repeat_count} 完成: "
-                f"{result.bundle_path.name} ({result.state.value})"
+                f"{result.bundle_path.name} ({result_state})"
             )
             self.state = WizardState.BETWEEN_REPEATS
             self._persist()
@@ -497,6 +787,26 @@ class ExperimentWizardController:
             self.state = WizardState.WAITING_USER_ASSEMBLY
         self._persist()
         return self.snapshot()
+
+    def retry_current_repeat(self) -> WizardSnapshot:
+        """Retry the failed repeat with a fresh run identity and create-only target."""
+
+        if (
+            self.state
+            not in {
+                WizardState.ERROR,
+                WizardState.CANCELLED,
+                WizardState.READY,
+                WizardState.BETWEEN_REPEATS,
+            }
+            or not self._needs_retry
+        ):
+            raise WizardError("current repeat does not require retry")
+        self.state = (
+            WizardState.BETWEEN_REPEATS if self.completed_repeat_count else WizardState.READY
+        )
+        self._error_message = ""
+        return self.run_current_condition()
 
     def save_state(self) -> None:
         """Persist the current safe boundary before a normal UI exit."""

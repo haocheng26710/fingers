@@ -286,6 +286,12 @@ uv run --frozen python -m acoustic_ladder.ui
 该文件没有相位或 94 dB 校准器信息，因此不进行相位校准或绝对 SPL 校准，也不构成真实设备操作、正式 QC 或实验授权。
 
 详细契约见 `docs/architecture/`；数据根目录政策见 `data/README.md`。
+## DEV-07.04 完整模拟测量链路
+
+DEV-07.02 段落记录其原始 capture-only 边界；当前同一启动命令会在每项用户装配确认后，按顺序完成 fake capture、四文件 bundle 重验、ESS 处理、iMM-6C 幅值校准和 create-only processing receipt 发布。3 个条件各自动执行 2 次 repeat，失败时停留在当前 repeat 并允许使用新 run ID 重试，恢复时重放已成功证据而不重复执行。
+
+全部数据仍只写入 `development/demo/`。界面中的“结构检查通过”仅表示 synthetic/provisional 软件链路完整；入口不枚举或连接真实设备，不打开真实 Stream，不播放、不录音，也不产生正式声学 PASS/FAIL 或实验结论。
+
 
 单元测试、真实包集成测试、完整测试与静态检查：
 

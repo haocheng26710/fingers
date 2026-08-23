@@ -1006,3 +1006,38 @@
 - No real audio device was accessed or enumerated, no Stream was opened, and no playback, recording, 94 dB calibration, device calibration, formal QC, or experiment occurred. Commit, index-byte verification, remote recheck, ordinary push, and post-push three-way verification remain pending and are not pre-claimed here.
 - First staged `git diff --check` correctly rejected the byte-exact CRLF calibration file when its exact attribute was only `-text`; no data bytes were changed. The rule was tightened to exact `binary`, documentation was corrected, and final staged `git diff --check` passed with no output.
 - The first index `SequenceEqual` script encountered PowerShell byte-array expansion after already reporting the correct 3,205-byte SHA256. The explicit `byte[]` rerun verified calibration index/source equality and prompt index/attachment equality as `True`; staged allowlist count was 14, unstaged diff empty, and task temp paths `NONE`.
+
+## [DEV-07.04][STARTED] UI and complete simulated measurement workflow integration
+
+- Started at: `2026-08-23T17:44:31.8994470+01:00`.
+- Parent commit: `6dc77e7bbd346f381aaee9b7881b5e9e7015518f`.
+- Scope: minimally connect the existing Tkinter development-demo controller, deterministic ESS, DEV-07.01 fake full-duplex capture, four-file bundle validation, DEV-07.03 iMM-6C amplitude calibration, create-only processing publication, recovery evidence, and UI status for the three-condition/two-repeat demo.
+- Safety boundary: only `FakeFullDuplexBackend` is authorized. No real audio device has been accessed or enumerated; no real Stream has been opened; no playback, recording, device calibration, absolute-SPL calibration, or formal experiment has occurred.
+- Prompt archive: `docs/prompts/DEV-07.04.md` is byte-equal to the 16,488-byte attachment with SHA256 `05615FF4A489A406C2D5180D4CD714AD3A3F17B50775BBB61DE1145752AABAEF`.
+- Predecessor artifact check: no tracked or workspace `.dev*.patch` exists and no demo capture/state artifact was found. The sole `.d701-short` directory was an empty, untracked DEV-07.01 pytest basetemp and was removed after exact containment and provenance inspection; the unrelated pre-existing root `.pytest_cache` was left untouched.
+
+[DEV-07.04][FAILED]
+
+- 结束时间：2026-08-23T19:30:33.8819586+01:00。基线/远端在完整套件前仍为 `6dc77e7bbd346f381aaee9b7881b5e9e7015518f`；未访问项目外指令或真实音频硬件。
+- 实施范围：新增 `ui/simulated_workflow.py`，将既有 ESS、DEV-07.01 fake capture、四文件 bundle 重验、DEV-07.03 iMM-6C 幅值校准与 create-only 七文件 processing evidence接入 controller/Tk；新增 UI阶段状态、失败停留、新 run ID retry、successful run/receipt state binding及严格恢复重放。README仅追加当前完整 fake demo说明；prompt byte-exact归档为16,488 bytes/SHA256 `05615FF4A489A406C2D5180D4CD714AD3A3F17B50775BBB61DE1145752AABAEF`。
+- TDD/问题：真实 RED 覆盖缺失runner、controller processing、retry/recovery、默认UI及interrupted-attempt语义，逐片修正。早期focused pytest默认temp root发生Windows `PermissionError`，后续使用workspace短basetemp；原生patch helper持续 `helper_unknown_error`，改用Git apply审计patch。若干中间patch计数/落点错误由语法/focused检查发现并纠正，未计为通过。
+- 定向结果：DEV-07.04新增 `18 passed in 5.49s`；最终全部直接相关 `tests/dev07` 为 `78 passed in 10.80s`。Ruff affected-file format `8 files already formatted`、lint PASS；strict mypy `Success: no issues found in 7 source files`；`git diff --check` PASS；suppression扫描0；Schema未修改故未运行Schema consistency。校准SHA256实测 `421070EC6D41C1B92CB69F0F5E4E290F9644847D92D52590994A80EA9E17A11E`。
+- 3条件/6 sweep演练：controller逐条件完成三项等价用户确认，6/6 unique run按condition/repeat确定顺序成功；六个capture/processing逐一重放、receipt/run/calibration绑定通过，恢复为`all_complete`且不重复执行。临时演练目录精确验证后清理；所有数据仅在task temp的`development/demo`，未进入正式root。
+- 唯一完整suite：`.venv\\Scripts\\python.exe -m pytest --basetemp=.d704all -q -p no:cacheprovider` 得到 `2 failed, 985 passed in 3104.17s (0:51:44)`。失败为两个历史DEV-03全audio AST门禁；它们禁止任何`Stream`/`wait`调用，而未由本步修改的DEV-07.01 `pilot_capture_backends.py:210/222`包含授权后`module.Stream(...)`及Event `wait(...)`。按门禁未修复、未运行失败selector、未重跑完整suite；`.d704all`已精确清理。
+- Git状态：因完整suite失败，未创建commit、未push，不能追加`[COMPLETED]`或声称PASS。已创建 `docs/reports/DEV-07.04.md` 记录完整事实；当前保留未提交工作区供后续专门修复。未枚举/连接设备、未打开真实Stream、未播放、未录音、未做94 dB/SPL/正式QC或正式结论。
+
+## [DEV-07.04R][STARTED] 修复历史音频 API 门禁并完成模拟链路冻结
+
+- 开始基线：分支 `main`；local HEAD、`origin/main` 与 GitHub `main` 均为 `6dc77e7bbd346f381aaee9b7881b5e9e7015518f`；远程为 `https://github.com/haocheng26710/fingers.git`。
+- 修正对象：`tests/dev03/test_context_encoding.py::test_production_audio_code_calls_no_forbidden_api_after_context_change` 与 `tests/dev03/test_preflight_persistence_cli.py::test_production_audio_code_calls_no_forbidden_api`。
+- 范围严格限于让旧 DEV-03 AST 门禁精确识别 DEV-07.01 已安全门控的 `module.Stream(...)` 与 `finished.wait(...)`，并完成 DEV-07.04 模拟链路冻结；不新增功能、不修改生产音频实现、不访问或枚举真实设备、不打开 Stream、不播放、不录音。
+## [DEV-07.04R][COMPLETED] 修复历史音频 API 门禁并完成模拟链路冻结
+
+- 修正前按要求只运行两个失败 selector，真实结果为 `2 failed in 1.83s`；根因是两份重复 DEV-03 测试仅按属性名全局禁止 `Stream`/`wait`，误报未修改的 DEV-07.01 安全门控 `module.Stream(...)` 和 `finished.wait(...)`。
+- 新增共享测试 AST 门禁：八类高风险 API 继续全局禁止；`Stream`/`wait` 仅分别允许在 `pilot_capture_backends.py`、`SoundDeviceFullDuplexBackend.capture` 内以 `module.Stream`/`finished.wait` 各出现一次；失败包含文件、行号、receiver、属性。新增内存回归覆盖正确点及错误文件、类、方法、receiver、额外 wait 和全部禁止 API。生产 `pilot_capture_backends.py` 无修改。
+- 实际定向结果：修正后双 selector `2 passed in 1.66s`；门禁及两份历史文件 `52 passed in 2.16s`；DEV-07.01/runtime/UI default fake 安全选择器 `6 passed in 0.57s`；DEV-07.04 直接测试 `18 passed in 5.67s`；全部 `tests/dev07` `78 passed in 9.71s`；诊断收紧后门禁加双 selector `18 passed in 1.75s`。
+- 静态结果：Ruff format 首轮仅发现新测试两处机械折行，格式化后最终通过；Ruff lint PASS；`git diff --check` PASS；suppression 扫描0。helper仅在tests且生产源码未因R修改，故按提示词未重复mypy；Schema未改，未运行consistency。
+- 唯一完整 suite 使用 `--basetemp=.d704r-all -q -p no:cacheprovider`，真实结果 `1003 passed in 2826.40s (0:47:06)`；没有重跑完整 suite。既有自动测试已覆盖3条件×2 repeat，未再手工生成第二套6-sweep。
+- R prompt byte-exact归档为14,274 bytes、SHA256 `EC63735281ECB5ACAC69412381246CCD6EDDFA17A0CE56F8B61E2D047F0E35D3`。五个运行后非空 `.d704r-*` 目录均经根目录/名称检查后精确删除，残留0。
+- 原生patch helper发生已知Windows sandbox `helper_unknown_error`；两次手写git patch因hunk/context被拒绝且未写入，后续用精确命中计数且保留换行的受约束文本变换完成测试修改。未访问/枚举/连接真实设备，未打开真实Stream，未播放、录音、校准或产生正式结论。
+- 本条追加时最终文档后diff/远端/stage审计、commit与普通push尚未执行，不能预写提交SHA或推送结果。

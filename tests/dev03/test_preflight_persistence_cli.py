@@ -1,6 +1,5 @@
 from __future__ import annotations
 
-import ast
 import hashlib
 import json
 from datetime import UTC, datetime
@@ -23,6 +22,7 @@ from acoustic_ladder.config.bundle import load_config
 from acoustic_ladder.config.models import AudioConfig
 from acoustic_ladder.config.schema import ALL_SCHEMA_MODELS, check_schemas, schema_bytes
 from tests.conftest import REPO_ROOT
+from tests.dev03.audio_api_guard import assert_production_audio_api_guard
 
 NOW = datetime(2026, 8, 16, 12, 0, tzinfo=UTC)
 HARDWARE_PATH = REPO_ROOT / "reference/audio/hardware_setup.provisional.json"
@@ -204,25 +204,8 @@ def test_audio_list_cli_has_safety_marker(
 
 
 def test_production_audio_code_calls_no_forbidden_api() -> None:
-    forbidden = {
-        "play",
-        "rec",
-        "playrec",
-        "wait",
-        "Stream",
-        "RawStream",
-        "InputStream",
-        "OutputStream",
-        "RawInputStream",
-        "RawOutputStream",
+    sources = {
+        str(source_path): source_path.read_text(encoding="utf-8")
+        for source_path in (REPO_ROOT / "src/acoustic_ladder/audio").glob("*.py")
     }
-    called: set[str] = set()
-    for source_path in (REPO_ROOT / "src/acoustic_ladder/audio").glob("*.py"):
-        tree = ast.parse(source_path.read_text(encoding="utf-8"))
-        for node in ast.walk(tree):
-            if isinstance(node, ast.Call):
-                if isinstance(node.func, ast.Name):
-                    called.add(node.func.id)
-                elif isinstance(node.func, ast.Attribute):
-                    called.add(node.func.attr)
-    assert called.isdisjoint(forbidden)
+    assert_production_audio_api_guard(sources)
