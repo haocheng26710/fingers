@@ -265,6 +265,10 @@ Stage 1 输出按行元数据派生的单节点/桥状态描述差异，Stage 2 
 
 Stage 6 software workflow complete; awaiting real hardware connection and authorization.
 
+## DEV-07.01 guarded pilot full-duplex core
+
+The library now provides a default-off mono 48 kHz pilot capture core, a deterministic fake backend, a sounddevice adapter that remains inaccessible until its complete runtime authorization gate passes, and a create-only four-file capture bundle. Real device bindings, playback level, and formal QC thresholds remain unfrozen; there is no UI, and this interface is not authorization for real playback, recording, calibration, or formal experiments.
+
 详细契约见 `docs/architecture/`；数据根目录政策见 `data/README.md`。
 
 单元测试、真实包集成测试、完整测试与静态检查：

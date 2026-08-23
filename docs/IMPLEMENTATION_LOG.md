@@ -910,3 +910,28 @@
 - 创建 `docs/reports/DEV-06.03.md`，README新增CLI说明并写入精确状态 `Stage 6 software workflow complete; awaiting real hardware connection and authorization.`。本条落盘时最终文档后轻量门禁、远程基线复核、stage/commit/push尚未执行，不能预写提交SHA或推送结果。
 - 文档后轻量门禁实际结果：changed-file Ruff format `4 files already formatted`、lint `All checks passed!`、strict mypy `Success: no issues found in 4 source files`、`uv lock --check` resolved 44 packages、`git diff --check` exit 0无输出，禁止抑制扫描 `suppression_matches=0`。task-local `.uv-cache-dev0603-final` 解析为workspace直属目标后删除，`remaining=False`。Schema仍未修改，故未运行Schema consistency；完整pytest未重复。远端复核、stage/commit/push仍待执行。
 - 提交前首次普通 `git fetch origin main` 与 `git ls-remote` 在受限sandbox内均因 `Failed to connect to github.com:443` 失败，未计远端验证；按执行环境要求仅对相同只读命令获取网络授权后重试成功。local HEAD、`origin/main`、GitHub main仍一致为规定基线 `db7d1ca26e5a23349447c052dbd0cd046b037931`。当前仍未执行stage/commit/push，因此不预写最终SHA。
+
+## [DEV-07.01][STARTED] �ܿص���ʵȫ˫���ɼ����ģ�����棩
+
+- Baseline commit: `0597953517638db0cff5f208542a41fa817746d3`
+- Scope: guarded, default-off pilot full-duplex capture core only; no UI, calibration, or experiment execution.
+- Started at: `2026-08-23T01:12:22+01:00`
+- Prompt archive: `docs/prompts/DEV-07.01.md` (13,507 bytes; SHA256 `7c8809bb234f1eda9b5e07616338271baf9d9880ae2caf5031b92e133499f968`)
+- Baseline verification: local `HEAD`, `origin/main`, and GitHub `main` matched the baseline; branch was `main`; worktree was clean; remote URL was correct; no project-level agent instruction file was present.
+- Safety boundary: no real audio device was accessed, enumerated, opened, played, recorded, connected, or calibrated during startup verification.
+
+## [DEV-07.01][COMPLETED] Guarded pilot full-duplex capture core
+
+- Completed at: `2026-08-23T01:30:31.2977232+01:00`; baseline parent was `0597953517638db0cff5f208542a41fa817746d3`.
+- Added `pilot_capture.py` and `pilot_capture_backends.py`: explicit DISARMED/ARMED/RUNNING/COMPLETED/CANCELLED/FAILED states, thread-safe cancellation, deterministic delay/gain/noise fake exchange, injected-fault modes, pre-Stream real-hardware authorization, and lazy/injected sounddevice callback handling.
+- Publication is create-only: same-parent owned staging, four files (`captured_input.wav`, `output_reference.wav`, `run.json`, `qc.json`), then directory rename. Cancellation, backend failure, short input, invalid results, target collision, or staging failure publish no final bundle and clean only owned staging.
+- The structural QC contract is `pilot_structural_metrics_only` / `not_evaluated` with `thresholds_applied=false`; no formal acoustic PASS/FAIL was produced.
+- TDD evidence: initial missing-module RED; first GREEN `1 passed in 0.22s`; expanded missing-authorization-types RED; backend/safety GREEN `14 passed in 0.38s`; short-input regression `1 passed in 0.23s`.
+- Final directed pytest command covered all 15 new DEV-07 tests plus selected directly related ESS WAV/create-only/staging and virtual delay/fault/publication tests; parameterization expanded this to `31 passed in 3.02s`.
+- Final focused gates: Ruff format `5 files already formatted`; Ruff lint `All checks passed!`; strict mypy `Success: no issues found in 2 source files`. Final diff/suppression results are recorded by the subsequent pre-commit audit.
+- Full pytest, 344-row smoke, 1.13 GB matrix generation, Stage 1-4 analysis, full historical golden checks, and Schema consistency were deliberately not run per DEV-07.01. No Schema was changed.
+- Safety evidence: no real device enumeration/query, device access/connection, real Stream open, playback, recording, calibration, volume change, or formal experiment occurred. Adapter tests used only an injected fake sounddevice module whose query method fails if called.
+- Files added: prompt archive, two source modules, DEV-07 tests, and this report. Files modified: `.gitattributes`, README, and append-only implementation log. No V1.3 ZIP, manifest, Schema, historical report, or protected hash artifact was modified.
+- Known limits: no GUI/device discovery, frozen playback level, real binding, calibration/SPL, formal QC thresholds, recovery retry, or formal experiment orchestration. Next step is `DEV-07.02 - minimal Tkinter experiment wizard UI`.
+- Commit and push were still pending when this immutable entry was written; they must not be claimed until the final remote checks succeed.
+- Pre-commit consolidation audit removed the superseded initial fake backend, leaving exactly one `FakeFullDuplexBackend`. This production-code change justified one repeat of the same directed set: the authoritative result became `31 passed in 4.44s`; focused Ruff format/lint and strict mypy were rerun and again passed with the same results. No new test scope was added.
