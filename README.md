@@ -267,7 +267,17 @@ Stage 6 software workflow complete; awaiting real hardware connection and author
 
 ## DEV-07.01 guarded pilot full-duplex core
 
-The library now provides a default-off mono 48 kHz pilot capture core, a deterministic fake backend, a sounddevice adapter that remains inaccessible until its complete runtime authorization gate passes, and a create-only four-file capture bundle. Real device bindings, playback level, and formal QC thresholds remain unfrozen; there is no UI, and this interface is not authorization for real playback, recording, calibration, or formal experiments.
+The library now provides a default-off mono 48 kHz pilot capture core, a deterministic fake backend, a sounddevice adapter that remains inaccessible until its complete runtime authorization gate passes, and a create-only four-file capture bundle. Real device bindings, playback level, and formal QC thresholds remain unfrozen; this low-level interface is not authorization for real playback, recording, calibration, or formal experiments.
+
+## DEV-07.02 Tkinter 模拟实验向导
+
+在仓库根目录启动只使用 fake backend 的中文本地向导：
+
+```powershell
+uv run --frozen python -m acoustic_ladder.ui
+```
+
+可用 `--session-id <ID>` 重新打开并选择从原子保存的安全边界继续。向导只执行 3 个 `development_demo` 条件、每条件 2 次 fake capture，数据写入 `development/demo/`；正式 Stage 1–4 计划仅作只读预览（19/4/4/16 条件，合计 172 次装配、344 sweeps）。该入口不枚举或连接设备，不打开真实 Stream，不播放、不录音、不校准，也不产生正式实验结论。
 
 详细契约见 `docs/architecture/`；数据根目录政策见 `data/README.md`。
 

@@ -935,3 +935,35 @@
 - Known limits: no GUI/device discovery, frozen playback level, real binding, calibration/SPL, formal QC thresholds, recovery retry, or formal experiment orchestration. Next step is `DEV-07.02 - minimal Tkinter experiment wizard UI`.
 - Commit and push were still pending when this immutable entry was written; they must not be claimed until the final remote checks succeed.
 - Pre-commit consolidation audit removed the superseded initial fake backend, leaving exactly one `FakeFullDuplexBackend`. This production-code change justified one repeat of the same directed set: the authoritative result became `31 passed in 4.44s`; focused Ruff format/lint and strict mypy were rerun and again passed with the same results. No new test scope was added.
+
+## [DEV-07.02][STARTED] Minimal Tkinter experiment wizard UI
+
+- Baseline parent: `5c5ad0253f9dc02109b2982d1ddfa01789dcf052`.
+- Scope: local Windows development-demo wizard, controller, fake-only two-repeat rehearsal, recovery state, and Tkinter presentation; no real hardware operation or formal experiment.
+- Started at: `2026-08-23T02:20:09.5039435+01:00`.
+- Prompt archive: `docs/prompts/DEV-07.02.md` (14,988 bytes; SHA256 `eee167baf9de694df978dfbd62b89dad329d16cb7be7f9b4c0a766acffa1b30e`; attachment bytes equal).
+- Baseline verification: branch `main`; clean worktree; local HEAD, `origin/main`, and GitHub main all matched the required parent; remote URL was correct; no conflict or project-level instruction file was present.
+- Safety boundary: implementation and tests will use only `FakeFullDuplexBackend`; no real audio device was accessed, enumerated, queried, connected, selected, or opened, and no playback, recording, or calibration occurred.
+
+## [DEV-07.02][COMPLETED] Minimal Tkinter experiment wizard UI
+
+- Completed at: `2026-08-23T03:05:54.2085288+01:00`; baseline parent was `5c5ad0253f9dc02109b2982d1ddfa01789dcf052`.
+- Added the public display-independent wizard controller, compiled-plan projection, fake DEV-07.01 capture adapter, atomic mutable `session_state.json` store, Chinese Tkinter queue/worker shell, and `python -m acoustic_ladder.ui` entry. Added `development/demo/` to `.gitignore` and the prompt binary rule to `.gitattributes`.
+- The compiler-derived formal preview is 19/4/4/16 conditions, 152/32/32/128 sweeps, 172 assembly confirmations, and 344 sweeps. Execution is limited to a three-condition `development_demo`, two fake repeats each (six sweeps); no 344-sweep rehearsal ran.
+- Recovery validates session/root/plan identity, fields, safe state, typed confirmations, and completed-condition prefix. Same-directory temporary write plus `os.replace` updates mutable state; corrupt/missing/mismatched state and unexpected existing directories are rejected without overwrite. Capture bundles remain DEV-07.01 create-only four-file directories.
+- Added 20 DEV-07.02 tests across 12 files. The authoritative directed command combined them with three selected DEV-07.01 fake/cancellation/create-only tests and eight existing compiler/schedule cases; result: `31 passed in 4.59s`. After a UI punctuation-only lint correction, the directly affected four UI contract tests passed in `0.47s`.
+- Tk widget smoke actually created a hidden window, built widgets, ran `update_idletasks()`, saved state, and destroyed it: `PASS Tk widget build smoke`. Module help entry exited 0. Neither command started a capture.
+- Final changed-file Ruff format reported `18 files already formatted`; final Ruff lint reported `All checks passed!`; strict mypy reported `Success: no issues found in 6 source files`.
+- Actual command issues: an early system-interpreter `python -m pytest` failed collection with `ModuleNotFoundError`; rerunning through locked `uv run --frozen` passed. A PowerShell wildcard was passed literally to pytest and returned `file or directory not found`; subsequent test commands used explicit paths. An intermediate Ruff lint found import ordering, ambiguous Chinese punctuation, and one long line; these were corrected without suppression.
+- Full pytest, Schema consistency, the 344-sweep rehearsal, 1.13 GB matrix, Stage 1-4 full analysis, and historical golden suite were not run, per scope. No Schema changed.
+- Added: `src/acoustic_ladder/ui/{__init__,__main__,controller,plans,session_state,tk_app}.py`, 12 `tests/dev07/test_wizard_*.py` files, prompt archive, and `docs/reports/DEV-07.02.md`. Modified: `.gitattributes`, `.gitignore`, README, and this append-only log. DEV-07.01 production code and protected V1.3 artifacts were not modified.
+- All task-local `.d702-*` pytest and GUI-smoke directories were resolved within the workspace, scope-checked, and removed after use. No temporary demo data is intended for commit.
+- Safety result: no real device enumeration/query, access/connection/selection, real Stream open, playback, recording, or calibration occurred. No formal experiment or experimental conclusion was produced.
+- Known limits: development rehearsal only; no real-hardware selection or I/O, Host API/channel binding, calibration/SPL, playback-level freeze, formal QC threshold, migration system, installer, or formal authorization.
+- Git diff/suppression/protected-file and final remote checks, staging, commit, and push were still pending when this entry was appended; their results must be recorded separately and must not be inferred here.
+- Pre-commit audit: the exact 24-file allowlist was staged; `git diff --cached --check` exited 0 with no output. The new-source/test scan for `pytest.mark.skip`, `pytest.skip`, `skipif`, `xfail`, `noqa`, and `type: ignore` returned no matches (rg exit 1).
+- Protected-file audit against the required parent exited 0 for the V1.3 ZIP, provisional manifest/sidecar, DEV-07.01 prompt/report, and Schemas. Prompt archive remained byte-equal at 14,988 bytes with SHA256 `eee167baf9de694df978dfbd62b89dad329d16cb7be7f9b4c0a766acffa1b30e`. No `.d702*` or `.dev0702*` temporary target remained.
+- Final pre-commit remote recheck succeeded: local HEAD, `origin/main`, and GitHub `main` all remained `5c5ad0253f9dc02109b2982d1ddfa01789dcf052` on branch `main`.
+- Commit and ordinary push were still pending at this point. No force push, amend, rebase, history rewrite, or extra commit had occurred.
+- Final read-only review identified one close/reopen gap: a session cancelled while closing could recover into a terminal state. Recovery was minimally tightened to require the exact four-file bundle for every state-claimed repeat and to map a verified cancelled/error boundary to `ready` or `between_repeats`. The affected emergency/recovery/state-safety tests passed `8 passed in 1.85s`; focused format `2 files already formatted`, lint `All checks passed!`, and strict mypy `Success: no issues found in 6 source files` also passed. The task-local recovery temp directory was scope-checked and removed.
+- Because production recovery code changed after the earlier staged audit, the final staged diff/suppression check was required again before commit; commit and push remained pending when this factual correction was appended.
